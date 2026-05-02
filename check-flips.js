@@ -98,6 +98,8 @@ function analyzeHistory(history) {
       historySignal: "⚪ NOT ENOUGH HISTORY",
       historyAdvice: "Need more bot runs before making a timing call.",
       historyScore: 0,
+      bottomSignal: false,
+      firstGreenSignal: false,
     };
   }
 
@@ -114,12 +116,52 @@ function analyzeHistory(history) {
     previous.sellOffer < previous.dayAverageSell &&
     current.sellOffer > previous.sellOffer;
 
+  const stoppedFalling =
+    history.length >= 4 &&
+    history[history.length - 4].sellOffer >
+      history[history.length - 3].sellOffer &&
+    history[history.length - 3].sellOffer >
+      history[history.length - 2].sellOffer &&
+    current.sellOffer >= previous.sellOffer;
+
+  const firstGreenAfterDrop =
+    history.length >= 4 &&
+    history[history.length - 4].sellOffer >
+      history[history.length - 3].sellOffer &&
+    history[history.length - 3].sellOffer >
+      history[history.length - 2].sellOffer &&
+    current.sellOffer > previous.sellOffer;
+
+  if (firstGreenAfterDrop) {
+    return {
+      historySignal: "🟢 FIRST GREEN AFTER DROP",
+      historyAdvice:
+        "Price dropped for multiple runs and just bounced. This may be a strong buy timing signal.",
+      historyScore: 25,
+      bottomSignal: true,
+      firstGreenSignal: true,
+    };
+  }
+
+  if (stoppedFalling) {
+    return {
+      historySignal: "🟡 FALLING STOPPED",
+      historyAdvice:
+        "Price stopped falling. Wait one more run or buy small if profit is strong.",
+      historyScore: 15,
+      bottomSignal: true,
+      firstGreenSignal: false,
+    };
+  }
+
   if (falling) {
     return {
       historySignal: "🔴 FALLING FOR 3 RUNS",
       historyAdvice:
         "Wait. Price is still dropping. Better entry may come later.",
       historyScore: -20,
+      bottomSignal: false,
+      firstGreenSignal: false,
     };
   }
 
@@ -129,6 +171,8 @@ function analyzeHistory(history) {
       historyAdvice:
         "Price may be recovering. Consider buying small if profit is good.",
       historyScore: 15,
+      bottomSignal: true,
+      firstGreenSignal: false,
     };
   }
 
@@ -138,13 +182,17 @@ function analyzeHistory(history) {
       historyAdvice:
         "Good momentum, but avoid chasing if price is already inflated.",
       historyScore: 10,
+      bottomSignal: false,
+      firstGreenSignal: false,
     };
   }
 
   return {
-    historySignal: "⚪ STABLE",
-    historyAdvice: "No strong short-term movement detected.",
+    historySignal: "⚪ WEAK / UNCERTAIN",
+    historyAdvice: "No clear direction. Combine with trend before acting.",
     historyScore: 0,
+    bottomSignal: false,
+    firstGreenSignal: false,
   };
 }
 
@@ -193,7 +241,7 @@ function getFakeSpreadRisk(item) {
   };
 }
 
-function getDecision(item, profit, profitPercent, fakeSpreadRisk) {
+function getDecision(item, profit, profitPercent, fakeSpreadRisk, historyData) {
   const daySell = item.day_average_sell || 0;
   const monthSell = item.month_average_sell || 0;
   const daySold = item.day_sold || 0;
@@ -212,6 +260,7 @@ function getDecision(item, profit, profitPercent, fakeSpreadRisk) {
   const isFalling = dayVsMonthSell < -2;
   const hasGoodVolume = volumeRatio >= 1;
   const hasLowVolume = volumeRatio < 0.5;
+  const hasDownwardPressure = dayVsMonthSell < 0 && volumeRatio < 1;
 
   let decision = "⚪ WATCH";
   let action = "Watch this item, but do not buy yet.";
@@ -221,6 +270,14 @@ function getDecision(item, profit, profitPercent, fakeSpreadRisk) {
     decision = "🔴 AVOID";
     action = "Do not buy. The spread may be fake or hard to sell.";
     reason = "Fake spread risk is too high.";
+  } else if (isGoodProfit && historyData?.firstGreenSignal && !hasLowVolume) {
+    decision = "🟢 BUY NOW - POSSIBLE BOTTOM";
+    action = `Price bounced after falling. Try buying at or below ${item.buy_offer.toLocaleString()} gp, but do not overpay.`;
+    reason = "Strong profit plus first green signal after a drop.";
+  } else if (isGoodProfit && historyData?.bottomSignal && !hasLowVolume) {
+    decision = "🟡 BUY SMALL / TEST ENTRY";
+    action = `Price may be bottoming. Buy small at or below ${item.buy_offer.toLocaleString()} gp, or wait one more run for confirmation.`;
+    reason = "Profit is good and the falling move may be ending.";
   } else if (isGoodProfit && isRising && hasGoodVolume) {
     decision = "🟢 BUY NOW";
     action = `Try buying at or below ${item.buy_offer.toLocaleString()} gp. Target sell around ${item.sell_offer.toLocaleString()} gp.`;
@@ -230,6 +287,10 @@ function getDecision(item, profit, profitPercent, fakeSpreadRisk) {
     action =
       "Do not buy yet. Price is falling, so you may get a better entry soon.";
     reason = "The flip is profitable, but the market is currently moving down.";
+  } else if (isGoodProfit && hasDownwardPressure) {
+    decision = "🟡 WAIT";
+    action = "Wait for stabilization or a price bounce before buying.";
+    reason = "Downward pressure: trend is negative and volume is weak.";
   } else if (isGoodProfit && hasLowVolume) {
     decision = "🟠 RISKY BUY";
     action = "Only buy a small amount. This may be hard to resell quickly.";
@@ -369,6 +430,7 @@ async function main() {
         result.profit,
         result.profitPercent,
         fakeRiskData.fakeSpreadRisk,
+        historyData,
       );
 
       return {
