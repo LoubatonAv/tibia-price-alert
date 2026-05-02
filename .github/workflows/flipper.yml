@@ -1,0 +1,30 @@
+name: Tibia Flipper
+
+on:
+  schedule:
+    - cron: "0 10 */2 * *" # every 2 days
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+            - name: Install dependencies
+        run: npm install
+
+      - name: Fetch item metadata
+        run: node scripts/fetch-items.js
+
+      - name: Run flipper
+        run: node check-flips.js
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
