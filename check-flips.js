@@ -55,35 +55,145 @@ function getColor(profitPercent) {
   return 0xff9900;
 }
 
-function getSignal(item, profit, profitPercent) {
-  const dayVsMonthSell =
-    ((item.day_average_sell - item.month_average_sell) /
-      item.month_average_sell) *
-    100;
+const STATE_FILE = "./state.json";
+const MAX_HISTORY = 20;
 
-  const volumeBoost = item.day_sold > item.month_sold / 30;
-
-  if (
-    profit >= MIN_PROFIT &&
-    profitPercent >= MIN_PROFIT_PERCENT &&
-    dayVsMonthSell > 2 &&
-    volumeBoost
-  ) {
-    return "🟢 STRONG BUY";
+function loadState() {
+  if (!fs.existsSync(STATE_FILE)) {
+    return { items: {} };
   }
 
-  if (dayVsMonthSell > 2) {
-    return "🟡 RISING";
-  }
-
-  if (dayVsMonthSell < -2) {
-    return "🔴 FALLING";
-  }
-
-  return "⚪ NEUTRAL";
+  return JSON.parse(fs.readFileSync(STATE_FILE, "utf8"));
 }
 
-function getDecision(item, profit, profitPercent) {
+function saveState(state) {
+  fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+}
+
+function updateItemHistory(state, item, calculated) {
+  const id = String(item.id);
+
+  if (!state.items[id]) {
+    state.items[id] = [];
+  }
+
+  state.items[id].push({
+    time: new Date().toISOString(),
+    buyOffer: item.buy_offer,
+    sellOffer: item.sell_offer,
+    profit: calculated.profit,
+    profitPercent: calculated.profitPercent,
+    dayAverageSell: item.day_average_sell,
+    monthAverageSell: item.month_average_sell,
+    daySold: item.day_sold,
+    monthSold: item.month_sold,
+  });
+
+  state.items[id] = state.items[id].slice(-MAX_HISTORY);
+}
+
+function analyzeHistory(history) {
+  if (!history || history.length < 3) {
+    return {
+      historySignal: "⚪ NOT ENOUGH HISTORY",
+      historyAdvice: "Need more bot runs before making a timing call.",
+      historyScore: 0,
+    };
+  }
+
+  const last3 = history.slice(-3);
+  const prices = last3.map((h) => h.sellOffer);
+
+  const falling = prices[0] > prices[1] && prices[1] > prices[2];
+  const rising = prices[0] < prices[1] && prices[1] < prices[2];
+
+  const previous = history[history.length - 2];
+  const current = history[history.length - 1];
+
+  const recovering =
+    previous.sellOffer < previous.dayAverageSell &&
+    current.sellOffer > previous.sellOffer;
+
+  if (falling) {
+    return {
+      historySignal: "🔴 FALLING FOR 3 RUNS",
+      historyAdvice:
+        "Wait. Price is still dropping. Better entry may come later.",
+      historyScore: -20,
+    };
+  }
+
+  if (recovering) {
+    return {
+      historySignal: "🟢 POSSIBLE BOTTOM",
+      historyAdvice:
+        "Price may be recovering. Consider buying small if profit is good.",
+      historyScore: 15,
+    };
+  }
+
+  if (rising) {
+    return {
+      historySignal: "🟡 RISING FOR 3 RUNS",
+      historyAdvice:
+        "Good momentum, but avoid chasing if price is already inflated.",
+      historyScore: 10,
+    };
+  }
+
+  return {
+    historySignal: "⚪ STABLE",
+    historyAdvice: "No strong short-term movement detected.",
+    historyScore: 0,
+  };
+}
+
+function getFakeSpreadRisk(item) {
+  const sellOffer = item.sell_offer || 0;
+  const dayAvgSell = item.day_average_sell || 0;
+  const monthAvgSell = item.month_average_sell || 0;
+  const daySold = item.day_sold || 0;
+  const monthSold = item.month_sold || 0;
+
+  let risk = 0;
+  const warnings = [];
+
+  if (monthAvgSell > 0 && sellOffer > monthAvgSell * 1.25) {
+    risk += 30;
+    warnings.push("Sell offer is much higher than monthly average.");
+  }
+
+  if (dayAvgSell > 0 && sellOffer > dayAvgSell * 1.2) {
+    risk += 25;
+    warnings.push("Sell offer is much higher than today's average.");
+  }
+
+  const avgDailyVolume = monthSold / 30;
+
+  if (avgDailyVolume > 0 && daySold < avgDailyVolume * 0.5) {
+    risk += 20;
+    warnings.push("Low volume today. May be hard to resell.");
+  }
+
+  const rawSpreadPercent =
+    item.buy_offer > 0
+      ? ((item.sell_offer - item.buy_offer) / item.buy_offer) * 100
+      : 0;
+
+  if (rawSpreadPercent > 40) {
+    risk += 25;
+    warnings.push("Huge spread. Could be bait/fake pricing.");
+  }
+
+  return {
+    fakeSpreadRisk: risk,
+    fakeSpreadWarnings: warnings.length
+      ? warnings.join("\n")
+      : "No major fake spread warning.",
+  };
+}
+
+function getDecision(item, profit, profitPercent, fakeSpreadRisk) {
   const daySell = item.day_average_sell || 0;
   const monthSell = item.month_average_sell || 0;
   const daySold = item.day_sold || 0;
@@ -107,7 +217,11 @@ function getDecision(item, profit, profitPercent) {
   let action = "Watch this item, but do not buy yet.";
   let reason = "The numbers are not strong enough yet.";
 
-  if (isGoodProfit && isRising && hasGoodVolume) {
+  if (fakeSpreadRisk >= 40) {
+    decision = "🔴 AVOID";
+    action = "Do not buy. The spread may be fake or hard to sell.";
+    reason = "Fake spread risk is too high.";
+  } else if (isGoodProfit && isRising && hasGoodVolume) {
     decision = "🟢 BUY NOW";
     action = `Try buying at or below ${item.buy_offer.toLocaleString()} gp. Target sell around ${item.sell_offer.toLocaleString()} gp.`;
     reason = "Good profit, rising price, and healthy volume.";
@@ -122,7 +236,9 @@ function getDecision(item, profit, profitPercent) {
     reason = "Profit looks good, but liquidity is low.";
   } else if (isGoodProfit) {
     decision = "🟡 BUY ONLY IF CHEAP";
-    action = `Only buy if you can get it below ${Math.floor(item.buy_offer * 0.98).toLocaleString()} gp.`;
+    action = `Only buy if you can get it below ${Math.floor(
+      item.buy_offer * 0.98,
+    ).toLocaleString()} gp.`;
     reason = "Profit exists, but trend/volume are not strong enough.";
   } else if (isRising && hasGoodVolume) {
     decision = "🔵 WATCH CLOSELY";
@@ -198,6 +314,26 @@ async function sendDiscordAlert(opportunities) {
         value: `${item.volumeRatio.toFixed(2)}x normal daily volume`,
         inline: true,
       },
+      {
+        name: "Fake Spread Risk",
+        value: `${item.fakeSpreadRisk}/100`,
+        inline: true,
+      },
+      {
+        name: "Fake Spread Warnings",
+        value: item.fakeSpreadWarnings,
+        inline: false,
+      },
+      {
+        name: "History Signal",
+        value: item.historySignal,
+        inline: true,
+      },
+      {
+        name: "Timing Advice",
+        value: item.historyAdvice,
+        inline: false,
+      },
     ],
     footer: {
       text: `Item ID: ${item.id} | Tax included`,
@@ -215,15 +351,24 @@ async function sendDiscordAlert(opportunities) {
 async function main() {
   const items = await getMarketValues();
   const itemMap = getItemMap();
+  const state = loadState();
 
   const opportunities = items
     .map((item) => {
       const result = calculateProfit(item.buy_offer, item.sell_offer);
 
+      updateItemHistory(state, item, result);
+
+      const history = state.items[String(item.id)];
+      const historyData = analyzeHistory(history);
+
+      const fakeRiskData = getFakeSpreadRisk(item);
+
       const decisionData = getDecision(
         item,
         result.profit,
         result.profitPercent,
+        fakeRiskData.fakeSpreadRisk,
       );
 
       return {
@@ -233,6 +378,8 @@ async function main() {
         sellOffer: item.sell_offer,
         ...result,
         ...decisionData,
+        ...historyData,
+        ...fakeRiskData,
       };
     })
     .filter((item) => {
@@ -248,9 +395,15 @@ async function main() {
         `Buy: ${item.buyOffer} | Sell: ${item.sellOffer}\n` +
         `Profit: ${item.profit.toFixed(0)} (${item.profitPercent.toFixed(2)}%)\n` +
         `Reason: ${item.reason}\n` +
-        `Action: ${item.action}\n`,
+        `Action: ${item.action}\n` +
+        `Fake Spread Risk: ${item.fakeSpreadRisk}/100\n` +
+        `Warnings: ${item.fakeSpreadWarnings}\n` +
+        `History: ${item.historySignal}\n` +
+        `Advice: ${item.historyAdvice}\n`,
     );
   });
+
+  saveState(state);
 
   await sendDiscordAlert(opportunities);
 }
