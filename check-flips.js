@@ -320,6 +320,25 @@ function getDecision(item, profit, profitPercent, fakeSpreadRisk, historyData) {
   };
 }
 
+function buildTitle(item, index) {
+  let tag = "";
+
+  // 🔥 strongest signals first
+  if (item.firstGreenSignal) {
+    tag = " (BOTTOM SIGNAL)";
+  } else if (item.bottomSignal) {
+    tag = " (BOTTOM FORMING)";
+  } else if (item.historySignal.includes("FALLING")) {
+    tag = " (FALLING)";
+  } else if (item.fakeSpreadRisk >= 40) {
+    tag = " (RISKY / FAKE)";
+  } else if (item.dayVsMonthSell > 2) {
+    tag = " (RISING)";
+  }
+
+  return `${item.decision} — ${item.name}${tag}`;
+}
+
 async function sendDiscordAlert(opportunities) {
   if (opportunities.length === 0) {
     console.log("No big profitable flips found. No Discord message sent.");
@@ -327,72 +346,37 @@ async function sendDiscordAlert(opportunities) {
   }
 
   const embeds = opportunities.slice(0, 5).map((item, index) => ({
-    title: `🟢 #${index + 1} ${item.name}`,
+    title: buildTitle(item, index),
     color: getColor(item.profitPercent),
     fields: [
       {
-        name: "Buy",
-        value: `${item.buyOffer.toLocaleString()} gp`,
-        inline: true,
-      },
-      {
-        name: "Sell",
-        value: `${item.sellOffer.toLocaleString()} gp`,
-        inline: true,
-      },
-      {
-        name: "Real Profit",
-        value: `${Math.round(item.profit).toLocaleString()} gp`,
-        inline: true,
-      },
-      {
-        name: "Profit %",
-        value: `${item.profitPercent.toFixed(2)}%`,
-        inline: true,
-      },
-      {
-        name: "Decision",
-        value: item.decision,
-        inline: true,
-      },
-      {
-        name: "Reason",
-        value: item.reason,
+        name: "💰 Profit",
+        value: `${Math.round(item.profit).toLocaleString()} gp (${item.profitPercent.toFixed(2)}%)`,
         inline: false,
       },
       {
-        name: "What to do",
+        name: "💸 Trade",
+        value: `Buy: ${item.buyOffer.toLocaleString()} → Sell: ${item.sellOffer.toLocaleString()}`,
+        inline: false,
+      },
+      {
+        name: "📉 Market",
+        value: `Trend: ${item.dayVsMonthSell.toFixed(2)}%\nVolume: ${item.volumeRatio.toFixed(2)}x`,
+        inline: true,
+      },
+      {
+        name: "🧠 Timing",
+        value: `${item.historySignal}\n${item.historyAdvice}`,
+        inline: true,
+      },
+      {
+        name: "⚠️ Risk",
+        value: `Fake Spread: ${item.fakeSpreadRisk}/100`,
+        inline: true,
+      },
+      {
+        name: "👉 Action",
         value: item.action,
-        inline: false,
-      },
-      {
-        name: "Trend",
-        value: `${item.dayVsMonthSell.toFixed(2)}% vs monthly avg`,
-        inline: true,
-      },
-      {
-        name: "Volume",
-        value: `${item.volumeRatio.toFixed(2)}x normal daily volume`,
-        inline: true,
-      },
-      {
-        name: "Fake Spread Risk",
-        value: `${item.fakeSpreadRisk}/100`,
-        inline: true,
-      },
-      {
-        name: "Fake Spread Warnings",
-        value: item.fakeSpreadWarnings,
-        inline: false,
-      },
-      {
-        name: "History Signal",
-        value: item.historySignal,
-        inline: true,
-      },
-      {
-        name: "Timing Advice",
-        value: item.historyAdvice,
         inline: false,
       },
     ],
