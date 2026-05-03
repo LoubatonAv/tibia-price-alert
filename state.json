@@ -143,6 +143,11 @@
         "monthAverageSell": 41170,
         "daySold": 123,
         "monthSold": 2723
+      },
+      {
+        "time": "2026-05-03T20:43:22.908Z",
+        "sellOffer": 40346,
+        "profitPercent": -2.1881761207927464
       }
     ],
     "22516": [
@@ -288,6 +293,11 @@
         "monthAverageSell": 50021,
         "daySold": 50,
         "monthSold": 1774
+      },
+      {
+        "time": "2026-05-03T20:43:22.908Z",
+        "sellOffer": 49994,
+        "profitPercent": 13.019884659746259
       }
     ],
     "22721": [
@@ -433,10 +443,19 @@
         "monthAverageSell": 48996,
         "daySold": 38,
         "monthSold": 1174
+      },
+      {
+        "time": "2026-05-03T20:43:22.908Z",
+        "sellOffer": 48000,
+        "profitPercent": 0.7991936064511466
       }
     ]
   },
   "alerts": {
+    "22118": {
+      "time": "2026-05-03T20:43:23.519Z",
+      "brainScore": 50
+    },
     "22516": {
       "time": "2026-05-03T20:17:10.734Z",
       "brainScore": 74,
@@ -444,6 +463,15 @@
       "profitPercent": 13.019884659746259,
       "decision": "🟡 WAIT 1–2 DAYS",
       "firstGreenSignal": false
+    },
+    "22721": {
+      "time": "2026-05-03T20:43:23.519Z",
+      "brainScore": 52
     }
+  },
+  "market": {
+    "volatility": 0,
+    "level": "LOW",
+    "nextRunHours": 6
   }
 }
