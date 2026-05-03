@@ -17,7 +17,9 @@ const ALERT_COOLDOWN_HOURS = 12;
 const SCORE_IMPROVEMENT_TO_REALERT = 10;
 
 function getTrackedItemIds() {
-  const tracked = JSON.parse(fs.readFileSync("./tracked-items.json", "utf8"));
+  const tracked = JSON.parse(
+    fs.readFileSync("./data/tracked-items.json", "utf8"),
+  );
 
   return [...tracked.core, ...tracked.watch].join(",");
 }
