@@ -10,13 +10,19 @@ const TAX_RATE = 0.02;
 const MIN_PROFIT = 5000;
 const MIN_PROFIT_PERCENT = 3;
 
-const ITEM_IDS = "22118,22516,22721";
-
 const STATE_FILE = "./state.json";
 const MAX_HISTORY = 20;
 
 const ALERT_COOLDOWN_HOURS = 12;
 const SCORE_IMPROVEMENT_TO_REALERT = 10;
+
+function getTrackedItemIds() {
+  const tracked = JSON.parse(fs.readFileSync("./tracked-items.json", "utf8"));
+
+  return [...tracked.core, ...tracked.watch].join(",");
+}
+
+const ITEM_IDS = getTrackedItemIds();
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
