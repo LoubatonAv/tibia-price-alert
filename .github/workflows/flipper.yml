@@ -2,7 +2,7 @@ name: Tibia Flipper
 
 on:
   schedule:
-    - cron: "0 10 */2 * *"
+    - cron: "0 */4 * * *"
   workflow_dispatch:
 
 permissions:
