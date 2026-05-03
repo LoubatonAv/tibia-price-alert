@@ -12,6 +12,16 @@ const MIN_PROFIT_PERCENT = 3;
 
 const ITEM_IDS = "22118,22516,22721";
 
+const STATE_FILE = "./state.json";
+const MAX_HISTORY = 20;
+
+const ALERT_COOLDOWN_HOURS = 12;
+const SCORE_IMPROVEMENT_TO_REALERT = 10;
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
 function getItemMap() {
   const raw = fs.readFileSync("./data/items.json");
   const items = JSON.parse(raw);
@@ -48,21 +58,24 @@ async function getMarketValues() {
   return res.data;
 }
 
-function getColor(profitPercent) {
-  if (profitPercent >= 20) return 0x00ff00;
-  if (profitPercent >= 10) return 0xffff00;
-  return 0xff9900;
+function getColor(brainScore) {
+  if (brainScore >= 80) return 0x00ff00;
+  if (brainScore >= 65) return 0xffff00;
+  if (brainScore >= 50) return 0xff9900;
+  return 0xff0000;
 }
-
-const STATE_FILE = "./state.json";
-const MAX_HISTORY = 20;
 
 function loadState() {
   if (!fs.existsSync(STATE_FILE)) {
-    return { items: {} };
+    return { items: {}, alerts: {} };
   }
 
-  return JSON.parse(fs.readFileSync(STATE_FILE, "utf8"));
+  const state = JSON.parse(fs.readFileSync(STATE_FILE, "utf8"));
+
+  if (!state.items) state.items = {};
+  if (!state.alerts) state.alerts = {};
+
+  return state;
 }
 
 function saveState(state) {
@@ -319,10 +332,180 @@ function getDecision(item, profit, profitPercent, fakeSpreadRisk, historyData) {
   };
 }
 
-function buildTitle(item, index) {
-  let tag = "";
+function calculateBrainScore(item) {
+  let score = 50;
+  const notes = [];
+
+  const profitScore = clamp(item.profitPercent * 2.2, 0, 35);
+  score += profitScore;
+  notes.push(`Profit score: +${profitScore.toFixed(1)}`);
+
+  const rawProfitScore = clamp(item.profit / 1000, 0, 20);
+  score += rawProfitScore;
+  notes.push(`Raw profit score: +${rawProfitScore.toFixed(1)}`);
+
+  if (item.dayVsMonthSell > 5) {
+    score += 12;
+    notes.push("Strong rising trend: +12");
+  } else if (item.dayVsMonthSell > 2) {
+    score += 7;
+    notes.push("Rising trend: +7");
+  } else if (item.dayVsMonthSell < -5) {
+    score -= 18;
+    notes.push("Strong falling trend: -18");
+  } else if (item.dayVsMonthSell < -2) {
+    score -= 10;
+    notes.push("Falling trend: -10");
+  }
+
+  if (item.volumeRatio >= 2) {
+    score += 12;
+    notes.push("Very strong volume: +12");
+  } else if (item.volumeRatio >= 1) {
+    score += 7;
+    notes.push("Good volume: +7");
+  } else if (item.volumeRatio < 0.5) {
+    score -= 15;
+    notes.push("Low volume: -15");
+  }
+
+  score += item.historyScore;
+  notes.push(
+    `History score: ${item.historyScore >= 0 ? "+" : ""}${item.historyScore}`,
+  );
+
+  score -= item.fakeSpreadRisk;
+  notes.push(`Fake spread risk: -${item.fakeSpreadRisk}`);
 
   if (item.firstGreenSignal) {
+    score += 10;
+    notes.push("First green after drop bonus: +10");
+  } else if (item.bottomSignal) {
+    score += 5;
+    notes.push("Bottom forming bonus: +5");
+  }
+
+  score = Math.round(clamp(score, 0, 100));
+
+  let confidence = "LOW";
+  if (score >= 80) confidence = "HIGH";
+  else if (score >= 65) confidence = "MEDIUM-HIGH";
+  else if (score >= 50) confidence = "MEDIUM";
+
+  let riskLevel = "HIGH";
+  if (item.fakeSpreadRisk >= 40 || item.volumeRatio < 0.5) {
+    riskLevel = "HIGH";
+  } else if (score >= 75 && item.volumeRatio >= 1) {
+    riskLevel = "LOW-MEDIUM";
+  } else if (score >= 60) {
+    riskLevel = "MEDIUM";
+  }
+
+  let positionSize = "DO NOT BUY";
+  if (score >= 85 && riskLevel !== "HIGH") {
+    positionSize = "LARGE";
+  } else if (score >= 75 && riskLevel !== "HIGH") {
+    positionSize = "MEDIUM";
+  } else if (score >= 60) {
+    positionSize = "SMALL / TEST";
+  } else if (score >= 50) {
+    positionSize = "WATCH ONLY";
+  }
+
+  const targetSell = Math.floor(item.sellOffer * 0.99);
+  const stopLoss = Math.floor(item.buyOffer * 0.97);
+  const maxBuy = Math.floor(item.buyOffer * 0.99);
+
+  let brainSummary = "Weak or unclear opportunity.";
+  if (score >= 85) {
+    brainSummary =
+      "Very strong setup. Only enter if price is still close to the shown buy price.";
+  } else if (score >= 75) {
+    brainSummary = "Strong setup, but avoid overpaying.";
+  } else if (score >= 60) {
+    brainSummary = "Decent setup. Small/test entry only.";
+  } else if (score >= 50) {
+    brainSummary = "Watchlist item. Not enough strength yet.";
+  }
+
+  return {
+    brainScore: score,
+    confidence,
+    riskLevel,
+    positionSize,
+    maxBuy,
+    targetSell,
+    stopLoss,
+    brainSummary,
+    brainNotes: notes,
+  };
+}
+
+function shouldSendAlert(state, item) {
+  const id = String(item.id);
+  const lastAlert = state.alerts[id];
+
+  if (!lastAlert) {
+    return {
+      shouldSend: true,
+      alertReason: "First alert for this item.",
+    };
+  }
+
+  const hoursSinceLastAlert =
+    (Date.now() - new Date(lastAlert.time).getTime()) / 1000 / 60 / 60;
+
+  const scoreImproved =
+    item.brainScore >= lastAlert.brainScore + SCORE_IMPROVEMENT_TO_REALERT;
+
+  const newStrongSignal = item.firstGreenSignal && !lastAlert.firstGreenSignal;
+
+  if (hoursSinceLastAlert >= ALERT_COOLDOWN_HOURS) {
+    return {
+      shouldSend: true,
+      alertReason: `Cooldown passed (${hoursSinceLastAlert.toFixed(1)}h).`,
+    };
+  }
+
+  if (scoreImproved) {
+    return {
+      shouldSend: true,
+      alertReason: `Brain score improved from ${lastAlert.brainScore} to ${item.brainScore}.`,
+    };
+  }
+
+  if (newStrongSignal) {
+    return {
+      shouldSend: true,
+      alertReason: "New first-green-after-drop signal.",
+    };
+  }
+
+  return {
+    shouldSend: false,
+    alertReason: `Skipped duplicate alert. Last alert was ${hoursSinceLastAlert.toFixed(1)}h ago.`,
+  };
+}
+
+function markAlertSent(state, item) {
+  const id = String(item.id);
+
+  state.alerts[id] = {
+    time: new Date().toISOString(),
+    brainScore: item.brainScore,
+    profit: item.profit,
+    profitPercent: item.profitPercent,
+    decision: item.decision,
+    firstGreenSignal: item.firstGreenSignal,
+  };
+}
+
+function buildTitle(item) {
+  let tag = "";
+
+  if (item.brainScore >= 85) {
+    tag = " (A+ SETUP)";
+  } else if (item.firstGreenSignal) {
     tag = " (BOTTOM SIGNAL)";
   } else if (item.bottomSignal) {
     tag = " (BOTTOM FORMING)";
@@ -337,25 +520,53 @@ function buildTitle(item, index) {
   return `${item.decision} — ${item.name}${tag}`;
 }
 
-async function sendDiscordAlert(opportunities) {
+async function sendDiscordAlert(opportunities, state) {
   if (opportunities.length === 0) {
     console.log("No big profitable flips found. No Discord message sent.");
     return;
   }
 
-  const embeds = opportunities.slice(0, 5).map((item, index) => ({
-    title: buildTitle(item, index),
-    color: getColor(item.profitPercent),
+  const alertable = opportunities.filter((item) => {
+    const alertCheck = shouldSendAlert(state, item);
+    item.alertReason = alertCheck.alertReason;
+
+    if (!alertCheck.shouldSend) {
+      console.log(`${item.name}: ${alertCheck.alertReason}`);
+    }
+
+    return alertCheck.shouldSend;
+  });
+
+  if (alertable.length === 0) {
+    console.log("No new alerts after cooldown/anti-spam filter.");
+    return;
+  }
+
+  const embeds = alertable.slice(0, 5).map((item) => ({
+    title: buildTitle(item),
+    color: getColor(item.brainScore),
     fields: [
       {
-        name: "💰 Profit",
-        value: `${Math.round(item.profit).toLocaleString()} gp (${item.profitPercent.toFixed(2)}%)`,
+        name: "🧠 Brain",
+        value:
+          `Score: **${item.brainScore}/100**\n` +
+          `Confidence: **${item.confidence}**\n` +
+          `Risk: **${item.riskLevel}**\n` +
+          `Size: **${item.positionSize}**`,
         inline: false,
       },
       {
-        name: "💸 Trade",
-        value: `Buy: ${item.buyOffer.toLocaleString()} → Sell: ${item.sellOffer.toLocaleString()}`,
-        inline: false,
+        name: "💰 Profit",
+        value: `${Math.round(item.profit).toLocaleString()} gp (${item.profitPercent.toFixed(2)}%)`,
+        inline: true,
+      },
+      {
+        name: "💸 Trade Plan",
+        value:
+          `Max buy: ${item.maxBuy.toLocaleString()} gp\n` +
+          `Target sell: ${item.targetSell.toLocaleString()} gp\n` +
+          `Stop loss-ish: ${item.stopLoss.toLocaleString()} gp`,
+        inline: true,
       },
       {
         name: "📉 Market",
@@ -365,30 +576,37 @@ async function sendDiscordAlert(opportunities) {
       {
         name: "🧠 Timing",
         value: `${item.historySignal}\n${item.historyAdvice}`,
-        inline: true,
+        inline: false,
       },
       {
         name: "⚠️ Risk",
-        value: `Fake Spread: ${item.fakeSpreadRisk}/100`,
-        inline: true,
+        value: `Fake Spread: ${item.fakeSpreadRisk}/100\n${item.fakeSpreadWarnings}`,
+        inline: false,
       },
       {
         name: "👉 Action",
-        value: item.action,
+        value: `${item.action}\n\n${item.brainSummary}`,
+        inline: false,
+      },
+      {
+        name: "🔔 Alert Reason",
+        value: item.alertReason,
         inline: false,
       },
     ],
     footer: {
-      text: `Item ID: ${item.id} | Tax included`,
+      text: `Item ID: ${item.id} | Tax included | Anti-spam enabled`,
     },
   }));
 
   await axios.post(process.env.DISCORD_WEBHOOK_URL, {
-    content: `🔥 Big Tibia flip opportunities on **${SERVER}**`,
+    content: `🧠 Tibia Flipper Brain alerts on **${SERVER}**`,
     embeds,
   });
 
-  console.log("Discord alert sent.");
+  alertable.forEach((item) => markAlertSent(state, item));
+
+  console.log("Discord brain alert sent.");
 }
 
 async function sendDiscordErrorAlert(err) {
@@ -437,7 +655,7 @@ async function main() {
         historyData,
       );
 
-      return {
+      const analyzedItem = {
         id: item.id,
         name: itemMap[item.id] || "Unknown",
         buyOffer: item.buy_offer,
@@ -447,21 +665,32 @@ async function main() {
         ...historyData,
         ...fakeRiskData,
       };
+
+      return {
+        ...analyzedItem,
+        ...calculateBrainScore(analyzedItem),
+      };
     })
     .filter((item) => {
       return (
-        item.profit >= MIN_PROFIT && item.profitPercent >= MIN_PROFIT_PERCENT
+        item.profit >= MIN_PROFIT &&
+        item.profitPercent >= MIN_PROFIT_PERCENT &&
+        item.brainScore >= 50
       );
     })
-    .sort((a, b) => b.profit - a.profit);
+    .sort((a, b) => b.brainScore - a.brainScore || b.profit - a.profit);
 
   opportunities.forEach((item) => {
     console.log(
       `${item.decision} ${item.name} (ID: ${item.id})\n` +
+        `Brain Score: ${item.brainScore}/100 | Confidence: ${item.confidence} | Risk: ${item.riskLevel}\n` +
+        `Position Size: ${item.positionSize}\n` +
         `Buy: ${item.buyOffer} | Sell: ${item.sellOffer}\n` +
+        `Max Buy: ${item.maxBuy} | Target Sell: ${item.targetSell} | Stop Loss-ish: ${item.stopLoss}\n` +
         `Profit: ${item.profit.toFixed(0)} (${item.profitPercent.toFixed(2)}%)\n` +
         `Reason: ${item.reason}\n` +
         `Action: ${item.action}\n` +
+        `Brain: ${item.brainSummary}\n` +
         `Fake Spread Risk: ${item.fakeSpreadRisk}/100\n` +
         `Warnings: ${item.fakeSpreadWarnings}\n` +
         `History: ${item.historySignal}\n` +
@@ -469,9 +698,9 @@ async function main() {
     );
   });
 
-  saveState(state);
+  await sendDiscordAlert(opportunities, state);
 
-  await sendDiscordAlert(opportunities);
+  saveState(state);
 }
 
 main().catch(async (err) => {
