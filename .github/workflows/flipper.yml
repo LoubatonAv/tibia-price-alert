@@ -34,6 +34,15 @@ jobs:
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
 
+      - name: Notify Discord on failure
+        if: failure()
+        run: |
+          curl -H "Content-Type: application/json" \
+          -d "{\"content\":\"🚨 Tibia Flipper GitHub Action failed. Check the Actions logs.\"}" \
+          "$DISCORD_WEBHOOK_URL"
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+
       - name: Commit updated state
         run: |
           git config --global user.name "github-actions"

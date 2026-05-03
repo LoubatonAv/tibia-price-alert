@@ -1,6 +1,8 @@
 import axios from "axios";
 import fs from "fs";
 import "dotenv/config";
+require("dotenv").config();
+const { sendDiscordAlert } = require("./discord");
 
 const API_URL = "https://api.tibiamarket.top";
 const SERVER = "Harmonia";
@@ -392,6 +394,79 @@ async function sendDiscordAlert(opportunities) {
 
   console.log("Discord alert sent.");
 }
+
+async function main() {
+  async function main() {
+    const items = await getMarketValues();
+    const itemMap = getItemMap();
+    const state = loadState();
+
+    const opportunities = items
+      .map((item) => {
+        const result = calculateProfit(item.buy_offer, item.sell_offer);
+
+        updateItemHistory(state, item, result);
+
+        const history = state.items[String(item.id)];
+        const historyData = analyzeHistory(history);
+
+        const fakeRiskData = getFakeSpreadRisk(item);
+
+        const decisionData = getDecision(
+          item,
+          result.profit,
+          result.profitPercent,
+          fakeRiskData.fakeSpreadRisk,
+          historyData,
+        );
+
+        return {
+          id: item.id,
+          name: itemMap[item.id] || "Unknown",
+          buyOffer: item.buy_offer,
+          sellOffer: item.sell_offer,
+          ...result,
+          ...decisionData,
+          ...historyData,
+          ...fakeRiskData,
+        };
+      })
+      .filter((item) => {
+        return (
+          item.profit >= MIN_PROFIT && item.profitPercent >= MIN_PROFIT_PERCENT
+        );
+      })
+      .sort((a, b) => b.profit - a.profit);
+
+    opportunities.forEach((item) => {
+      console.log(
+        `${item.decision} ${item.name} (ID: ${item.id})\n` +
+          `Buy: ${item.buyOffer} | Sell: ${item.sellOffer}\n` +
+          `Profit: ${item.profit.toFixed(0)} (${item.profitPercent.toFixed(2)}%)\n` +
+          `Reason: ${item.reason}\n` +
+          `Action: ${item.action}\n` +
+          `Fake Spread Risk: ${item.fakeSpreadRisk}/100\n` +
+          `Warnings: ${item.fakeSpreadWarnings}\n` +
+          `History: ${item.historySignal}\n` +
+          `Advice: ${item.historyAdvice}\n`,
+      );
+    });
+
+    saveState(state);
+
+    await sendDiscordAlert(opportunities);
+  } //
+}
+
+main().catch(async (err) => {
+  console.error("Bot crashed:", err);
+
+  await sendDiscordAlert(
+    `🚨 **Tibia Flipper crashed**\n\n\`\`\`${err.stack || err.message}\`\`\``,
+  );
+
+  process.exit(1);
+});
 
 async function main() {
   const items = await getMarketValues();
