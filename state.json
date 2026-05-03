@@ -145,42 +145,9 @@
         "monthSold": 2723
       },
       {
-        "time": "2026-05-03T20:53:26.271Z",
+        "time": "2026-05-03T20:43:22.908Z",
         "sellOffer": 40346,
         "profitPercent": -2.1881761207927464
-      },
-      {
-        "time": "2026-05-03T20:54:19.918Z",
-        "buyOffer": 39631,
-        "sellOffer": 40346,
-        "profit": -884.5400000000009,
-        "profitPercent": -2.1881761207927464,
-        "dayAverageSell": 40676,
-        "monthAverageSell": 41170,
-        "daySold": 123,
-        "monthSold": 2723
-      },
-      {
-        "time": "2026-05-03T20:57:26.055Z",
-        "buyOffer": 39631,
-        "sellOffer": 40346,
-        "profit": -884.5400000000009,
-        "profitPercent": -2.1881761207927464,
-        "dayAverageSell": 40676,
-        "monthAverageSell": 41170,
-        "daySold": 123,
-        "monthSold": 2723
-      },
-      {
-        "time": "2026-05-03T21:12:06.281Z",
-        "buyOffer": 39631,
-        "sellOffer": 40346,
-        "profit": -884.5400000000009,
-        "profitPercent": -2.1881761207927464,
-        "dayAverageSell": 40676,
-        "monthAverageSell": 41170,
-        "daySold": 123,
-        "monthSold": 2723
       }
     ],
     "22516": [
@@ -328,42 +295,9 @@
         "monthSold": 1774
       },
       {
-        "time": "2026-05-03T20:53:26.271Z",
+        "time": "2026-05-03T20:43:22.908Z",
         "sellOffer": 49994,
         "profitPercent": 13.019884659746259
-      },
-      {
-        "time": "2026-05-03T20:54:19.918Z",
-        "buyOffer": 42500,
-        "sellOffer": 49994,
-        "profit": 5644.120000000003,
-        "profitPercent": 13.019884659746259,
-        "dayAverageSell": 48767,
-        "monthAverageSell": 50021,
-        "daySold": 50,
-        "monthSold": 1774
-      },
-      {
-        "time": "2026-05-03T20:57:26.055Z",
-        "buyOffer": 42500,
-        "sellOffer": 49994,
-        "profit": 5644.120000000003,
-        "profitPercent": 13.019884659746259,
-        "dayAverageSell": 48767,
-        "monthAverageSell": 50021,
-        "daySold": 50,
-        "monthSold": 1774
-      },
-      {
-        "time": "2026-05-03T21:12:06.281Z",
-        "buyOffer": 42500,
-        "sellOffer": 49994,
-        "profit": 5644.120000000003,
-        "profitPercent": 13.019884659746259,
-        "dayAverageSell": 48767,
-        "monthAverageSell": 50021,
-        "daySold": 50,
-        "monthSold": 1774
       }
     ],
     "22721": [
@@ -511,64 +445,33 @@
         "monthSold": 1174
       },
       {
-        "time": "2026-05-03T20:53:26.270Z",
+        "time": "2026-05-03T20:43:22.908Z",
         "sellOffer": 48000,
         "profitPercent": 0.7991936064511466
-      },
-      {
-        "time": "2026-05-03T20:54:19.916Z",
-        "buyOffer": 45752,
-        "sellOffer": 48000,
-        "profit": 372.9599999999991,
-        "profitPercent": 0.7991936064511466,
-        "dayAverageSell": 48543,
-        "monthAverageSell": 48996,
-        "daySold": 38,
-        "monthSold": 1174
-      },
-      {
-        "time": "2026-05-03T20:57:26.054Z",
-        "buyOffer": 45752,
-        "sellOffer": 48000,
-        "profit": 372.9599999999991,
-        "profitPercent": 0.7991936064511466,
-        "dayAverageSell": 48543,
-        "monthAverageSell": 48996,
-        "daySold": 38,
-        "monthSold": 1174
-      },
-      {
-        "time": "2026-05-03T21:12:06.280Z",
-        "buyOffer": 45752,
-        "sellOffer": 48000,
-        "profit": 372.9599999999991,
-        "profitPercent": 0.7991936064511466,
-        "dayAverageSell": 48543,
-        "monthAverageSell": 48996,
-        "daySold": 38,
-        "monthSold": 1174
       }
     ]
   },
   "alerts": {
     "22118": {
-      "time": "2026-05-03T20:53:26.529Z",
+      "time": "2026-05-03T20:43:23.519Z",
       "brainScore": 50
     },
     "22516": {
-      "time": "2026-05-03T20:57:26.309Z",
-      "brainScore": 84
+      "time": "2026-05-03T20:17:10.734Z",
+      "brainScore": 74,
+      "profit": 5644.120000000003,
+      "profitPercent": 13.019884659746259,
+      "decision": "🟡 WAIT 1–2 DAYS",
+      "firstGreenSignal": false
     },
     "22721": {
-      "time": "2026-05-03T20:53:26.529Z",
+      "time": "2026-05-03T20:43:23.519Z",
       "brainScore": 52
     }
   },
   "market": {
-    "lastRun": "2026-05-03T21:12:06.281Z",
     "volatility": 0,
     "level": "LOW",
-    "nextRunHours": 6,
-    "message": "Market is calm. No need to check often."
+    "nextRunHours": 6
   }
 }
