@@ -14,7 +14,16 @@ const STATE_FILE = "./state.json";
 const MAX_HISTORY = 20;
 
 const ALERT_COOLDOWN_HOURS = 12;
-const SCORE_IMPROVEMENT_TO_REALERT = 10;
+const SELL_ALERT_COOLDOWN_HOURS = 6;
+
+const MIN_SIMPLE_BUY_BRAIN_SCORE = 70;
+const MIN_SIMPLE_BUY_PROFIT_PERCENT = 5;
+const MIN_SIMPLE_BUY_VOLUME_RATIO = 0.7;
+const MAX_SIMPLE_BUY_FAKE_SPREAD_RISK = 30;
+
+const SEND_EMPTY_SUMMARY = true;
+const SCORE_DROP_WARNING = 15;
+const SCORE_DROP_PANIC = 25;
 
 function getTrackedItemIds() {
   const tracked = JSON.parse(
@@ -28,6 +37,10 @@ const ITEM_IDS = getTrackedItemIds();
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
+}
+
+function formatGp(value) {
+  return Math.round(value || 0).toLocaleString();
 }
 
 function getItemMap() {
@@ -51,7 +64,7 @@ function calculateProfit(buyPrice, sellPrice) {
     realBuyCost,
     realSellIncome,
     profit,
-    profitPercent: (profit / realBuyCost) * 100,
+    profitPercent: realBuyCost > 0 ? (profit / realBuyCost) * 100 : 0,
   };
 }
 
@@ -67,21 +80,28 @@ async function getMarketValues() {
 }
 
 function getColor(brainScore) {
-  if (brainScore >= 80) return 0x00ff00;
-  if (brainScore >= 65) return 0xffff00;
-  if (brainScore >= 50) return 0xff9900;
-  return 0xff0000;
+  if (brainScore >= 85) return 0x00ff00;
+  if (brainScore >= 70) return 0xffff00;
+  return 0xff9900;
+}
+
+function getSellColor(level) {
+  if (level === "PANIC") return 0xff0000;
+  if (level === "SELL_NOW") return 0x00ff00;
+  if (level === "TAKE_PROFIT") return 0xffff00;
+  return 0xff9900;
 }
 
 function loadState() {
   if (!fs.existsSync(STATE_FILE)) {
-    return { items: {}, alerts: {}, market: {} };
+    return { items: {}, alerts: {}, sellAlerts: {}, market: {} };
   }
 
   const state = JSON.parse(fs.readFileSync(STATE_FILE, "utf8"));
 
   if (!state.items) state.items = {};
   if (!state.alerts) state.alerts = {};
+  if (!state.sellAlerts) state.sellAlerts = {};
   if (!state.market) state.market = {};
 
   return state;
@@ -113,10 +133,10 @@ function updateItemHistory(state, item, calculated) {
   state.items[id] = state.items[id].slice(-MAX_HISTORY);
 }
 
-function calculateMarketVolatility(opportunities, state) {
+function calculateMarketVolatility(items, state) {
   let volatility = 0;
 
-  opportunities.forEach((item) => {
+  items.forEach((item) => {
     const history = state.items[String(item.id)];
     if (!history || history.length < 2) return;
 
@@ -158,18 +178,19 @@ function getNextRunRecommendation(volatility) {
   return {
     level: "LOW",
     nextRunHours: 6,
-    message: "Market is calm. No need to check often.",
+    message: "Market is calm.",
   };
 }
 
 function analyzeHistory(history) {
   if (!history || history.length < 3) {
     return {
-      historySignal: "⚪ NOT ENOUGH HISTORY",
+      historySignal: "NOT ENOUGH HISTORY",
       historyAdvice: "Need more bot runs before making a timing call.",
       historyScore: 0,
       bottomSignal: false,
       firstGreenSignal: false,
+      fallingHard: false,
     };
   }
 
@@ -204,65 +225,112 @@ function analyzeHistory(history) {
 
   if (firstGreenAfterDrop) {
     return {
-      historySignal: "🟢 FIRST GREEN AFTER DROP",
-      historyAdvice:
-        "Price dropped for multiple runs and just bounced. This may be a strong buy timing signal.",
+      historySignal: "FIRST GREEN AFTER DROP",
+      historyAdvice: "Price dropped and just bounced.",
       historyScore: 25,
       bottomSignal: true,
       firstGreenSignal: true,
+      fallingHard: false,
     };
   }
 
   if (stoppedFalling) {
     return {
-      historySignal: "🟡 FALLING STOPPED",
-      historyAdvice:
-        "Price stopped falling. Wait one more run or buy small if profit is strong.",
+      historySignal: "FALLING STOPPED",
+      historyAdvice: "Price stopped falling.",
       historyScore: 15,
       bottomSignal: true,
       firstGreenSignal: false,
+      fallingHard: false,
     };
   }
 
   if (falling) {
     return {
-      historySignal: "🔴 FALLING FOR 3 RUNS",
-      historyAdvice:
-        "Wait. Price is still dropping. Better entry may come later.",
+      historySignal: "FALLING FOR 3 RUNS",
+      historyAdvice: "Price is still dropping.",
       historyScore: -20,
       bottomSignal: false,
       firstGreenSignal: false,
+      fallingHard: true,
     };
   }
 
   if (recovering) {
     return {
-      historySignal: "🟢 POSSIBLE BOTTOM",
-      historyAdvice:
-        "Price may be recovering. Consider buying small if profit is good.",
+      historySignal: "POSSIBLE BOTTOM",
+      historyAdvice: "Price may be recovering.",
       historyScore: 15,
       bottomSignal: true,
       firstGreenSignal: false,
+      fallingHard: false,
     };
   }
 
   if (rising) {
     return {
-      historySignal: "🟡 RISING FOR 3 RUNS",
-      historyAdvice:
-        "Good momentum, but avoid chasing if price is already inflated.",
+      historySignal: "RISING FOR 3 RUNS",
+      historyAdvice: "Good momentum, but avoid chasing inflated prices.",
       historyScore: 10,
       bottomSignal: false,
       firstGreenSignal: false,
+      fallingHard: false,
     };
   }
 
   return {
-    historySignal: "⚪ WEAK / UNCERTAIN",
-    historyAdvice: "No clear direction. Combine with trend before acting.",
+    historySignal: "UNCERTAIN",
+    historyAdvice: "No clear direction.",
     historyScore: 0,
     bottomSignal: false,
     firstGreenSignal: false,
+    fallingHard: false,
+  };
+}
+
+function analyzeSellMomentum(history) {
+  if (!history || history.length < 4) {
+    return {
+      sellMomentumSignal: "NOT ENOUGH SELL HISTORY",
+      sellMomentumAdvice: "Need more runs before judging exit momentum.",
+      momentumDropping: false,
+      momentumBad: false,
+    };
+  }
+
+  const last4 = history.slice(-4);
+  const prices = last4.map((h) => h.sellOffer);
+  const profits = last4.map((h) => h.profitPercent || 0);
+
+  const wasRisingThenDropped =
+    prices[0] < prices[1] && prices[1] <= prices[2] && prices[3] < prices[2];
+
+  const fallingFor3 = prices[1] > prices[2] && prices[2] > prices[3];
+  const profitFallingFor3 = profits[1] > profits[2] && profits[2] > profits[3];
+
+  if (fallingFor3 || profitFallingFor3) {
+    return {
+      sellMomentumSignal: "MOMENTUM FALLING HARD",
+      sellMomentumAdvice: "Sell pressure is increasing.",
+      momentumDropping: true,
+      momentumBad: true,
+    };
+  }
+
+  if (wasRisingThenDropped) {
+    return {
+      sellMomentumSignal: "MOMENTUM STARTED DROPPING",
+      sellMomentumAdvice: "Price was rising and now pulled back.",
+      momentumDropping: true,
+      momentumBad: false,
+    };
+  }
+
+  return {
+    sellMomentumSignal: "SELL MOMENTUM OK",
+    sellMomentumAdvice: "No strong exit signal.",
+    momentumDropping: false,
+    momentumBad: false,
   };
 }
 
@@ -278,19 +346,19 @@ function getFakeSpreadRisk(item) {
 
   if (monthAvgSell > 0 && sellOffer > monthAvgSell * 1.25) {
     risk += 30;
-    warnings.push("Sell offer is much higher than monthly average.");
+    warnings.push("Sell price is much higher than monthly average.");
   }
 
   if (dayAvgSell > 0 && sellOffer > dayAvgSell * 1.2) {
     risk += 25;
-    warnings.push("Sell offer is much higher than today's average.");
+    warnings.push("Sell price is much higher than today's average.");
   }
 
   const avgDailyVolume = monthSold / 30;
 
   if (avgDailyVolume > 0 && daySold < avgDailyVolume * 0.5) {
     risk += 20;
-    warnings.push("Low volume today. May be hard to resell.");
+    warnings.push("Low volume today.");
   }
 
   const rawSpreadPercent =
@@ -300,14 +368,14 @@ function getFakeSpreadRisk(item) {
 
   if (rawSpreadPercent > 40) {
     risk += 25;
-    warnings.push("Huge spread. Could be bait/fake pricing.");
+    warnings.push("Huge spread. Could be fake/bait pricing.");
   }
 
   return {
     fakeSpreadRisk: risk,
     fakeSpreadWarnings: warnings.length
       ? warnings.join("\n")
-      : "No major fake spread warning.",
+      : "No major warning.",
   };
 }
 
@@ -332,53 +400,50 @@ function getDecision(item, profit, profitPercent, fakeSpreadRisk, historyData) {
   const hasLowVolume = volumeRatio < 0.5;
   const hasDownwardPressure = dayVsMonthSell < 0 && volumeRatio < 1;
 
-  let decision = "⚪ WATCH";
-  let action = "Watch this item, but do not buy yet.";
-  let reason = "The numbers are not strong enough yet.";
+  let decision = "WATCH";
+  let action = "Do nothing.";
+  let reason = "Not strong enough.";
 
   if (fakeSpreadRisk >= 40) {
-    decision = "🔴 AVOID";
-    action = "Do not buy. The spread may be fake or hard to sell.";
+    decision = "AVOID";
+    action = "Do not buy.";
     reason = "Fake spread risk is too high.";
   } else if (isGoodProfit && historyData?.firstGreenSignal && !hasLowVolume) {
-    decision = "🟢 BUY NOW - POSSIBLE BOTTOM";
-    action = `Price bounced after falling. Try buying at or below ${item.buy_offer.toLocaleString()} gp, but do not overpay.`;
-    reason = "Strong profit plus first green signal after a drop.";
+    decision = "BUY";
+    action = `Place buy offer around ${item.buy_offer.toLocaleString()} gp.`;
+    reason = "Strong profit and first green after drop.";
   } else if (isGoodProfit && historyData?.bottomSignal && !hasLowVolume) {
-    decision = "🟡 BUY SMALL / TEST ENTRY";
-    action = `Price may be bottoming. Buy small at or below ${item.buy_offer.toLocaleString()} gp, or wait one more run for confirmation.`;
-    reason = "Profit is good and the falling move may be ending.";
+    decision = "BUY";
+    action = `Place small buy offer around ${item.buy_offer.toLocaleString()} gp.`;
+    reason = "Profit is good and price may be bottoming.";
   } else if (isGoodProfit && isRising && hasGoodVolume) {
-    decision = "🟢 BUY NOW";
-    action = `Try buying at or below ${item.buy_offer.toLocaleString()} gp. Target sell around ${item.sell_offer.toLocaleString()} gp.`;
+    decision = "BUY";
+    action = `Place buy offer around ${item.buy_offer.toLocaleString()} gp.`;
     reason = "Good profit, rising price, and healthy volume.";
   } else if (isGoodProfit && isFalling) {
-    decision = "🟡 WAIT 1–2 DAYS";
-    action =
-      "Do not buy yet. Price is falling, so you may get a better entry soon.";
-    reason = "The flip is profitable, but the market is currently moving down.";
+    decision = "WAIT";
+    action = "Do not buy yet.";
+    reason = "Profit exists, but price is falling.";
   } else if (isGoodProfit && hasDownwardPressure) {
-    decision = "🟡 WAIT";
-    action = "Wait for stabilization or a price bounce before buying.";
-    reason = "Downward pressure: trend is negative and volume is weak.";
+    decision = "WAIT";
+    action = "Wait for stabilization.";
+    reason = "Trend is negative and volume is weak.";
   } else if (isGoodProfit && hasLowVolume) {
-    decision = "🟠 RISKY BUY";
-    action = "Only buy a small amount. This may be hard to resell quickly.";
+    decision = "WAIT";
+    action = "Do not buy unless you accept slow resale.";
     reason = "Profit looks good, but liquidity is low.";
   } else if (isGoodProfit) {
-    decision = "🟡 BUY ONLY IF CHEAP";
-    action = `Only buy if you can get it below ${Math.floor(
-      item.buy_offer * 0.98,
-    ).toLocaleString()} gp.`;
-    reason = "Profit exists, but trend/volume are not strong enough.";
+    decision = "BUY";
+    action = `Place buy offer only if you can buy around ${item.buy_offer.toLocaleString()} gp or lower.`;
+    reason = "Profit exists, but setup is not perfect.";
   } else if (isRising && hasGoodVolume) {
-    decision = "🔵 WATCH CLOSELY";
-    action = "Do not buy yet. This may become profitable soon.";
-    reason = "Price and volume are rising, but profit is not good enough yet.";
+    decision = "WATCH";
+    action = "Do nothing yet.";
+    reason = "Price and volume are rising, but profit is not enough.";
   } else if (isFalling) {
-    decision = "🔴 AVOID";
-    action = "Avoid buying now. Wait for stabilization.";
-    reason = "Price is falling compared to the monthly average.";
+    decision = "AVOID";
+    action = "Avoid buying.";
+    reason = "Price is falling.";
   }
 
   return {
@@ -445,10 +510,11 @@ function calculateBrainScore(item) {
 
   score = Math.round(clamp(score, 0, 100));
 
-  let confidence = "LOW";
-  if (score >= 80) confidence = "HIGH";
-  else if (score >= 65) confidence = "MEDIUM-HIGH";
-  else if (score >= 50) confidence = "MEDIUM";
+  let strength = "WEAK";
+  if (score >= 85) strength = "VERY STRONG";
+  else if (score >= 75) strength = "STRONG";
+  else if (score >= 70) strength = "GOOD";
+  else if (score >= 60) strength = "OK";
 
   let riskLevel = "HIGH";
   if (item.fakeSpreadRisk >= 40 || item.volumeRatio < 0.5) {
@@ -459,133 +525,270 @@ function calculateBrainScore(item) {
     riskLevel = "MEDIUM";
   }
 
-  let positionSize = "DO NOT BUY";
-  if (score >= 85 && riskLevel !== "HIGH") {
-    positionSize = "LARGE";
-  } else if (score >= 75 && riskLevel !== "HIGH") {
-    positionSize = "MEDIUM";
-  } else if (score >= 60) {
-    positionSize = "SMALL / TEST";
-  } else if (score >= 50) {
-    positionSize = "WATCH ONLY";
-  }
-
+  const maxBuy = Math.floor(item.buyOffer);
   const targetSell = Math.floor(item.sellOffer * 0.99);
   const stopLoss = Math.floor(item.buyOffer * 0.97);
-  const maxBuy = Math.floor(item.buyOffer * 0.99);
-
-  let brainSummary = "Weak or unclear opportunity.";
-  if (score >= 85) {
-    brainSummary =
-      "Very strong setup. Only enter if price is still close to the shown buy price.";
-  } else if (score >= 75) {
-    brainSummary = "Strong setup, but avoid overpaying.";
-  } else if (score >= 60) {
-    brainSummary = "Decent setup. Small/test entry only.";
-  } else if (score >= 50) {
-    brainSummary = "Watchlist item. Not enough strength yet.";
-  }
 
   return {
     brainScore: score,
-    confidence,
+    strength,
     riskLevel,
-    positionSize,
     maxBuy,
     targetSell,
     stopLoss,
-    brainSummary,
     brainNotes: notes,
   };
 }
 
-function shouldSendAlert(state, item) {
+function isSimpleBuySignal(item) {
+  return (
+    item.decision === "BUY" &&
+    item.brainScore >= MIN_SIMPLE_BUY_BRAIN_SCORE &&
+    item.profitPercent >= MIN_SIMPLE_BUY_PROFIT_PERCENT &&
+    item.volumeRatio >= MIN_SIMPLE_BUY_VOLUME_RATIO &&
+    item.fakeSpreadRisk < MAX_SIMPLE_BUY_FAKE_SPREAD_RISK &&
+    !item.fallingHard
+  );
+}
+
+function getSellDecision(item, state) {
+  const id = String(item.id);
+  const lastBuyAlert = state.alerts[id];
+
+  if (!lastBuyAlert || lastBuyAlert.type !== "SIMPLE_BUY") {
+    return {
+      hasPreviousBuyAlert: false,
+      trackedTargetSell: item.targetSell,
+      previousBrainScore: item.brainScore,
+      scoreDrop: 0,
+      sellLevel: null,
+      sellDecision: "HOLD",
+      sellAction: "No sell signal.",
+      sellReason: "No previous simple BUY signal from this bot version.",
+    };
+  }
+
+  const trackedTargetSell = lastBuyAlert.targetSell || item.targetSell;
+  const previousBrainScore = lastBuyAlert.brainScore ?? item.brainScore;
+  const scoreDrop = previousBrainScore - item.brainScore;
+
+  const targetHit = item.sellOffer >= trackedTargetSell;
+  const scoreWarning = scoreDrop >= SCORE_DROP_WARNING;
+  const scorePanic = scoreDrop >= SCORE_DROP_PANIC;
+
+  const badFakeSpread = item.fakeSpreadRisk >= 40;
+  const badVolume = item.volumeRatio < 0.5;
+  const exitRisk = badFakeSpread || badVolume;
+
+  const momentumDropping = item.momentumDropping;
+  const momentumBad = item.momentumBad;
+
+  let sellLevel = null;
+  let sellDecision = "HOLD";
+  let sellAction = "Hold. No sell signal yet.";
+  let sellReason = "No strong exit signal right now.";
+
+  if (exitRisk && (scorePanic || momentumBad)) {
+    sellLevel = "PANIC";
+    sellDecision = "SELL";
+    sellAction = "SELL / EXIT. Setup got dangerous.";
+    sellReason = "Risk got bad and momentum/Brain Score collapsed.";
+  } else if (targetHit) {
+    sellLevel = "SELL_NOW";
+    sellDecision = "SELL";
+    sellAction = `SELL / LIST now around ${formatGp(item.sellOffer)} gp.`;
+    sellReason = `Target reached: ${formatGp(trackedTargetSell)} gp.`;
+  } else if (momentumDropping && item.profitPercent > 0) {
+    sellLevel = "TAKE_PROFIT";
+    sellDecision = "SELL";
+    sellAction = "SELL / TAKE PROFIT. Momentum is weakening.";
+    sellReason = "Recent sell price momentum started dropping.";
+  } else if (scoreWarning) {
+    sellLevel = "WARNING";
+    sellDecision = "SELL";
+    sellAction = "Consider selling. Brain Score dropped hard.";
+    sellReason = `Brain Score dropped from ${previousBrainScore} to ${item.brainScore}.`;
+  } else if (exitRisk) {
+    sellLevel = "WARNING";
+    sellDecision = "SELL";
+    sellAction = "Consider selling. Liquidity/risk got worse.";
+    sellReason = "Fake spread risk or volume got worse.";
+  }
+
+  return {
+    hasPreviousBuyAlert: true,
+    trackedTargetSell,
+    previousBrainScore,
+    scoreDrop,
+    sellLevel,
+    sellDecision,
+    sellAction,
+    sellReason,
+  };
+}
+
+function shouldSendBuyAlert(state, item) {
   const id = String(item.id);
   const lastAlert = state.alerts[id];
 
-  if (!lastAlert) {
+  if (!lastAlert || lastAlert.type !== "SIMPLE_BUY") {
     return {
       shouldSend: true,
-      alertReason: "First alert for this item.",
+      alertReason: "New BUY signal.",
     };
   }
 
   const hoursSinceLastAlert =
     (Date.now() - new Date(lastAlert.time).getTime()) / 1000 / 60 / 60;
 
-  const scoreImproved =
-    item.brainScore >= lastAlert.brainScore + SCORE_IMPROVEMENT_TO_REALERT;
+  const targetChangedEnough =
+    Math.abs(item.targetSell - lastAlert.targetSell) >= item.targetSell * 0.03;
 
-  const newStrongSignal = item.firstGreenSignal && !lastAlert.firstGreenSignal;
+  const scoreImproved = item.brainScore >= lastAlert.brainScore + 10;
 
   if (hoursSinceLastAlert >= ALERT_COOLDOWN_HOURS) {
     return {
       shouldSend: true,
-      alertReason: `Cooldown passed (${hoursSinceLastAlert.toFixed(1)}h).`,
+      alertReason: `BUY cooldown passed (${hoursSinceLastAlert.toFixed(1)}h).`,
     };
   }
 
   if (scoreImproved) {
     return {
       shouldSend: true,
-      alertReason: `Brain score improved from ${lastAlert.brainScore} to ${item.brainScore}.`,
+      alertReason: `Brain improved from ${lastAlert.brainScore} to ${item.brainScore}.`,
     };
   }
 
-  if (newStrongSignal) {
+  if (targetChangedEnough) {
     return {
       shouldSend: true,
-      alertReason: "New first-green-after-drop signal.",
+      alertReason: "Target price changed meaningfully.",
     };
   }
 
   return {
     shouldSend: false,
-    alertReason: `Skipped duplicate alert. Last alert was ${hoursSinceLastAlert.toFixed(1)}h ago.`,
+    alertReason: `Skipped duplicate BUY. Last BUY was ${hoursSinceLastAlert.toFixed(1)}h ago.`,
   };
 }
 
-function markAlertSent(state, item) {
+function shouldSendSellAlert(state, item) {
+  if (!item.sellLevel) {
+    return {
+      shouldSend: false,
+      sellAlertReason: "No SELL signal.",
+    };
+  }
+
+  const id = String(item.id);
+  const lastSellAlert = state.sellAlerts[id];
+
+  if (!lastSellAlert) {
+    return {
+      shouldSend: true,
+      sellAlertReason: "New SELL signal.",
+    };
+  }
+
+  const hoursSinceLastSellAlert =
+    (Date.now() - new Date(lastSellAlert.time).getTime()) / 1000 / 60 / 60;
+
+  const becameMoreUrgent =
+    urgencyRank(item.sellLevel) > urgencyRank(lastSellAlert.sellLevel);
+
+  const scoreDroppedMore =
+    item.scoreDrop >= (lastSellAlert.scoreDrop || 0) + 10;
+
+  if (becameMoreUrgent) {
+    return {
+      shouldSend: true,
+      sellAlertReason: `SELL became more urgent: ${lastSellAlert.sellLevel} → ${item.sellLevel}.`,
+    };
+  }
+
+  if (scoreDroppedMore) {
+    return {
+      shouldSend: true,
+      sellAlertReason: `Brain dropped more sharply. Drop is now ${item.scoreDrop}.`,
+    };
+  }
+
+  if (hoursSinceLastSellAlert >= SELL_ALERT_COOLDOWN_HOURS) {
+    return {
+      shouldSend: true,
+      sellAlertReason: `SELL cooldown passed (${hoursSinceLastSellAlert.toFixed(1)}h).`,
+    };
+  }
+
+  return {
+    shouldSend: false,
+    sellAlertReason: `Skipped duplicate SELL. Last SELL was ${hoursSinceLastSellAlert.toFixed(1)}h ago.`,
+  };
+}
+
+function urgencyRank(level) {
+  if (level === "PANIC") return 4;
+  if (level === "SELL_NOW") return 3;
+  if (level === "TAKE_PROFIT") return 2;
+  if (level === "WARNING") return 1;
+  return 0;
+}
+
+function markBuyAlertSent(state, item) {
   const id = String(item.id);
 
   state.alerts[id] = {
+    type: "SIMPLE_BUY",
     time: new Date().toISOString(),
     brainScore: item.brainScore,
+    strength: item.strength,
     profit: item.profit,
     profitPercent: item.profitPercent,
-    decision: item.decision,
-    firstGreenSignal: item.firstGreenSignal,
+    maxBuy: item.maxBuy,
+    targetSell: item.targetSell,
+    stopLoss: item.stopLoss,
+    buyOffer: item.buyOffer,
+    sellOffer: item.sellOffer,
   };
 }
 
-function buildTitle(item) {
-  let tag = "";
+function markSellAlertSent(state, item) {
+  const id = String(item.id);
 
-  if (item.brainScore >= 85) {
-    tag = " (A+ SETUP)";
-  } else if (item.firstGreenSignal) {
-    tag = " (BOTTOM SIGNAL)";
-  } else if (item.bottomSignal) {
-    tag = " (BOTTOM FORMING)";
-  } else if (item.historySignal.includes("FALLING")) {
-    tag = " (FALLING)";
-  } else if (item.fakeSpreadRisk >= 40) {
-    tag = " (RISKY / FAKE)";
-  } else if (item.dayVsMonthSell > 2) {
-    tag = " (RISING)";
-  }
-
-  return `${item.decision} — ${item.name}${tag}`;
+  state.sellAlerts[id] = {
+    type: "SIMPLE_SELL",
+    time: new Date().toISOString(),
+    sellLevel: item.sellLevel,
+    brainScore: item.brainScore,
+    previousBrainScore: item.previousBrainScore,
+    scoreDrop: item.scoreDrop,
+    sellOffer: item.sellOffer,
+    trackedTargetSell: item.trackedTargetSell,
+    fakeSpreadRisk: item.fakeSpreadRisk,
+    volumeRatio: item.volumeRatio,
+  };
 }
 
-async function sendDiscordAlert(opportunities, state) {
-  if (opportunities.length === 0) {
-    console.log("No big profitable flips found. No Discord message sent.");
-    return;
-  }
+function buildSimpleBuyTitle(item) {
+  if (item.brainScore >= 85) return `🟢 BUY — ${item.name} — VERY STRONG`;
+  if (item.brainScore >= 75) return `🟢 BUY — ${item.name} — STRONG`;
+  return `🟡 BUY — ${item.name} — GOOD`;
+}
 
-  const alertable = opportunities.filter((item) => {
-    const alertCheck = shouldSendAlert(state, item);
+function buildSimpleSellTitle(item) {
+  if (item.sellLevel === "PANIC") return `🚨 SELL — ${item.name} — EXIT`;
+  if (item.sellLevel === "SELL_NOW")
+    return `🔴 SELL — ${item.name} — TARGET HIT`;
+  if (item.sellLevel === "TAKE_PROFIT") {
+    return `🟠 SELL — ${item.name} — TAKE PROFIT`;
+  }
+  return `🟠 SELL — ${item.name} — WARNING`;
+}
+
+async function sendDiscordBuyAlerts(buySignals, state) {
+  const alertable = buySignals.filter((item) => {
+    const alertCheck = shouldSendBuyAlert(state, item);
     item.alertReason = alertCheck.alertReason;
 
     if (!alertCheck.shouldSend) {
@@ -596,84 +799,138 @@ async function sendDiscordAlert(opportunities, state) {
   });
 
   if (alertable.length === 0) {
-    console.log("No new alerts after cooldown/anti-spam filter.");
+    console.log("No simple BUY alerts after cooldown.");
     return;
   }
 
   const embeds = alertable.slice(0, 5).map((item) => ({
-    title: buildTitle(item),
+    title: buildSimpleBuyTitle(item),
     color: getColor(item.brainScore),
     fields: [
       {
-        name: "🧠 Brain",
+        name: "👉 ACTION",
+        value: `Place BUY offer around **${formatGp(item.maxBuy)} gp** or lower.`,
+        inline: false,
+      },
+      {
+        name: "🎯 SELL TARGET",
+        value: `List/Sell around **${formatGp(item.targetSell)} gp**.`,
+        inline: false,
+      },
+      {
+        name: "🧠 BRAIN",
         value:
           `Score: **${item.brainScore}/100**\n` +
-          `Confidence: **${item.confidence}**\n` +
-          `Risk: **${item.riskLevel}**\n` +
-          `Size: **${item.positionSize}**`,
-        inline: false,
-      },
-      {
-        name: "💰 Profit",
-        value: `${Math.round(item.profit).toLocaleString()} gp (${item.profitPercent.toFixed(2)}%)`,
+          `Strength: **${item.strength}**\n` +
+          `Risk: **${item.riskLevel}**`,
         inline: true,
       },
       {
-        name: "💸 Trade Plan",
+        name: "💰 PROFIT",
         value:
-          `Max buy: ${item.maxBuy.toLocaleString()} gp\n` +
-          `Target sell: ${item.targetSell.toLocaleString()} gp\n` +
-          `Stop loss-ish: ${item.stopLoss.toLocaleString()} gp`,
+          `Expected: **${formatGp(item.profit)} gp**\n` +
+          `Percent: **${item.profitPercent.toFixed(2)}%**`,
         inline: true,
       },
       {
-        name: "📉 Market",
-        value: `Trend: ${item.dayVsMonthSell.toFixed(2)}%\nVolume: ${item.volumeRatio.toFixed(2)}x`,
-        inline: true,
-      },
-      {
-        name: "🌍 Market State",
+        name: "📊 WHY",
         value:
-          `Volatility: ${state.market?.volatility ?? 0}\n` +
-          `Level: ${state.market?.level ?? "UNKNOWN"}\n` +
-          `Next Check: ~${state.market?.nextRunHours ?? "?"}h\n` +
-          `${state.market?.message ?? ""}`,
+          `${item.reason}\n` +
+          `Trend: ${item.dayVsMonthSell.toFixed(2)}%\n` +
+          `Volume: ${item.volumeRatio.toFixed(2)}x\n` +
+          `Fake spread risk: ${item.fakeSpreadRisk}/100`,
         inline: false,
       },
       {
-        name: "🧠 Timing",
-        value: `${item.historySignal}\n${item.historyAdvice}`,
-        inline: false,
-      },
-      {
-        name: "⚠️ Risk",
-        value: `Fake Spread: ${item.fakeSpreadRisk}/100\n${item.fakeSpreadWarnings}`,
-        inline: false,
-      },
-      {
-        name: "👉 Action",
-        value: `${item.action}\n\n${item.brainSummary}`,
-        inline: false,
-      },
-      {
-        name: "🔔 Alert Reason",
-        value: item.alertReason,
+        name: "🛑 SAFETY",
+        value: `If price drops hard, consider exiting around **${formatGp(item.stopLoss)} gp**.`,
         inline: false,
       },
     ],
     footer: {
-      text: `Item ID: ${item.id} | Tax included | Anti-spam enabled`,
+      text: `Item ID: ${item.id} | Tax included | Simple BUY/SELL mode`,
     },
   }));
 
   await axios.post(process.env.DISCORD_WEBHOOK_URL, {
-    content: `🧠 Tibia Flipper Brain alerts on **${SERVER}**`,
+    content: `🟢 Tibia Flipper BUY signals on **${SERVER}**`,
     embeds,
   });
 
-  alertable.forEach((item) => markAlertSent(state, item));
+  alertable.forEach((item) => markBuyAlertSent(state, item));
 
-  console.log("Discord brain alert sent.");
+  console.log("Discord simple BUY alert sent.");
+}
+
+async function sendDiscordSellAlerts(sellSignals, state) {
+  const alertable = sellSignals.filter((item) => {
+    const alertCheck = shouldSendSellAlert(state, item);
+    item.sellAlertReason = alertCheck.sellAlertReason;
+
+    if (!alertCheck.shouldSend) {
+      console.log(`${item.name}: ${alertCheck.sellAlertReason}`);
+    }
+
+    return alertCheck.shouldSend;
+  });
+
+  if (alertable.length === 0) {
+    console.log("No simple SELL alerts after cooldown.");
+    return;
+  }
+
+  const embeds = alertable.slice(0, 5).map((item) => ({
+    title: buildSimpleSellTitle(item),
+    color: getSellColor(item.sellLevel),
+    fields: [
+      {
+        name: "👉 ACTION",
+        value: `**${item.sellAction}**`,
+        inline: false,
+      },
+      {
+        name: "🎯 TARGET",
+        value:
+          `Target: **${formatGp(item.trackedTargetSell)} gp**\n` +
+          `Current sell price: **${formatGp(item.sellOffer)} gp**`,
+        inline: true,
+      },
+      {
+        name: "🧠 BRAIN",
+        value:
+          `Previous: **${item.previousBrainScore}/100**\n` +
+          `Now: **${item.brainScore}/100**\n` +
+          `Drop: **${item.scoreDrop}**`,
+        inline: true,
+      },
+      {
+        name: "📊 WHY",
+        value:
+          `${item.sellReason}\n` +
+          `Momentum: ${item.sellMomentumSignal}\n` +
+          `Volume: ${item.volumeRatio.toFixed(2)}x\n` +
+          `Fake spread risk: ${item.fakeSpreadRisk}/100`,
+        inline: false,
+      },
+      {
+        name: "NOTE",
+        value: "This SELL alert assumes you followed the previous BUY signal.",
+        inline: false,
+      },
+    ],
+    footer: {
+      text: `Item ID: ${item.id} | Tax included | Simple BUY/SELL mode`,
+    },
+  }));
+
+  await axios.post(process.env.DISCORD_WEBHOOK_URL, {
+    content: `🔴 Tibia Flipper SELL signals on **${SERVER}**`,
+    embeds,
+  });
+
+  alertable.forEach((item) => markSellAlertSent(state, item));
+
+  console.log("Discord simple SELL alert sent.");
 }
 
 async function sendDiscordErrorAlert(err) {
@@ -699,55 +956,59 @@ async function sendDiscordErrorAlert(err) {
 }
 
 async function main() {
+  if (!process.env.DISCORD_WEBHOOK_URL) {
+    console.error("Missing DISCORD_WEBHOOK_URL");
+    process.exit(1);
+  }
+
   const items = await getMarketValues();
   const itemMap = getItemMap();
   const state = loadState();
 
-  const opportunities = items
-    .map((item) => {
-      const result = calculateProfit(item.buy_offer, item.sell_offer);
+  const analyzedItems = items.map((item) => {
+    const result = calculateProfit(item.buy_offer, item.sell_offer);
 
-      updateItemHistory(state, item, result);
+    updateItemHistory(state, item, result);
 
-      const history = state.items[String(item.id)];
-      const historyData = analyzeHistory(history);
+    const history = state.items[String(item.id)];
+    const historyData = analyzeHistory(history);
+    const sellMomentumData = analyzeSellMomentum(history);
+    const fakeRiskData = getFakeSpreadRisk(item);
 
-      const fakeRiskData = getFakeSpreadRisk(item);
+    const decisionData = getDecision(
+      item,
+      result.profit,
+      result.profitPercent,
+      fakeRiskData.fakeSpreadRisk,
+      historyData,
+    );
 
-      const decisionData = getDecision(
-        item,
-        result.profit,
-        result.profitPercent,
-        fakeRiskData.fakeSpreadRisk,
-        historyData,
-      );
+    const analyzedItem = {
+      id: item.id,
+      name: itemMap[item.id] || "Unknown",
+      buyOffer: item.buy_offer,
+      sellOffer: item.sell_offer,
+      ...result,
+      ...decisionData,
+      ...historyData,
+      ...sellMomentumData,
+      ...fakeRiskData,
+    };
 
-      const analyzedItem = {
-        id: item.id,
-        name: itemMap[item.id] || "Unknown",
-        buyOffer: item.buy_offer,
-        sellOffer: item.sell_offer,
-        ...result,
-        ...decisionData,
-        ...historyData,
-        ...fakeRiskData,
-      };
+    const withBrain = {
+      ...analyzedItem,
+      ...calculateBrainScore(analyzedItem),
+    };
 
-      return {
-        ...analyzedItem,
-        ...calculateBrainScore(analyzedItem),
-      };
-    })
-    .filter((item) => {
-      return (
-        item.profit >= MIN_PROFIT &&
-        item.profitPercent >= MIN_PROFIT_PERCENT &&
-        item.brainScore >= 50
-      );
-    })
-    .sort((a, b) => b.brainScore - a.brainScore || b.profit - a.profit);
+    const sellDecisionData = getSellDecision(withBrain, state);
 
-  const volatility = calculateMarketVolatility(opportunities, state);
+    return {
+      ...withBrain,
+      ...sellDecisionData,
+    };
+  });
+
+  const volatility = calculateMarketVolatility(analyzedItems, state);
   const runAdvice = getNextRunRecommendation(volatility);
 
   state.market = {
@@ -758,29 +1019,60 @@ async function main() {
     message: runAdvice.message,
   };
 
+  const buySignals = analyzedItems
+    .filter(isSimpleBuySignal)
+    .sort((a, b) => b.brainScore - a.brainScore || b.profit - a.profit);
+
+  const sellSignals = analyzedItems
+    .filter((item) => item.hasPreviousBuyAlert && item.sellLevel)
+    .sort(
+      (a, b) =>
+        urgencyRank(b.sellLevel) - urgencyRank(a.sellLevel) ||
+        b.scoreDrop - a.scoreDrop,
+    );
+
   console.log(
-    `\n🧠 MARKET STATE\nVolatility: ${volatility}\nLevel: ${runAdvice.level}\nNext run in ~${runAdvice.nextRunHours}h\n${runAdvice.message}\n`,
+    `\nTIBIA FLIPPER SIMPLE MODE\n` +
+      `Market volatility: ${volatility} (${runAdvice.level})\n` +
+      `BUY signals: ${buySignals.length}\n` +
+      `SELL signals: ${sellSignals.length}\n`,
   );
 
-  opportunities.forEach((item) => {
+  buySignals.forEach((item) => {
     console.log(
-      `${item.decision} ${item.name} (ID: ${item.id})\n` +
-        `Brain Score: ${item.brainScore}/100 | Confidence: ${item.confidence} | Risk: ${item.riskLevel}\n` +
-        `Position Size: ${item.positionSize}\n` +
-        `Buy: ${item.buyOffer} | Sell: ${item.sellOffer}\n` +
-        `Max Buy: ${item.maxBuy} | Target Sell: ${item.targetSell} | Stop Loss-ish: ${item.stopLoss}\n` +
+      `BUY ${item.name} (ID: ${item.id})\n` +
+        `Brain: ${item.brainScore}/100 (${item.strength}) | Risk: ${item.riskLevel}\n` +
+        `Buy around: ${item.maxBuy} | Sell target: ${item.targetSell}\n` +
         `Profit: ${item.profit.toFixed(0)} (${item.profitPercent.toFixed(2)}%)\n` +
-        `Reason: ${item.reason}\n` +
-        `Action: ${item.action}\n` +
-        `Brain: ${item.brainSummary}\n` +
-        `Fake Spread Risk: ${item.fakeSpreadRisk}/100\n` +
-        `Warnings: ${item.fakeSpreadWarnings}\n` +
-        `History: ${item.historySignal}\n` +
-        `Advice: ${item.historyAdvice}\n`,
+        `Reason: ${item.reason}\n`,
     );
   });
 
-  await sendDiscordAlert(opportunities, state);
+  sellSignals.forEach((item) => {
+    console.log(
+      `SELL ${item.name} (ID: ${item.id})\n` +
+        `Level: ${item.sellLevel}\n` +
+        `Current sell: ${item.sellOffer} | Target: ${item.trackedTargetSell}\n` +
+        `Brain: ${item.previousBrainScore} -> ${item.brainScore} | Drop: ${item.scoreDrop}\n` +
+        `Reason: ${item.sellReason}\n`,
+    );
+  });
+
+  if (
+    SEND_EMPTY_SUMMARY &&
+    buySignals.length === 0 &&
+    sellSignals.length === 0
+  ) {
+    await axios.post(process.env.DISCORD_WEBHOOK_URL, {
+      content:
+        `⚪ Tibia Flipper checked **${SERVER}**\n` +
+        `No BUY or SELL signal right now.\n` +
+        `Market: ${runAdvice.level} | Volatility: ${volatility}`,
+    });
+  }
+
+  await sendDiscordBuyAlerts(buySignals, state);
+  await sendDiscordSellAlerts(sellSignals, state);
 
   saveState(state);
 }
