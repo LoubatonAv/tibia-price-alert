@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   run:
@@ -15,19 +15,13 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          persist-credentials: true
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 18
-
-      - name: Restore state cache
-        uses: actions/cache/restore@v4
-        with:
-          path: state.json
-          key: tibia-state-${{ github.run_id }}
-          restore-keys: |
-            tibia-state-
 
       - name: Install dependencies
         run: npm install
@@ -40,6 +34,22 @@ jobs:
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
 
+      - name: Commit updated state
+        if: always()
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+
+          git add state.json
+
+          if git diff --cached --quiet; then
+            echo "No state changes to commit"
+          else
+            git commit -m "update flipper state"
+            git pull --rebase
+            git push
+          fi
+
       - name: Notify Discord on failure
         if: failure()
         run: |
@@ -48,10 +58,3 @@ jobs:
           "$DISCORD_WEBHOOK_URL"
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-
-      - name: Save state cache
-        if: always()
-        uses: actions/cache/save@v4
-        with:
-          path: state.json
-          key: tibia-state-${{ github.run_id }}
