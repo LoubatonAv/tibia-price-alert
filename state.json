@@ -176,6 +176,17 @@
         "monthAverageSell": 205,
         "daySold": 0,
         "monthSold": 96
+      },
+      {
+        "time": "2026-05-06T21:08:15.743Z",
+        "buyOffer": 40,
+        "sellOffer": 160,
+        "profit": 116.00000000000001,
+        "profitPercent": 284.31372549019613,
+        "dayAverageSell": 0,
+        "monthAverageSell": 205,
+        "daySold": 0,
+        "monthSold": 96
       }
     ],
     "8026": [
@@ -288,20 +299,20 @@
         "monthAverageSell": 365272,
         "daySold": 1,
         "monthSold": 18
+      },
+      {
+        "time": "2026-05-06T21:08:15.743Z",
+        "buyOffer": 257103,
+        "sellOffer": 345000,
+        "profit": 75854.94,
+        "profitPercent": 28.925212166055676,
+        "dayAverageSell": 345000,
+        "monthAverageSell": 365272,
+        "daySold": 1,
+        "monthSold": 18
       }
     ],
     "22118": [
-      {
-        "time": "2026-05-03T20:25:58.910Z",
-        "buyOffer": 39631,
-        "sellOffer": 40346,
-        "profit": -884.5400000000009,
-        "profitPercent": -2.1881761207927464,
-        "dayAverageSell": 40676,
-        "monthAverageSell": 41170,
-        "daySold": 123,
-        "monthSold": 2723
-      },
       {
         "time": "2026-05-03T20:43:22.908Z",
         "sellOffer": 40346,
@@ -504,20 +515,20 @@
         "monthAverageSell": 41083,
         "daySold": 54,
         "monthSold": 2770
+      },
+      {
+        "time": "2026-05-06T21:08:15.742Z",
+        "buyOffer": 39921,
+        "sellOffer": 40723,
+        "profit": -810.8799999999974,
+        "profitPercent": -1.9913839637204986,
+        "dayAverageSell": 40729,
+        "monthAverageSell": 41083,
+        "daySold": 54,
+        "monthSold": 2770
       }
     ],
     "22516": [
-      {
-        "time": "2026-05-03T20:25:58.910Z",
-        "buyOffer": 42500,
-        "sellOffer": 49994,
-        "profit": 5644.120000000003,
-        "profitPercent": 13.019884659746259,
-        "dayAverageSell": 48767,
-        "monthAverageSell": 50021,
-        "daySold": 50,
-        "monthSold": 1774
-      },
       {
         "time": "2026-05-03T20:43:22.908Z",
         "sellOffer": 49994,
@@ -720,20 +731,20 @@
         "monthAverageSell": 49517,
         "daySold": 49,
         "monthSold": 1811
+      },
+      {
+        "time": "2026-05-06T21:08:15.742Z",
+        "buyOffer": 45609,
+        "sellOffer": 49876,
+        "profit": 2357.2999999999956,
+        "profitPercent": 5.0671543585093834,
+        "dayAverageSell": 49555,
+        "monthAverageSell": 49517,
+        "daySold": 49,
+        "monthSold": 1811
       }
     ],
     "22721": [
-      {
-        "time": "2026-05-03T20:25:58.909Z",
-        "buyOffer": 45752,
-        "sellOffer": 48000,
-        "profit": 372.9599999999991,
-        "profitPercent": 0.7991936064511466,
-        "dayAverageSell": 48543,
-        "monthAverageSell": 48996,
-        "daySold": 38,
-        "monthSold": 1174
-      },
       {
         "time": "2026-05-03T20:43:22.908Z",
         "sellOffer": 48000,
@@ -936,6 +947,17 @@
         "monthAverageSell": 48261,
         "daySold": 10,
         "monthSold": 1112
+      },
+      {
+        "time": "2026-05-06T21:08:15.742Z",
+        "buyOffer": 45521,
+        "sellOffer": 46948,
+        "profit": -422.3799999999974,
+        "profitPercent": -0.9096857257434673,
+        "dayAverageSell": 46813,
+        "monthAverageSell": 48261,
+        "daySold": 10,
+        "monthSold": 1112
       }
     ],
     "32619": [
@@ -1048,6 +1070,17 @@
         "monthAverageSell": 205964,
         "daySold": 0,
         "monthSold": 28
+      },
+      {
+        "time": "2026-05-06T21:08:15.743Z",
+        "buyOffer": 40004,
+        "sellOffer": 190000,
+        "profit": 145395.91999999998,
+        "profitPercent": 356.32691632797497,
+        "dayAverageSell": 0,
+        "monthAverageSell": 205964,
+        "daySold": 0,
+        "monthSold": 28
       }
     ],
     "36769": [
@@ -1152,6 +1185,17 @@
       },
       {
         "time": "2026-05-06T17:27:13.807Z",
+        "buyOffer": 4500,
+        "sellOffer": 8000,
+        "profit": 3250,
+        "profitPercent": 70.80610021786492,
+        "dayAverageSell": 0,
+        "monthAverageSell": 6948,
+        "daySold": 0,
+        "monthSold": 142
+      },
+      {
+        "time": "2026-05-06T21:08:15.756Z",
         "buyOffer": 4500,
         "sellOffer": 8000,
         "profit": 3250,
@@ -1338,6 +1382,17 @@
         "monthAverageSell": 20800000,
         "daySold": 0,
         "monthSold": 1
+      },
+      {
+        "time": "2026-05-06T21:08:15.756Z",
+        "buyOffer": 17000000,
+        "sellOffer": 18500000,
+        "profit": 790000,
+        "profitPercent": 4.555940023068051,
+        "dayAverageSell": 0,
+        "monthAverageSell": 20800000,
+        "daySold": 0,
+        "monthSold": 1
       }
     ],
     "39389": [
@@ -1442,6 +1497,17 @@
       },
       {
         "time": "2026-05-06T17:27:13.793Z",
+        "buyOffer": 16001,
+        "sellOffer": 23800,
+        "profit": 7002.98,
+        "profitPercent": 42.907734933233336,
+        "dayAverageSell": 23979,
+        "monthAverageSell": 26362,
+        "daySold": 1,
+        "monthSold": 49
+      },
+      {
+        "time": "2026-05-06T21:08:15.743Z",
         "buyOffer": 16001,
         "sellOffer": 23800,
         "profit": 7002.98,
@@ -1562,6 +1628,17 @@
         "monthAverageSell": 65385,
         "daySold": 0,
         "monthSold": 35
+      },
+      {
+        "time": "2026-05-06T21:08:15.743Z",
+        "buyOffer": 30000,
+        "sellOffer": 45000,
+        "profit": 13500,
+        "profitPercent": 44.11764705882353,
+        "dayAverageSell": 0,
+        "monthAverageSell": 65385,
+        "daySold": 0,
+        "monthSold": 35
       }
     ],
     "50270": [
@@ -1674,6 +1751,17 @@
         "monthAverageSell": 0,
         "daySold": 0,
         "monthSold": 0
+      },
+      {
+        "time": "2026-05-06T21:08:15.756Z",
+        "buyOffer": 1,
+        "sellOffer": 0,
+        "profit": -1.02,
+        "profitPercent": -100,
+        "dayAverageSell": 0,
+        "monthAverageSell": 0,
+        "daySold": 0,
+        "monthSold": 0
       }
     ]
   },
@@ -1693,7 +1781,7 @@
     }
   },
   "market": {
-    "lastRun": "2026-05-06T17:27:13.807Z",
+    "lastRun": "2026-05-06T21:08:15.756Z",
     "volatility": 0,
     "level": "LOW",
     "nextRunHours": 6,
