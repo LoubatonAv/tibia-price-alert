@@ -123,40 +123,7 @@
         "monthSold": 98
       },
       {
-        "time": "2026-05-06T06:11:50.246Z",
-        "buyOffer": 40,
-        "sellOffer": 160,
-        "profit": 116.00000000000001,
-        "profitPercent": 284.31372549019613,
-        "dayAverageSell": 0,
-        "monthAverageSell": 224,
-        "daySold": 0,
-        "monthSold": 98
-      },
-      {
-        "time": "2026-05-06T06:27:09.327Z",
-        "buyOffer": 40,
-        "sellOffer": 160,
-        "profit": 116.00000000000001,
-        "profitPercent": 284.31372549019613,
-        "dayAverageSell": 0,
-        "monthAverageSell": 224,
-        "daySold": 0,
-        "monthSold": 98
-      },
-      {
-        "time": "2026-05-06T10:13:40.164Z",
-        "buyOffer": 40,
-        "sellOffer": 160,
-        "profit": 116.00000000000001,
-        "profitPercent": 284.31372549019613,
-        "dayAverageSell": 0,
-        "monthAverageSell": 224,
-        "daySold": 0,
-        "monthSold": 98
-      },
-      {
-        "time": "2026-05-06T14:01:09.419Z",
+        "time": "2026-05-06T23:22:51.412Z",
         "buyOffer": 40,
         "sellOffer": 160,
         "profit": 116.00000000000001,
@@ -167,7 +134,7 @@
         "monthSold": 96
       },
       {
-        "time": "2026-05-06T17:27:13.793Z",
+        "time": "2026-05-06T23:32:04.717Z",
         "buyOffer": 40,
         "sellOffer": 160,
         "profit": 116.00000000000001,
@@ -178,7 +145,40 @@
         "monthSold": 96
       },
       {
-        "time": "2026-05-06T21:08:15.743Z",
+        "time": "2026-05-06T23:33:44.013Z",
+        "buyOffer": 40,
+        "sellOffer": 160,
+        "profit": 116.00000000000001,
+        "profitPercent": 284.31372549019613,
+        "dayAverageSell": 0,
+        "monthAverageSell": 205,
+        "daySold": 0,
+        "monthSold": 96
+      },
+      {
+        "time": "2026-05-06T23:35:08.573Z",
+        "buyOffer": 40,
+        "sellOffer": 160,
+        "profit": 116.00000000000001,
+        "profitPercent": 284.31372549019613,
+        "dayAverageSell": 0,
+        "monthAverageSell": 205,
+        "daySold": 0,
+        "monthSold": 96
+      },
+      {
+        "time": "2026-05-06T23:41:52.437Z",
+        "buyOffer": 40,
+        "sellOffer": 160,
+        "profit": 116.00000000000001,
+        "profitPercent": 284.31372549019613,
+        "dayAverageSell": 0,
+        "monthAverageSell": 205,
+        "daySold": 0,
+        "monthSold": 96
+      },
+      {
+        "time": "2026-05-06T23:42:52.992Z",
         "buyOffer": 40,
         "sellOffer": 160,
         "profit": 116.00000000000001,
@@ -246,40 +246,7 @@
         "monthSold": 16
       },
       {
-        "time": "2026-05-06T06:11:50.246Z",
-        "buyOffer": 256604,
-        "sellOffer": 299999,
-        "profit": 32262.940000000002,
-        "profitPercent": 12.326516084446592,
-        "dayAverageSell": 329998,
-        "monthAverageSell": 398358,
-        "daySold": 2,
-        "monthSold": 16
-      },
-      {
-        "time": "2026-05-06T06:27:09.327Z",
-        "buyOffer": 256604,
-        "sellOffer": 299999,
-        "profit": 32262.940000000002,
-        "profitPercent": 12.326516084446592,
-        "dayAverageSell": 329998,
-        "monthAverageSell": 398358,
-        "daySold": 2,
-        "monthSold": 16
-      },
-      {
-        "time": "2026-05-06T10:13:40.164Z",
-        "buyOffer": 256604,
-        "sellOffer": 299999,
-        "profit": 32262.940000000002,
-        "profitPercent": 12.326516084446592,
-        "dayAverageSell": 329998,
-        "monthAverageSell": 398358,
-        "daySold": 2,
-        "monthSold": 16
-      },
-      {
-        "time": "2026-05-06T14:01:09.419Z",
+        "time": "2026-05-06T23:22:51.412Z",
         "buyOffer": 257103,
         "sellOffer": 345000,
         "profit": 75854.94,
@@ -290,7 +257,7 @@
         "monthSold": 18
       },
       {
-        "time": "2026-05-06T17:27:13.793Z",
+        "time": "2026-05-06T23:32:04.717Z",
         "buyOffer": 257103,
         "sellOffer": 345000,
         "profit": 75854.94,
@@ -301,7 +268,40 @@
         "monthSold": 18
       },
       {
-        "time": "2026-05-06T21:08:15.743Z",
+        "time": "2026-05-06T23:33:44.014Z",
+        "buyOffer": 257103,
+        "sellOffer": 345000,
+        "profit": 75854.94,
+        "profitPercent": 28.925212166055676,
+        "dayAverageSell": 345000,
+        "monthAverageSell": 365272,
+        "daySold": 1,
+        "monthSold": 18
+      },
+      {
+        "time": "2026-05-06T23:35:08.574Z",
+        "buyOffer": 257103,
+        "sellOffer": 345000,
+        "profit": 75854.94,
+        "profitPercent": 28.925212166055676,
+        "dayAverageSell": 345000,
+        "monthAverageSell": 365272,
+        "daySold": 1,
+        "monthSold": 18
+      },
+      {
+        "time": "2026-05-06T23:41:52.437Z",
+        "buyOffer": 257103,
+        "sellOffer": 345000,
+        "profit": 75854.94,
+        "profitPercent": 28.925212166055676,
+        "dayAverageSell": 345000,
+        "monthAverageSell": 365272,
+        "daySold": 1,
+        "monthSold": 18
+      },
+      {
+        "time": "2026-05-06T23:42:52.992Z",
         "buyOffer": 257103,
         "sellOffer": 345000,
         "profit": 75854.94,
@@ -462,40 +462,7 @@
         "monthSold": 2723
       },
       {
-        "time": "2026-05-06T06:11:50.246Z",
-        "buyOffer": 39631,
-        "sellOffer": 40346,
-        "profit": -884.5400000000009,
-        "profitPercent": -2.1881761207927464,
-        "dayAverageSell": 40676,
-        "monthAverageSell": 41170,
-        "daySold": 123,
-        "monthSold": 2723
-      },
-      {
-        "time": "2026-05-06T06:27:09.327Z",
-        "buyOffer": 39631,
-        "sellOffer": 40346,
-        "profit": -884.5400000000009,
-        "profitPercent": -2.1881761207927464,
-        "dayAverageSell": 40676,
-        "monthAverageSell": 41170,
-        "daySold": 123,
-        "monthSold": 2723
-      },
-      {
-        "time": "2026-05-06T10:13:40.164Z",
-        "buyOffer": 39631,
-        "sellOffer": 40346,
-        "profit": -884.5400000000009,
-        "profitPercent": -2.1881761207927464,
-        "dayAverageSell": 40676,
-        "monthAverageSell": 41170,
-        "daySold": 123,
-        "monthSold": 2723
-      },
-      {
-        "time": "2026-05-06T14:01:09.419Z",
+        "time": "2026-05-06T23:22:51.412Z",
         "buyOffer": 39921,
         "sellOffer": 40723,
         "profit": -810.8799999999974,
@@ -506,7 +473,7 @@
         "monthSold": 2770
       },
       {
-        "time": "2026-05-06T17:27:13.793Z",
+        "time": "2026-05-06T23:32:04.717Z",
         "buyOffer": 39921,
         "sellOffer": 40723,
         "profit": -810.8799999999974,
@@ -517,7 +484,40 @@
         "monthSold": 2770
       },
       {
-        "time": "2026-05-06T21:08:15.742Z",
+        "time": "2026-05-06T23:33:44.013Z",
+        "buyOffer": 39921,
+        "sellOffer": 40723,
+        "profit": -810.8799999999974,
+        "profitPercent": -1.9913839637204986,
+        "dayAverageSell": 40729,
+        "monthAverageSell": 41083,
+        "daySold": 54,
+        "monthSold": 2770
+      },
+      {
+        "time": "2026-05-06T23:35:08.573Z",
+        "buyOffer": 39921,
+        "sellOffer": 40723,
+        "profit": -810.8799999999974,
+        "profitPercent": -1.9913839637204986,
+        "dayAverageSell": 40729,
+        "monthAverageSell": 41083,
+        "daySold": 54,
+        "monthSold": 2770
+      },
+      {
+        "time": "2026-05-06T23:41:52.437Z",
+        "buyOffer": 39921,
+        "sellOffer": 40723,
+        "profit": -810.8799999999974,
+        "profitPercent": -1.9913839637204986,
+        "dayAverageSell": 40729,
+        "monthAverageSell": 41083,
+        "daySold": 54,
+        "monthSold": 2770
+      },
+      {
+        "time": "2026-05-06T23:42:52.992Z",
         "buyOffer": 39921,
         "sellOffer": 40723,
         "profit": -810.8799999999974,
@@ -678,40 +678,7 @@
         "monthSold": 1774
       },
       {
-        "time": "2026-05-06T06:11:50.246Z",
-        "buyOffer": 42500,
-        "sellOffer": 49994,
-        "profit": 5644.120000000003,
-        "profitPercent": 13.019884659746259,
-        "dayAverageSell": 48767,
-        "monthAverageSell": 50021,
-        "daySold": 50,
-        "monthSold": 1774
-      },
-      {
-        "time": "2026-05-06T06:27:09.327Z",
-        "buyOffer": 42500,
-        "sellOffer": 49994,
-        "profit": 5644.120000000003,
-        "profitPercent": 13.019884659746259,
-        "dayAverageSell": 48767,
-        "monthAverageSell": 50021,
-        "daySold": 50,
-        "monthSold": 1774
-      },
-      {
-        "time": "2026-05-06T10:13:40.164Z",
-        "buyOffer": 42500,
-        "sellOffer": 49994,
-        "profit": 5644.120000000003,
-        "profitPercent": 13.019884659746259,
-        "dayAverageSell": 48767,
-        "monthAverageSell": 50021,
-        "daySold": 50,
-        "monthSold": 1774
-      },
-      {
-        "time": "2026-05-06T14:01:09.419Z",
+        "time": "2026-05-06T23:22:51.412Z",
         "buyOffer": 45609,
         "sellOffer": 49876,
         "profit": 2357.2999999999956,
@@ -722,7 +689,7 @@
         "monthSold": 1811
       },
       {
-        "time": "2026-05-06T17:27:13.793Z",
+        "time": "2026-05-06T23:32:04.717Z",
         "buyOffer": 45609,
         "sellOffer": 49876,
         "profit": 2357.2999999999956,
@@ -733,7 +700,40 @@
         "monthSold": 1811
       },
       {
-        "time": "2026-05-06T21:08:15.742Z",
+        "time": "2026-05-06T23:33:44.013Z",
+        "buyOffer": 45609,
+        "sellOffer": 49876,
+        "profit": 2357.2999999999956,
+        "profitPercent": 5.0671543585093834,
+        "dayAverageSell": 49555,
+        "monthAverageSell": 49517,
+        "daySold": 49,
+        "monthSold": 1811
+      },
+      {
+        "time": "2026-05-06T23:35:08.573Z",
+        "buyOffer": 45609,
+        "sellOffer": 49876,
+        "profit": 2357.2999999999956,
+        "profitPercent": 5.0671543585093834,
+        "dayAverageSell": 49555,
+        "monthAverageSell": 49517,
+        "daySold": 49,
+        "monthSold": 1811
+      },
+      {
+        "time": "2026-05-06T23:41:52.437Z",
+        "buyOffer": 45609,
+        "sellOffer": 49876,
+        "profit": 2357.2999999999956,
+        "profitPercent": 5.0671543585093834,
+        "dayAverageSell": 49555,
+        "monthAverageSell": 49517,
+        "daySold": 49,
+        "monthSold": 1811
+      },
+      {
+        "time": "2026-05-06T23:42:52.992Z",
         "buyOffer": 45609,
         "sellOffer": 49876,
         "profit": 2357.2999999999956,
@@ -894,40 +894,7 @@
         "monthSold": 1174
       },
       {
-        "time": "2026-05-06T06:11:50.245Z",
-        "buyOffer": 45752,
-        "sellOffer": 48000,
-        "profit": 372.9599999999991,
-        "profitPercent": 0.7991936064511466,
-        "dayAverageSell": 48543,
-        "monthAverageSell": 48996,
-        "daySold": 38,
-        "monthSold": 1174
-      },
-      {
-        "time": "2026-05-06T06:27:09.326Z",
-        "buyOffer": 45752,
-        "sellOffer": 48000,
-        "profit": 372.9599999999991,
-        "profitPercent": 0.7991936064511466,
-        "dayAverageSell": 48543,
-        "monthAverageSell": 48996,
-        "daySold": 38,
-        "monthSold": 1174
-      },
-      {
-        "time": "2026-05-06T10:13:40.163Z",
-        "buyOffer": 45752,
-        "sellOffer": 48000,
-        "profit": 372.9599999999991,
-        "profitPercent": 0.7991936064511466,
-        "dayAverageSell": 48543,
-        "monthAverageSell": 48996,
-        "daySold": 38,
-        "monthSold": 1174
-      },
-      {
-        "time": "2026-05-06T14:01:09.418Z",
+        "time": "2026-05-06T23:22:51.410Z",
         "buyOffer": 45521,
         "sellOffer": 46948,
         "profit": -422.3799999999974,
@@ -938,7 +905,7 @@
         "monthSold": 1112
       },
       {
-        "time": "2026-05-06T17:27:13.792Z",
+        "time": "2026-05-06T23:32:04.716Z",
         "buyOffer": 45521,
         "sellOffer": 46948,
         "profit": -422.3799999999974,
@@ -949,7 +916,40 @@
         "monthSold": 1112
       },
       {
-        "time": "2026-05-06T21:08:15.742Z",
+        "time": "2026-05-06T23:33:44.012Z",
+        "buyOffer": 45521,
+        "sellOffer": 46948,
+        "profit": -422.3799999999974,
+        "profitPercent": -0.9096857257434673,
+        "dayAverageSell": 46813,
+        "monthAverageSell": 48261,
+        "daySold": 10,
+        "monthSold": 1112
+      },
+      {
+        "time": "2026-05-06T23:35:08.571Z",
+        "buyOffer": 45521,
+        "sellOffer": 46948,
+        "profit": -422.3799999999974,
+        "profitPercent": -0.9096857257434673,
+        "dayAverageSell": 46813,
+        "monthAverageSell": 48261,
+        "daySold": 10,
+        "monthSold": 1112
+      },
+      {
+        "time": "2026-05-06T23:41:52.435Z",
+        "buyOffer": 45521,
+        "sellOffer": 46948,
+        "profit": -422.3799999999974,
+        "profitPercent": -0.9096857257434673,
+        "dayAverageSell": 46813,
+        "monthAverageSell": 48261,
+        "daySold": 10,
+        "monthSold": 1112
+      },
+      {
+        "time": "2026-05-06T23:42:52.991Z",
         "buyOffer": 45521,
         "sellOffer": 46948,
         "profit": -422.3799999999974,
@@ -1017,40 +1017,7 @@
         "monthSold": 32
       },
       {
-        "time": "2026-05-06T06:11:50.246Z",
-        "buyOffer": 0,
-        "sellOffer": 199999,
-        "profit": 195999.02,
-        "profitPercent": 0,
-        "dayAverageSell": 234996,
-        "monthAverageSell": 200012,
-        "daySold": 1,
-        "monthSold": 32
-      },
-      {
-        "time": "2026-05-06T06:27:09.327Z",
-        "buyOffer": 0,
-        "sellOffer": 199999,
-        "profit": 195999.02,
-        "profitPercent": 0,
-        "dayAverageSell": 234996,
-        "monthAverageSell": 200012,
-        "daySold": 1,
-        "monthSold": 32
-      },
-      {
-        "time": "2026-05-06T10:13:40.164Z",
-        "buyOffer": 0,
-        "sellOffer": 199999,
-        "profit": 195999.02,
-        "profitPercent": 0,
-        "dayAverageSell": 234996,
-        "monthAverageSell": 200012,
-        "daySold": 1,
-        "monthSold": 32
-      },
-      {
-        "time": "2026-05-06T14:01:09.419Z",
+        "time": "2026-05-06T23:22:51.412Z",
         "buyOffer": 40004,
         "sellOffer": 190000,
         "profit": 145395.91999999998,
@@ -1061,7 +1028,7 @@
         "monthSold": 28
       },
       {
-        "time": "2026-05-06T17:27:13.793Z",
+        "time": "2026-05-06T23:32:04.717Z",
         "buyOffer": 40004,
         "sellOffer": 190000,
         "profit": 145395.91999999998,
@@ -1072,7 +1039,40 @@
         "monthSold": 28
       },
       {
-        "time": "2026-05-06T21:08:15.743Z",
+        "time": "2026-05-06T23:33:44.013Z",
+        "buyOffer": 40004,
+        "sellOffer": 190000,
+        "profit": 145395.91999999998,
+        "profitPercent": 356.32691632797497,
+        "dayAverageSell": 0,
+        "monthAverageSell": 205964,
+        "daySold": 0,
+        "monthSold": 28
+      },
+      {
+        "time": "2026-05-06T23:35:08.573Z",
+        "buyOffer": 40004,
+        "sellOffer": 190000,
+        "profit": 145395.91999999998,
+        "profitPercent": 356.32691632797497,
+        "dayAverageSell": 0,
+        "monthAverageSell": 205964,
+        "daySold": 0,
+        "monthSold": 28
+      },
+      {
+        "time": "2026-05-06T23:41:52.437Z",
+        "buyOffer": 40004,
+        "sellOffer": 190000,
+        "profit": 145395.91999999998,
+        "profitPercent": 356.32691632797497,
+        "dayAverageSell": 0,
+        "monthAverageSell": 205964,
+        "daySold": 0,
+        "monthSold": 28
+      },
+      {
+        "time": "2026-05-06T23:42:52.992Z",
         "buyOffer": 40004,
         "sellOffer": 190000,
         "profit": 145395.91999999998,
@@ -1140,40 +1140,7 @@
         "monthSold": 114
       },
       {
-        "time": "2026-05-06T06:11:50.246Z",
-        "buyOffer": 3850,
-        "sellOffer": 9888,
-        "profit": 5763.24,
-        "profitPercent": 146.75935828877004,
-        "dayAverageSell": 0,
-        "monthAverageSell": 6113,
-        "daySold": 0,
-        "monthSold": 114
-      },
-      {
-        "time": "2026-05-06T06:27:09.327Z",
-        "buyOffer": 3850,
-        "sellOffer": 9888,
-        "profit": 5763.24,
-        "profitPercent": 146.75935828877004,
-        "dayAverageSell": 0,
-        "monthAverageSell": 6113,
-        "daySold": 0,
-        "monthSold": 114
-      },
-      {
-        "time": "2026-05-06T10:13:40.164Z",
-        "buyOffer": 3850,
-        "sellOffer": 9888,
-        "profit": 5763.24,
-        "profitPercent": 146.75935828877004,
-        "dayAverageSell": 0,
-        "monthAverageSell": 6113,
-        "daySold": 0,
-        "monthSold": 114
-      },
-      {
-        "time": "2026-05-06T14:01:09.433Z",
+        "time": "2026-05-06T23:22:51.412Z",
         "buyOffer": 4500,
         "sellOffer": 8000,
         "profit": 3250,
@@ -1184,7 +1151,7 @@
         "monthSold": 142
       },
       {
-        "time": "2026-05-06T17:27:13.807Z",
+        "time": "2026-05-06T23:32:04.718Z",
         "buyOffer": 4500,
         "sellOffer": 8000,
         "profit": 3250,
@@ -1195,7 +1162,40 @@
         "monthSold": 142
       },
       {
-        "time": "2026-05-06T21:08:15.756Z",
+        "time": "2026-05-06T23:33:44.014Z",
+        "buyOffer": 4500,
+        "sellOffer": 8000,
+        "profit": 3250,
+        "profitPercent": 70.80610021786492,
+        "dayAverageSell": 0,
+        "monthAverageSell": 6948,
+        "daySold": 0,
+        "monthSold": 142
+      },
+      {
+        "time": "2026-05-06T23:35:08.574Z",
+        "buyOffer": 4500,
+        "sellOffer": 8000,
+        "profit": 3250,
+        "profitPercent": 70.80610021786492,
+        "dayAverageSell": 0,
+        "monthAverageSell": 6948,
+        "daySold": 0,
+        "monthSold": 142
+      },
+      {
+        "time": "2026-05-06T23:41:52.438Z",
+        "buyOffer": 4500,
+        "sellOffer": 8000,
+        "profit": 3250,
+        "profitPercent": 70.80610021786492,
+        "dayAverageSell": 0,
+        "monthAverageSell": 6948,
+        "daySold": 0,
+        "monthSold": 142
+      },
+      {
+        "time": "2026-05-06T23:42:52.992Z",
         "buyOffer": 4500,
         "sellOffer": 8000,
         "profit": 3250,
@@ -1329,40 +1329,7 @@
         "monthSold": 1
       },
       {
-        "time": "2026-05-06T06:11:50.246Z",
-        "buyOffer": 14000000,
-        "sellOffer": 18500000,
-        "profit": 3850000,
-        "profitPercent": 26.96078431372549,
-        "dayAverageSell": 0,
-        "monthAverageSell": 20800000,
-        "daySold": 0,
-        "monthSold": 1
-      },
-      {
-        "time": "2026-05-06T06:27:09.327Z",
-        "buyOffer": 14000000,
-        "sellOffer": 18500000,
-        "profit": 3850000,
-        "profitPercent": 26.96078431372549,
-        "dayAverageSell": 0,
-        "monthAverageSell": 20800000,
-        "daySold": 0,
-        "monthSold": 1
-      },
-      {
-        "time": "2026-05-06T10:13:40.164Z",
-        "buyOffer": 14000000,
-        "sellOffer": 18500000,
-        "profit": 3850000,
-        "profitPercent": 26.96078431372549,
-        "dayAverageSell": 0,
-        "monthAverageSell": 20800000,
-        "daySold": 0,
-        "monthSold": 1
-      },
-      {
-        "time": "2026-05-06T14:01:09.433Z",
+        "time": "2026-05-06T23:22:51.412Z",
         "buyOffer": 17000000,
         "sellOffer": 18500000,
         "profit": 790000,
@@ -1373,7 +1340,7 @@
         "monthSold": 1
       },
       {
-        "time": "2026-05-06T17:27:13.807Z",
+        "time": "2026-05-06T23:32:04.718Z",
         "buyOffer": 17000000,
         "sellOffer": 18500000,
         "profit": 790000,
@@ -1384,7 +1351,40 @@
         "monthSold": 1
       },
       {
-        "time": "2026-05-06T21:08:15.756Z",
+        "time": "2026-05-06T23:33:44.014Z",
+        "buyOffer": 17000000,
+        "sellOffer": 18500000,
+        "profit": 790000,
+        "profitPercent": 4.555940023068051,
+        "dayAverageSell": 0,
+        "monthAverageSell": 20800000,
+        "daySold": 0,
+        "monthSold": 1
+      },
+      {
+        "time": "2026-05-06T23:35:08.574Z",
+        "buyOffer": 17000000,
+        "sellOffer": 18500000,
+        "profit": 790000,
+        "profitPercent": 4.555940023068051,
+        "dayAverageSell": 0,
+        "monthAverageSell": 20800000,
+        "daySold": 0,
+        "monthSold": 1
+      },
+      {
+        "time": "2026-05-06T23:41:52.438Z",
+        "buyOffer": 17000000,
+        "sellOffer": 18500000,
+        "profit": 790000,
+        "profitPercent": 4.555940023068051,
+        "dayAverageSell": 0,
+        "monthAverageSell": 20800000,
+        "daySold": 0,
+        "monthSold": 1
+      },
+      {
+        "time": "2026-05-06T23:42:52.992Z",
         "buyOffer": 17000000,
         "sellOffer": 18500000,
         "profit": 790000,
@@ -1452,40 +1452,7 @@
         "monthSold": 43
       },
       {
-        "time": "2026-05-06T06:11:50.246Z",
-        "buyOffer": 16000,
-        "sellOffer": 23499,
-        "profit": 6709.02,
-        "profitPercent": 41.10919117647059,
-        "dayAverageSell": 0,
-        "monthAverageSell": 26964,
-        "daySold": 0,
-        "monthSold": 43
-      },
-      {
-        "time": "2026-05-06T06:27:09.327Z",
-        "buyOffer": 16000,
-        "sellOffer": 23499,
-        "profit": 6709.02,
-        "profitPercent": 41.10919117647059,
-        "dayAverageSell": 0,
-        "monthAverageSell": 26964,
-        "daySold": 0,
-        "monthSold": 43
-      },
-      {
-        "time": "2026-05-06T10:13:40.164Z",
-        "buyOffer": 16000,
-        "sellOffer": 23499,
-        "profit": 6709.02,
-        "profitPercent": 41.10919117647059,
-        "dayAverageSell": 0,
-        "monthAverageSell": 26964,
-        "daySold": 0,
-        "monthSold": 43
-      },
-      {
-        "time": "2026-05-06T14:01:09.419Z",
+        "time": "2026-05-06T23:22:51.412Z",
         "buyOffer": 16001,
         "sellOffer": 23800,
         "profit": 7002.98,
@@ -1496,7 +1463,7 @@
         "monthSold": 49
       },
       {
-        "time": "2026-05-06T17:27:13.793Z",
+        "time": "2026-05-06T23:32:04.717Z",
         "buyOffer": 16001,
         "sellOffer": 23800,
         "profit": 7002.98,
@@ -1507,7 +1474,40 @@
         "monthSold": 49
       },
       {
-        "time": "2026-05-06T21:08:15.743Z",
+        "time": "2026-05-06T23:33:44.013Z",
+        "buyOffer": 16001,
+        "sellOffer": 23800,
+        "profit": 7002.98,
+        "profitPercent": 42.907734933233336,
+        "dayAverageSell": 23979,
+        "monthAverageSell": 26362,
+        "daySold": 1,
+        "monthSold": 49
+      },
+      {
+        "time": "2026-05-06T23:35:08.573Z",
+        "buyOffer": 16001,
+        "sellOffer": 23800,
+        "profit": 7002.98,
+        "profitPercent": 42.907734933233336,
+        "dayAverageSell": 23979,
+        "monthAverageSell": 26362,
+        "daySold": 1,
+        "monthSold": 49
+      },
+      {
+        "time": "2026-05-06T23:41:52.437Z",
+        "buyOffer": 16001,
+        "sellOffer": 23800,
+        "profit": 7002.98,
+        "profitPercent": 42.907734933233336,
+        "dayAverageSell": 23979,
+        "monthAverageSell": 26362,
+        "daySold": 1,
+        "monthSold": 49
+      },
+      {
+        "time": "2026-05-06T23:42:52.992Z",
         "buyOffer": 16001,
         "sellOffer": 23800,
         "profit": 7002.98,
@@ -1575,40 +1575,7 @@
         "monthSold": 24
       },
       {
-        "time": "2026-05-06T06:11:50.246Z",
-        "buyOffer": 31000,
-        "sellOffer": 47990,
-        "profit": 15410.199999999997,
-        "profitPercent": 48.73561037318152,
-        "dayAverageSell": 0,
-        "monthAverageSell": 68298,
-        "daySold": 0,
-        "monthSold": 24
-      },
-      {
-        "time": "2026-05-06T06:27:09.327Z",
-        "buyOffer": 31000,
-        "sellOffer": 47990,
-        "profit": 15410.199999999997,
-        "profitPercent": 48.73561037318152,
-        "dayAverageSell": 0,
-        "monthAverageSell": 68298,
-        "daySold": 0,
-        "monthSold": 24
-      },
-      {
-        "time": "2026-05-06T10:13:40.164Z",
-        "buyOffer": 31000,
-        "sellOffer": 47990,
-        "profit": 15410.199999999997,
-        "profitPercent": 48.73561037318152,
-        "dayAverageSell": 0,
-        "monthAverageSell": 68298,
-        "daySold": 0,
-        "monthSold": 24
-      },
-      {
-        "time": "2026-05-06T14:01:09.419Z",
+        "time": "2026-05-06T23:22:51.412Z",
         "buyOffer": 30000,
         "sellOffer": 45000,
         "profit": 13500,
@@ -1619,7 +1586,7 @@
         "monthSold": 35
       },
       {
-        "time": "2026-05-06T17:27:13.793Z",
+        "time": "2026-05-06T23:32:04.717Z",
         "buyOffer": 30000,
         "sellOffer": 45000,
         "profit": 13500,
@@ -1630,7 +1597,40 @@
         "monthSold": 35
       },
       {
-        "time": "2026-05-06T21:08:15.743Z",
+        "time": "2026-05-06T23:33:44.014Z",
+        "buyOffer": 30000,
+        "sellOffer": 45000,
+        "profit": 13500,
+        "profitPercent": 44.11764705882353,
+        "dayAverageSell": 0,
+        "monthAverageSell": 65385,
+        "daySold": 0,
+        "monthSold": 35
+      },
+      {
+        "time": "2026-05-06T23:35:08.574Z",
+        "buyOffer": 30000,
+        "sellOffer": 45000,
+        "profit": 13500,
+        "profitPercent": 44.11764705882353,
+        "dayAverageSell": 0,
+        "monthAverageSell": 65385,
+        "daySold": 0,
+        "monthSold": 35
+      },
+      {
+        "time": "2026-05-06T23:41:52.437Z",
+        "buyOffer": 30000,
+        "sellOffer": 45000,
+        "profit": 13500,
+        "profitPercent": 44.11764705882353,
+        "dayAverageSell": 0,
+        "monthAverageSell": 65385,
+        "daySold": 0,
+        "monthSold": 35
+      },
+      {
+        "time": "2026-05-06T23:42:52.992Z",
         "buyOffer": 30000,
         "sellOffer": 45000,
         "profit": 13500,
@@ -1698,7 +1698,7 @@
         "monthSold": 0
       },
       {
-        "time": "2026-05-06T06:11:50.246Z",
+        "time": "2026-05-06T23:22:51.412Z",
         "buyOffer": 1,
         "sellOffer": 0,
         "profit": -1.02,
@@ -1709,7 +1709,7 @@
         "monthSold": 0
       },
       {
-        "time": "2026-05-06T06:27:09.327Z",
+        "time": "2026-05-06T23:32:04.718Z",
         "buyOffer": 1,
         "sellOffer": 0,
         "profit": -1.02,
@@ -1720,7 +1720,7 @@
         "monthSold": 0
       },
       {
-        "time": "2026-05-06T10:13:40.165Z",
+        "time": "2026-05-06T23:33:44.014Z",
         "buyOffer": 1,
         "sellOffer": 0,
         "profit": -1.02,
@@ -1731,7 +1731,7 @@
         "monthSold": 0
       },
       {
-        "time": "2026-05-06T14:01:09.433Z",
+        "time": "2026-05-06T23:35:08.574Z",
         "buyOffer": 1,
         "sellOffer": 0,
         "profit": -1.02,
@@ -1742,7 +1742,7 @@
         "monthSold": 0
       },
       {
-        "time": "2026-05-06T17:27:13.807Z",
+        "time": "2026-05-06T23:41:52.438Z",
         "buyOffer": 1,
         "sellOffer": 0,
         "profit": -1.02,
@@ -1753,7 +1753,7 @@
         "monthSold": 0
       },
       {
-        "time": "2026-05-06T21:08:15.756Z",
+        "time": "2026-05-06T23:42:52.992Z",
         "buyOffer": 1,
         "sellOffer": 0,
         "profit": -1.02,
@@ -1765,40 +1765,13 @@
       }
     ]
   },
-  "alerts": {
-    "8026": {
-      "type": "SIMPLE_BUY",
-      "time": "2026-05-06T14:01:09.618Z",
-      "brainScore": 100,
-      "strength": "VERY STRONG",
-      "profit": 75854.94,
-      "profitPercent": 28.925212166055676,
-      "maxBuy": 257103,
-      "targetSell": 341550,
-      "stopLoss": 249389,
-      "buyOffer": 257103,
-      "sellOffer": 345000
-    }
-  },
+  "alerts": {},
   "market": {
-    "lastRun": "2026-05-06T21:08:15.756Z",
+    "lastRun": "2026-05-06T23:42:52.992Z",
     "volatility": 0,
     "level": "LOW",
     "nextRunHours": 6,
     "message": "Market is calm."
   },
-  "sellAlerts": {
-    "8026": {
-      "type": "SIMPLE_SELL",
-      "time": "2026-05-06T17:27:14.054Z",
-      "sellLevel": "SELL_NOW",
-      "brainScore": 94,
-      "previousBrainScore": 100,
-      "scoreDrop": 6,
-      "sellOffer": 345000,
-      "trackedTargetSell": 341550,
-      "fakeSpreadRisk": 0,
-      "volumeRatio": 1.6666666666666667
-    }
-  }
+  "sellAlerts": {}
 }

@@ -335,47 +335,85 @@ function analyzeSellMomentum(history) {
 }
 
 function getFakeSpreadRisk(item) {
+  const buyOffer = item.buy_offer || 0;
   const sellOffer = item.sell_offer || 0;
+
   const dayAvgSell = item.day_average_sell || 0;
   const monthAvgSell = item.month_average_sell || 0;
+
   const daySold = item.day_sold || 0;
   const monthSold = item.month_sold || 0;
 
   let risk = 0;
   const warnings = [];
 
-  if (monthAvgSell > 0 && sellOffer > monthAvgSell * 1.25) {
-    risk += 30;
-    warnings.push("Sell price is much higher than monthly average.");
+  if (!buyOffer || !sellOffer) {
+    risk += 60;
+    warnings.push("Missing buy or sell offer.");
   }
 
-  if (dayAvgSell > 0 && sellOffer > dayAvgSell * 1.2) {
+  const rawSpreadPercent =
+    buyOffer > 0 ? ((sellOffer - buyOffer) / buyOffer) * 100 : 0;
+
+  if (rawSpreadPercent > 20) {
+    risk += 15;
+    warnings.push("Spread is getting large.");
+  }
+
+  if (rawSpreadPercent > 30) {
+    risk += 20;
+    warnings.push("Very large spread.");
+  }
+
+  if (rawSpreadPercent > 45) {
+    risk += 30;
+    warnings.push("Extreme spread. Likely unrealistic.");
+  }
+
+  if (monthAvgSell > 0 && sellOffer > monthAvgSell * 1.12) {
     risk += 25;
-    warnings.push("Sell price is much higher than today's average.");
+    warnings.push("Sell price is above monthly average.");
+  }
+
+  if (dayAvgSell > 0 && sellOffer > dayAvgSell * 1.08) {
+    risk += 20;
+    warnings.push("Sell price is above today's average.");
   }
 
   const avgDailyVolume = monthSold / 30;
 
+  const volumeRatio = avgDailyVolume > 0 ? daySold / avgDailyVolume : 0;
+
+  if (monthSold < 10) {
+    risk += 50;
+    warnings.push("Very low monthly liquidity.");
+  } else if (monthSold < 30) {
+    risk += 35;
+    warnings.push("Low monthly liquidity.");
+  } else if (monthSold < 100) {
+    risk += 15;
+    warnings.push("Moderate liquidity.");
+  }
+
   if (avgDailyVolume > 0 && daySold < avgDailyVolume * 0.5) {
     risk += 20;
-    warnings.push("Low volume today.");
+    warnings.push("Today's volume is weak.");
   }
 
-  const rawSpreadPercent =
-    item.buy_offer > 0
-      ? ((item.sell_offer - item.buy_offer) / item.buy_offer) * 100
-      : 0;
-
-  if (rawSpreadPercent > 40) {
+  if (daySold === 0) {
     risk += 25;
-    warnings.push("Huge spread. Could be fake/bait pricing.");
+    warnings.push("No sales today.");
   }
+
+  risk = clamp(risk, 0, 100);
 
   return {
     fakeSpreadRisk: risk,
     fakeSpreadWarnings: warnings.length
       ? warnings.join("\n")
       : "No major warning.",
+    rawSpreadPercent,
+    liquidityScore: volumeRatio,
   };
 }
 
@@ -457,97 +495,168 @@ function getDecision(item, profit, profitPercent, fakeSpreadRisk, historyData) {
 
 function calculateBrainScore(item) {
   let score = 50;
+
   const notes = [];
 
-  const profitScore = clamp(item.profitPercent * 2.2, 0, 35);
+  // ================= PROFIT =================
+
+  const profitScore = clamp(item.profitPercent * 1.5, 0, 25);
+
   score += profitScore;
+
   notes.push(`Profit score: +${profitScore.toFixed(1)}`);
 
-  const rawProfitScore = clamp(item.profit / 1000, 0, 20);
+  const rawProfitScore = clamp(item.profit / 2000, 0, 12);
+
   score += rawProfitScore;
+
   notes.push(`Raw profit score: +${rawProfitScore.toFixed(1)}`);
 
+  // ================= TREND =================
+
   if (item.dayVsMonthSell > 5) {
-    score += 12;
-    notes.push("Strong rising trend: +12");
+    score += 10;
+    notes.push("Strong rising trend: +10");
   } else if (item.dayVsMonthSell > 2) {
-    score += 7;
-    notes.push("Rising trend: +7");
+    score += 5;
+    notes.push("Rising trend: +5");
   } else if (item.dayVsMonthSell < -5) {
-    score -= 18;
-    notes.push("Strong falling trend: -18");
+    score -= 20;
+    notes.push("Strong falling trend: -20");
   } else if (item.dayVsMonthSell < -2) {
     score -= 10;
     notes.push("Falling trend: -10");
   }
 
-  if (item.volumeRatio >= 2) {
-    score += 12;
-    notes.push("Very strong volume: +12");
-  } else if (item.volumeRatio >= 1) {
-    score += 7;
-    notes.push("Good volume: +7");
-  } else if (item.volumeRatio < 0.5) {
+  // ================= LIQUIDITY =================
+
+  if (item.monthSold >= 1000) {
+    score += 25;
+    notes.push("Extremely liquid item: +25");
+  } else if (item.monthSold >= 300) {
+    score += 18;
+    notes.push("High liquidity: +18");
+  } else if (item.monthSold >= 100) {
+    score += 10;
+    notes.push("Good liquidity: +10");
+  } else if (item.monthSold >= 30) {
+    score += 2;
+    notes.push("Average liquidity: +2");
+  } else if (item.monthSold >= 10) {
     score -= 15;
-    notes.push("Low volume: -15");
+    notes.push("Low liquidity: -15");
+  } else {
+    score -= 30;
+    notes.push("Very low liquidity: -30");
   }
 
+  // ================= VOLUME =================
+
+  if (item.volumeRatio >= 2) {
+    score += 10;
+    notes.push("Very strong volume: +10");
+  } else if (item.volumeRatio >= 1) {
+    score += 6;
+    notes.push("Healthy volume: +6");
+  } else if (item.volumeRatio < 0.5) {
+    score -= 20;
+    notes.push("Weak volume: -20");
+  }
+
+  // ================= HISTORY =================
+
   score += item.historyScore;
+
   notes.push(
     `History score: ${item.historyScore >= 0 ? "+" : ""}${item.historyScore}`,
   );
 
+  // ================= RISK =================
+
   score -= item.fakeSpreadRisk;
+
   notes.push(`Fake spread risk: -${item.fakeSpreadRisk}`);
 
+  // ================= BOTTOM SIGNALS =================
+
   if (item.firstGreenSignal) {
-    score += 10;
-    notes.push("First green after drop bonus: +10");
+    score += 8;
+    notes.push("First green after drop bonus: +8");
   } else if (item.bottomSignal) {
-    score += 5;
-    notes.push("Bottom forming bonus: +5");
+    score += 4;
+    notes.push("Bottom forming bonus: +4");
   }
 
   score = Math.round(clamp(score, 0, 100));
 
+  // ================= STRENGTH =================
+
   let strength = "WEAK";
-  if (score >= 85) strength = "VERY STRONG";
-  else if (score >= 75) strength = "STRONG";
-  else if (score >= 70) strength = "GOOD";
-  else if (score >= 60) strength = "OK";
+
+  if (score >= 90) {
+    strength = "ELITE";
+  } else if (score >= 80) {
+    strength = "VERY STRONG";
+  } else if (score >= 70) {
+    strength = "STRONG";
+  } else if (score >= 60) {
+    strength = "DECENT";
+  }
+
+  // ================= RISK LEVEL =================
 
   let riskLevel = "HIGH";
-  if (item.fakeSpreadRisk >= 40 || item.volumeRatio < 0.5) {
-    riskLevel = "HIGH";
-  } else if (score >= 75 && item.volumeRatio >= 1) {
+
+  if (item.fakeSpreadRisk < 20 && item.monthSold >= 300) {
+    riskLevel = "LOW";
+  } else if (item.fakeSpreadRisk < 35 && item.monthSold >= 100) {
     riskLevel = "LOW-MEDIUM";
   } else if (score >= 60) {
     riskLevel = "MEDIUM";
   }
 
+  // ================= TARGETS =================
+
   const maxBuy = Math.floor(item.buyOffer);
-  const targetSell = Math.floor(item.sellOffer * 0.99);
-  const stopLoss = Math.floor(item.buyOffer * 0.97);
+
+  const targetSell = Math.floor(item.sellOffer * 0.985);
+
+  const stopLoss = Math.floor(item.buyOffer * 0.96);
 
   return {
     brainScore: score,
     strength,
     riskLevel,
+
     maxBuy,
     targetSell,
     stopLoss,
+
     brainNotes: notes,
   };
 }
 
 function isSimpleBuySignal(item) {
+  const hasGoodLiquidity = item.monthSold >= 100 && item.daySold >= 3;
+
+  const hasSafeSpread = item.fakeSpreadRisk < 30;
+
+  const hasHealthyVolume = item.volumeRatio >= 0.8;
+
+  const hasGoodProfit = item.profit >= MIN_PROFIT && item.profitPercent >= 5;
+
+  const hasGoodBrain = item.brainScore >= 75;
+
+  const notFalling = !item.fallingHard;
+
   return (
     item.decision === "BUY" &&
-    item.brainScore >= MIN_SIMPLE_BUY_BRAIN_SCORE &&
-    item.profitPercent >= MIN_SIMPLE_BUY_PROFIT_PERCENT &&
-    item.volumeRatio >= MIN_SIMPLE_BUY_VOLUME_RATIO &&
-    item.fakeSpreadRisk < MAX_SIMPLE_BUY_FAKE_SPREAD_RISK &&
-    !item.fallingHard
+    hasGoodLiquidity &&
+    hasSafeSpread &&
+    hasHealthyVolume &&
+    hasGoodProfit &&
+    hasGoodBrain &&
+    notFalling
   );
 }
 
@@ -993,6 +1102,10 @@ async function main() {
       ...historyData,
       ...sellMomentumData,
       ...fakeRiskData,
+      daySold: item.day_sold || 0,
+      monthSold: item.month_sold || 0,
+      dayAverageSell: item.day_average_sell || 0,
+      monthAverageSell: item.month_average_sell || 0,
     };
 
     const withBrain = {
