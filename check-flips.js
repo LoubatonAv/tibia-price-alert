@@ -4,11 +4,9 @@ import "dotenv/config";
 import { clamp, formatGp } from "./lib/utils.js";
 import { sendDiscordErrorAlert } from "./lib/discord.js";
 import { calculateProfit } from "./lib/profit.js";
-
 import { loadState, saveState, updateItemHistory } from "./lib/state.js";
-
-const API_URL = "https://api.tibiamarket.top";
-const SERVER = "Harmonia";
+import { getTrackedItemIds } from "./lib/trackedItems.js";
+import { SERVER, getItemMap, getMarketValues } from "./lib/market.js";
 
 const TAX_RATE = 0.02;
 
@@ -33,75 +31,7 @@ const SCORE_DROP_PANIC = 25;
 const BATCH_SIZE = Number(process.env.FLIPS_BATCH_SIZE || 80);
 const DISCORD_WEBHOOK_URL = process.env.TIBIA_FLIPS_WEBHOOK_URL;
 
-function uniqueNumbers(values) {
-  return [
-    ...new Set(
-      values.map(Number).filter((value) => Number.isFinite(value) && value > 0),
-    ),
-  ];
-}
-
-function readTrackedItems() {
-  const tracked = JSON.parse(
-    fs.readFileSync("./data/tracked-items.json", "utf8"),
-  );
-
-  return {
-    core: tracked.core || [],
-    watch: tracked.watch || [],
-    scanner: {
-      safe: tracked.scanner?.safe || [],
-      watch: tracked.scanner?.watch || [],
-      experimental: tracked.scanner?.experimental || [],
-      blacklist: tracked.scanner?.blacklist || [],
-    },
-  };
-}
-
-function getTrackedItemIds() {
-  const tracked = readTrackedItems();
-  return uniqueNumbers([...tracked.core, ...tracked.watch]);
-}
-
 const ITEM_IDS = getTrackedItemIds();
-
-function getItemMap() {
-  const raw = fs.readFileSync("./data/items.json");
-  const items = JSON.parse(raw);
-
-  const map = {};
-  items.forEach((item) => {
-    map[item.id] = item.name;
-  });
-
-  return map;
-}
-
-async function getMarketValues() {
-  if (ITEM_IDS.length === 0) {
-    return [];
-  }
-
-  const batches = [];
-  for (let i = 0; i < ITEM_IDS.length; i += BATCH_SIZE) {
-    batches.push(ITEM_IDS.slice(i, i + BATCH_SIZE));
-  }
-
-  const results = [];
-
-  for (const batch of batches) {
-    const res = await axios.get(`${API_URL}/market_values`, {
-      params: {
-        server: SERVER,
-        item_ids: batch.join(","),
-      },
-    });
-
-    results.push(...res.data);
-  }
-
-  return results;
-}
 
 function getColor(brainScore) {
   if (brainScore >= 85) return 0x00ff00;
@@ -1330,7 +1260,7 @@ async function main() {
     process.exit(1);
   }
 
-  const items = await getMarketValues();
+  const items = await getMarketValues(ITEM_IDS);
   const itemMap = getItemMap();
   const state = loadState();
 

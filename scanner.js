@@ -2,9 +2,8 @@ import axios from "axios";
 import fs from "fs";
 import "dotenv/config";
 import { sendDiscordErrorAlert } from "./lib/discord.js";
-
-const API_URL = "https://api.tibiamarket.top";
-const SERVER = "Harmonia";
+import { SERVER, getItemMap, getMarketValues } from "./lib/market.js";
+import { getTrackedItemIds } from "./lib/trackedItems.js";
 
 const TAX_RATE = 0.02;
 
@@ -27,69 +26,8 @@ const SCORE_DROP_WARNING = 15;
 const SCORE_DROP_PANIC = 25;
 
 const SCANNER_TOP_LIMIT = Number(process.env.SCANNER_TOP_LIMIT || 10);
-const SCANNER_BATCH_SIZE = Number(process.env.SCANNER_BATCH_SIZE || 80);
 const SCANNER_POOL = String(process.env.SCANNER_POOL || "all").toLowerCase();
 const DISCORD_WEBHOOK_URL = process.env.TIBIA_SCANNER_WEBHOOK_URL;
-
-function uniqueNumbers(values) {
-  return [
-    ...new Set(
-      values.map(Number).filter((value) => Number.isFinite(value) && value > 0),
-    ),
-  ];
-}
-
-function readTrackedItems() {
-  const tracked = JSON.parse(
-    fs.readFileSync("./data/tracked-items.json", "utf8"),
-  );
-
-  return {
-    core: tracked.core || [],
-    watch: tracked.watch || [],
-    scanner: {
-      safe: tracked.scanner?.safe || [],
-      watch: tracked.scanner?.watch || [],
-      experimental: tracked.scanner?.experimental || [],
-      blacklist: tracked.scanner?.blacklist || [],
-    },
-  };
-}
-
-function getTrackedItemIds() {
-  const tracked = readTrackedItems();
-
-  const poolMap = {
-    core: tracked.core,
-    watch: tracked.watch,
-    safe: tracked.scanner.safe,
-    "scanner.safe": tracked.scanner.safe,
-    "scanner.watch": tracked.scanner.watch,
-    experimental: tracked.scanner.experimental,
-    "scanner.experimental": tracked.scanner.experimental,
-  };
-
-  let selected = [];
-
-  if (SCANNER_POOL === "all") {
-    selected = [
-      ...tracked.core,
-      ...tracked.watch,
-      ...tracked.scanner.safe,
-      ...tracked.scanner.watch,
-      ...tracked.scanner.experimental,
-    ];
-  } else {
-    SCANNER_POOL.split(",")
-      .map((pool) => pool.trim())
-      .forEach((pool) => {
-        selected.push(...(poolMap[pool] || []));
-      });
-  }
-
-  const blacklist = new Set(uniqueNumbers(tracked.scanner.blacklist));
-  return uniqueNumbers(selected).filter((id) => !blacklist.has(id));
-}
 
 const ITEM_IDS = getTrackedItemIds();
 
@@ -99,18 +37,6 @@ function clamp(value, min, max) {
 
 function formatGp(value) {
   return Math.round(value || 0).toLocaleString();
-}
-
-function getItemMap() {
-  const raw = fs.readFileSync("./data/items.json");
-  const items = JSON.parse(raw);
-
-  const map = {};
-  items.forEach((item) => {
-    map[item.id] = item.name;
-  });
-
-  return map;
 }
 
 function calculateProfit(buyPrice, sellPrice) {
@@ -124,32 +50,6 @@ function calculateProfit(buyPrice, sellPrice) {
     profit,
     profitPercent: realBuyCost > 0 ? (profit / realBuyCost) * 100 : 0,
   };
-}
-
-async function getMarketValues() {
-  if (ITEM_IDS.length === 0) {
-    return [];
-  }
-
-  const batches = [];
-  for (let i = 0; i < ITEM_IDS.length; i += SCANNER_BATCH_SIZE) {
-    batches.push(ITEM_IDS.slice(i, i + SCANNER_BATCH_SIZE));
-  }
-
-  const results = [];
-
-  for (const batch of batches) {
-    const res = await axios.get(`${API_URL}/market_values`, {
-      params: {
-        server: SERVER,
-        item_ids: batch.join(","),
-      },
-    });
-
-    results.push(...res.data);
-  }
-
-  return results;
 }
 
 function getColor(brainScore) {
@@ -1420,7 +1320,7 @@ async function main() {
     process.exit(1);
   }
 
-  const items = await getMarketValues();
+  const items = await getMarketValues(ITEM_IDS);
   const itemMap = getItemMap();
   const state = loadState();
 
