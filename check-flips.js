@@ -1,6 +1,11 @@
 import axios from "axios";
 import fs from "fs";
 import "dotenv/config";
+import { clamp, formatGp } from "./lib/utils.js";
+
+import { calculateProfit } from "./lib/profit.js";
+
+import { loadState, saveState, updateItemHistory } from "./lib/state.js";
 
 const API_URL = "https://api.tibiamarket.top";
 const SERVER = "Harmonia";
@@ -60,14 +65,6 @@ function getTrackedItemIds() {
 
 const ITEM_IDS = getTrackedItemIds();
 
-function clamp(value, min, max) {
-  return Math.max(min, Math.min(max, value));
-}
-
-function formatGp(value) {
-  return Math.round(value || 0).toLocaleString();
-}
-
 function getItemMap() {
   const raw = fs.readFileSync("./data/items.json");
   const items = JSON.parse(raw);
@@ -78,19 +75,6 @@ function getItemMap() {
   });
 
   return map;
-}
-
-function calculateProfit(buyPrice, sellPrice) {
-  const realBuyCost = buyPrice * (1 + TAX_RATE);
-  const realSellIncome = sellPrice * (1 - TAX_RATE);
-  const profit = realSellIncome - realBuyCost;
-
-  return {
-    realBuyCost,
-    realSellIncome,
-    profit,
-    profitPercent: realBuyCost > 0 ? (profit / realBuyCost) * 100 : 0,
-  };
 }
 
 async function getMarketValues() {
@@ -130,47 +114,6 @@ function getSellColor(level) {
   if (level === "SELL_NOW") return 0x00ff00;
   if (level === "TAKE_PROFIT") return 0xffff00;
   return 0xff9900;
-}
-
-function loadState() {
-  if (!fs.existsSync(STATE_FILE)) {
-    return { items: {}, alerts: {}, sellAlerts: {}, market: {} };
-  }
-
-  const state = JSON.parse(fs.readFileSync(STATE_FILE, "utf8"));
-
-  if (!state.items) state.items = {};
-  if (!state.alerts) state.alerts = {};
-  if (!state.sellAlerts) state.sellAlerts = {};
-  if (!state.market) state.market = {};
-
-  return state;
-}
-
-function saveState(state) {
-  fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
-}
-
-function updateItemHistory(state, item, calculated) {
-  const id = String(item.id);
-
-  if (!state.items[id]) {
-    state.items[id] = [];
-  }
-
-  state.items[id].push({
-    time: new Date().toISOString(),
-    buyOffer: item.buy_offer,
-    sellOffer: item.sell_offer,
-    profit: calculated.profit,
-    profitPercent: calculated.profitPercent,
-    dayAverageSell: item.day_average_sell,
-    monthAverageSell: item.month_average_sell,
-    daySold: item.day_sold,
-    monthSold: item.month_sold,
-  });
-
-  state.items[id] = state.items[id].slice(-MAX_HISTORY);
 }
 
 function calculateMarketVolatility(items, state) {
