@@ -31,7 +31,6 @@ jobs:
       - name: Run Tibia scanner
         run: npm run scanner
         env:
-          SCANNER_MODE: "true"
           TIBIA_SCANNER_WEBHOOK_URL: ${{ secrets.TIBIA_SCANNER_WEBHOOK_URL }}
           ERROR_WEBHOOK_URL: ${{ secrets.ERROR_WEBHOOK_URL }}
           SEND_TO_DISCORD: "true"

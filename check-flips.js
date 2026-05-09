@@ -25,16 +25,8 @@ const SEND_EMPTY_SUMMARY = true;
 const SCORE_DROP_WARNING = 15;
 const SCORE_DROP_PANIC = 25;
 
-// Scanner mode is opt-in. Normal `node check-flips.js` keeps using only core+watch.
-const SCANNER_MODE = ["true", "1", "yes"].includes(
-  String(process.env.SCANNER_MODE || "").toLowerCase(),
-);
-const SCANNER_TOP_LIMIT = Number(process.env.SCANNER_TOP_LIMIT || 10);
-const SCANNER_BATCH_SIZE = Number(process.env.SCANNER_BATCH_SIZE || 80);
-const SCANNER_POOL = String(process.env.SCANNER_POOL || "all").toLowerCase();
-const DISCORD_WEBHOOK_URL = SCANNER_MODE
-  ? process.env.TIBIA_SCANNER_WEBHOOK_URL
-  : process.env.TIBIA_FLIPS_WEBHOOK_URL;
+const BATCH_SIZE = Number(process.env.FLIPS_BATCH_SIZE || 80);
+const DISCORD_WEBHOOK_URL = process.env.TIBIA_FLIPS_WEBHOOK_URL;
 
 function uniqueNumbers(values) {
   return [
@@ -63,41 +55,7 @@ function readTrackedItems() {
 
 function getTrackedItemIds() {
   const tracked = readTrackedItems();
-
-  if (!SCANNER_MODE) {
-    return uniqueNumbers([...tracked.core, ...tracked.watch]);
-  }
-
-  const poolMap = {
-    core: tracked.core,
-    watch: tracked.watch,
-    safe: tracked.scanner.safe,
-    "scanner.safe": tracked.scanner.safe,
-    "scanner.watch": tracked.scanner.watch,
-    experimental: tracked.scanner.experimental,
-    "scanner.experimental": tracked.scanner.experimental,
-  };
-
-  let selected = [];
-
-  if (SCANNER_POOL === "all") {
-    selected = [
-      ...tracked.core,
-      ...tracked.watch,
-      ...tracked.scanner.safe,
-      ...tracked.scanner.watch,
-      ...tracked.scanner.experimental,
-    ];
-  } else {
-    SCANNER_POOL.split(",")
-      .map((pool) => pool.trim())
-      .forEach((pool) => {
-        selected.push(...(poolMap[pool] || []));
-      });
-  }
-
-  const blacklist = new Set(uniqueNumbers(tracked.scanner.blacklist));
-  return uniqueNumbers(selected).filter((id) => !blacklist.has(id));
+  return uniqueNumbers([...tracked.core, ...tracked.watch]);
 }
 
 const ITEM_IDS = getTrackedItemIds();
@@ -141,8 +99,8 @@ async function getMarketValues() {
   }
 
   const batches = [];
-  for (let i = 0; i < ITEM_IDS.length; i += SCANNER_BATCH_SIZE) {
-    batches.push(ITEM_IDS.slice(i, i + SCANNER_BATCH_SIZE));
+  for (let i = 0; i < ITEM_IDS.length; i += BATCH_SIZE) {
+    batches.push(ITEM_IDS.slice(i, i + BATCH_SIZE));
   }
 
   const results = [];
@@ -1447,11 +1405,7 @@ async function sendDiscordErrorAlert(err) {
 
 async function main() {
   if (!DISCORD_WEBHOOK_URL) {
-    console.error(
-      SCANNER_MODE
-        ? "Missing TIBIA_SCANNER_WEBHOOK_URL"
-        : "Missing TIBIA_FLIPS_WEBHOOK_URL",
-    );
+    console.error("Missing TIBIA_FLIPS_WEBHOOK_URL");
     process.exit(1);
   }
 
@@ -1516,18 +1470,6 @@ async function main() {
     nextRunHours: runAdvice.nextRunHours,
     message: runAdvice.message,
   };
-
-  if (SCANNER_MODE) {
-    console.log(
-      `\nTIBIA FLIPPER SCANNER MODE\n` +
-        `Market volatility: ${volatility} (${runAdvice.level})\n` +
-        `Items checked: ${analyzedItems.length}\n`,
-    );
-
-    await sendDiscordScannerReport(analyzedItems, volatility, runAdvice);
-    saveState(state);
-    return;
-  }
 
   const buySignals = analyzedItems
     .filter(isSimpleBuySignal)
