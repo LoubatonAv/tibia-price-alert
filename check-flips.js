@@ -11,7 +11,7 @@ import {
 import { calculateProfit } from "./lib/profit.js";
 import { loadState, saveState, updateItemHistory } from "./lib/state.js";
 import { getTrackedItemIds } from "./lib/trackedItems.js";
-import { SERVER, getItemMap, getMarketValues } from "./lib/market.js";
+import { getItemMap, getMarketValues } from "./lib/market.js";
 import {
   analyzeHistory,
   analyzeSellMomentum,
@@ -20,27 +20,22 @@ import {
   getDecision,
   calculateScannerScore,
 } from "./lib/scoring.js";
-const TAX_RATE = 0.02;
-
-const MIN_PROFIT = 5000;
-const MIN_PROFIT_PERCENT = 3;
-
-const STATE_FILE = "./state.json";
-const MAX_HISTORY = 20;
-
-const ALERT_COOLDOWN_HOURS = 12;
-const SELL_ALERT_COOLDOWN_HOURS = 6;
-
-const MIN_SIMPLE_BUY_BRAIN_SCORE = 70;
-const MIN_SIMPLE_BUY_PROFIT_PERCENT = 5;
-const MIN_SIMPLE_BUY_VOLUME_RATIO = 0.7;
-const MAX_SIMPLE_BUY_FAKE_SPREAD_RISK = 30;
-
-const SEND_EMPTY_SUMMARY = true;
-const SCORE_DROP_WARNING = 15;
-const SCORE_DROP_PANIC = 25;
-
-const BATCH_SIZE = Number(process.env.FLIPS_BATCH_SIZE || 80);
+import {
+  SERVER,
+  TAX_RATE,
+  MIN_PROFIT,
+  MIN_PROFIT_PERCENT,
+  ALERT_COOLDOWN_HOURS,
+  SELL_ALERT_COOLDOWN_HOURS,
+  MIN_SIMPLE_BUY_BRAIN_SCORE,
+  MIN_SIMPLE_BUY_PROFIT_PERCENT,
+  MIN_SIMPLE_BUY_VOLUME_RATIO,
+  MAX_SIMPLE_BUY_FAKE_SPREAD_RISK,
+  SEND_EMPTY_SUMMARY,
+  SCORE_DROP_WARNING,
+  SCORE_DROP_PANIC,
+  BATCH_SIZE,
+} from "./lib/constants.js";
 const DISCORD_WEBHOOK_URL = process.env.TIBIA_FLIPS_WEBHOOK_URL;
 
 const ITEM_IDS = getTrackedItemIds();
