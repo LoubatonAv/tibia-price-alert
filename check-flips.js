@@ -2,7 +2,12 @@ import axios from "axios";
 import fs from "fs";
 import "dotenv/config";
 import { clamp, formatGp } from "./lib/utils.js";
-import { sendDiscordErrorAlert } from "./lib/discord.js";
+import {
+  sendDiscordErrorAlert,
+  getColor,
+  getSellColor,
+  getScannerColor,
+} from "./lib/discord.js";
 import { calculateProfit } from "./lib/profit.js";
 import { loadState, saveState, updateItemHistory } from "./lib/state.js";
 import { getTrackedItemIds } from "./lib/trackedItems.js";
@@ -39,19 +44,6 @@ const BATCH_SIZE = Number(process.env.FLIPS_BATCH_SIZE || 80);
 const DISCORD_WEBHOOK_URL = process.env.TIBIA_FLIPS_WEBHOOK_URL;
 
 const ITEM_IDS = getTrackedItemIds();
-
-function getColor(brainScore) {
-  if (brainScore >= 85) return 0x00ff00;
-  if (brainScore >= 70) return 0xffff00;
-  return 0xff9900;
-}
-
-function getSellColor(level) {
-  if (level === "PANIC") return 0xff0000;
-  if (level === "SELL_NOW") return 0x00ff00;
-  if (level === "TAKE_PROFIT") return 0xffff00;
-  return 0xff9900;
-}
 
 function calculateMarketVolatility(items, state) {
   let volatility = 0;
@@ -577,13 +569,6 @@ function buildScannerReportItems(analyzedItems) {
       };
     })
     .sort((a, b) => scannerSortValue(b) - scannerSortValue(a));
-}
-
-function getScannerColor(tier) {
-  if (tier === "SAFE") return 0x00ff00;
-  if (tier === "WATCH") return 0xffff00;
-  if (tier === "SPECULATIVE") return 0xff9900;
-  return 0xff0000;
 }
 
 async function sendDiscordScannerReport(analyzedItems, volatility, runAdvice) {

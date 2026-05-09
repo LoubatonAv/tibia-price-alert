@@ -1,7 +1,12 @@
 import axios from "axios";
 import fs from "fs";
 import "dotenv/config";
-import { sendDiscordErrorAlert } from "./lib/discord.js";
+import {
+  sendDiscordErrorAlert,
+  getColor,
+  getSellColor,
+  getScannerColor,
+} from "./lib/discord.js";
 import { SERVER, getItemMap, getMarketValues } from "./lib/market.js";
 import { getTrackedItemIds } from "./lib/trackedItems.js";
 import {
@@ -58,19 +63,6 @@ function calculateProfit(buyPrice, sellPrice) {
     profit,
     profitPercent: realBuyCost > 0 ? (profit / realBuyCost) * 100 : 0,
   };
-}
-
-function getColor(brainScore) {
-  if (brainScore >= 85) return 0x00ff00;
-  if (brainScore >= 70) return 0xffff00;
-  return 0xff9900;
-}
-
-function getSellColor(level) {
-  if (level === "PANIC") return 0xff0000;
-  if (level === "SELL_NOW") return 0x00ff00;
-  if (level === "TAKE_PROFIT") return 0xffff00;
-  return 0xff9900;
 }
 
 function loadState() {
@@ -638,13 +630,6 @@ function buildScannerReportItems(analyzedItems) {
       };
     })
     .sort((a, b) => scannerSortValue(b) - scannerSortValue(a));
-}
-
-function getScannerColor(tier) {
-  if (tier === "SAFE") return 0x00ff00;
-  if (tier === "WATCH") return 0xffff00;
-  if (tier === "SPECULATIVE") return 0xff9900;
-  return 0xff0000;
 }
 
 async function sendDiscordScannerReport(analyzedItems, volatility, runAdvice) {
