@@ -25,79 +25,15 @@ const SEND_EMPTY_SUMMARY = true;
 const SCORE_DROP_WARNING = 15;
 const SCORE_DROP_PANIC = 25;
 
-// Scanner mode is opt-in. Normal `node check-flips.js` keeps using only core+watch.
-const SCANNER_MODE = ["true", "1", "yes"].includes(
-  String(process.env.SCANNER_MODE || "").toLowerCase(),
-);
+const SCANNER_MODE = process.env.SCANNER_MODE === "true";
 const SCANNER_TOP_LIMIT = Number(process.env.SCANNER_TOP_LIMIT || 10);
-const SCANNER_BATCH_SIZE = Number(process.env.SCANNER_BATCH_SIZE || 80);
-const SCANNER_POOL = String(process.env.SCANNER_POOL || "all").toLowerCase();
-const DISCORD_WEBHOOK_URL = SCANNER_MODE
-  ? process.env.TIBIA_SCANNER_WEBHOOK_URL
-  : process.env.TIBIA_FLIPS_WEBHOOK_URL;
 
-function uniqueNumbers(values) {
-  return [
-    ...new Set(
-      values.map(Number).filter((value) => Number.isFinite(value) && value > 0),
-    ),
-  ];
-}
-
-function readTrackedItems() {
+function getTrackedItemIds() {
   const tracked = JSON.parse(
     fs.readFileSync("./data/tracked-items.json", "utf8"),
   );
 
-  return {
-    core: tracked.core || [],
-    watch: tracked.watch || [],
-    scanner: {
-      safe: tracked.scanner?.safe || [],
-      watch: tracked.scanner?.watch || [],
-      experimental: tracked.scanner?.experimental || [],
-      blacklist: tracked.scanner?.blacklist || [],
-    },
-  };
-}
-
-function getTrackedItemIds() {
-  const tracked = readTrackedItems();
-
-  if (!SCANNER_MODE) {
-    return uniqueNumbers([...tracked.core, ...tracked.watch]);
-  }
-
-  const poolMap = {
-    core: tracked.core,
-    watch: tracked.watch,
-    safe: tracked.scanner.safe,
-    "scanner.safe": tracked.scanner.safe,
-    "scanner.watch": tracked.scanner.watch,
-    experimental: tracked.scanner.experimental,
-    "scanner.experimental": tracked.scanner.experimental,
-  };
-
-  let selected = [];
-
-  if (SCANNER_POOL === "all") {
-    selected = [
-      ...tracked.core,
-      ...tracked.watch,
-      ...tracked.scanner.safe,
-      ...tracked.scanner.watch,
-      ...tracked.scanner.experimental,
-    ];
-  } else {
-    SCANNER_POOL.split(",")
-      .map((pool) => pool.trim())
-      .forEach((pool) => {
-        selected.push(...(poolMap[pool] || []));
-      });
-  }
-
-  const blacklist = new Set(uniqueNumbers(tracked.scanner.blacklist));
-  return uniqueNumbers(selected).filter((id) => !blacklist.has(id));
+  return [...tracked.core, ...tracked.watch].join(",");
 }
 
 const ITEM_IDS = getTrackedItemIds();
@@ -136,29 +72,14 @@ function calculateProfit(buyPrice, sellPrice) {
 }
 
 async function getMarketValues() {
-  if (ITEM_IDS.length === 0) {
-    return [];
-  }
+  const res = await axios.get(`${API_URL}/market_values`, {
+    params: {
+      server: SERVER,
+      item_ids: ITEM_IDS,
+    },
+  });
 
-  const batches = [];
-  for (let i = 0; i < ITEM_IDS.length; i += SCANNER_BATCH_SIZE) {
-    batches.push(ITEM_IDS.slice(i, i + SCANNER_BATCH_SIZE));
-  }
-
-  const results = [];
-
-  for (const batch of batches) {
-    const res = await axios.get(`${API_URL}/market_values`, {
-      params: {
-        server: SERVER,
-        item_ids: batch.join(","),
-      },
-    });
-
-    results.push(...res.data);
-  }
-
-  return results;
+  return res.data;
 }
 
 function getColor(brainScore) {
@@ -1043,7 +964,7 @@ async function sendDiscordBuyAlerts(buySignals, state) {
     },
   }));
 
-  await axios.post(DISCORD_WEBHOOK_URL, {
+  await axios.post(process.env.DISCORD_WEBHOOK_URL, {
     content: `🟢 Tibia Flipper BUY signals on **${SERVER}**`,
     embeds,
   });
@@ -1114,7 +1035,7 @@ async function sendDiscordSellAlerts(sellSignals, state) {
     },
   }));
 
-  await axios.post(DISCORD_WEBHOOK_URL, {
+  await axios.post(process.env.DISCORD_WEBHOOK_URL, {
     content: `🔴 Tibia Flipper SELL signals on **${SERVER}**`,
     embeds,
   });
@@ -1124,44 +1045,12 @@ async function sendDiscordSellAlerts(sellSignals, state) {
   console.log("Discord simple SELL alert sent.");
 }
 
-function getExitConfidence(item) {
-  if (!item.buyOffer || !item.sellOffer || item.profit <= 0) return "VERY LOW";
-  if (item.daySold >= 30 && item.monthSold >= 500 && item.fakeSpreadRisk <= 20)
-    return "HIGH";
-  if (item.daySold >= 10 && item.monthSold >= 250 && item.fakeSpreadRisk <= 35)
-    return "MEDIUM";
-  if (item.daySold >= 3 && item.monthSold >= 100 && item.fakeSpreadRisk <= 55)
-    return "LOW";
-  return "VERY LOW";
-}
-
-function getMarketClass(item) {
-  if (!item.buyOffer || !item.sellOffer) return "NO MARKET";
-  if (item.profit <= 0) return "NO PROFIT AFTER TAX";
-  if (item.daySold === 0 || item.monthSold < 30) return "DEAD MARKET";
-  if (item.profitPercent > 80 && item.monthSold < 250) return "FAKE SPREAD";
-  if (item.fakeSpreadRisk >= 80) return "FAKE SPREAD";
-  if (item.daySold >= 30 && item.monthSold >= 500 && item.fakeSpreadRisk <= 25)
-    return "FAST FLIP";
-  if (item.daySold >= 8 && item.monthSold >= 250) return "SAFE FLIP";
-  if (item.daySold >= 3 && item.monthSold >= 100) return "SLOW FLIP";
-  return "RISKY";
-}
 
 function getScannerTier(item) {
   if (
-    ["DEAD MARKET", "FAKE SPREAD", "NO MARKET", "NO PROFIT AFTER TAX"].includes(
-      item.marketClass,
-    )
-  ) {
-    return "AVOID";
-  }
-
-  if (
     item.scannerScore >= 75 &&
-    item.exitConfidence === "HIGH" &&
-    item.monthSold >= 500 &&
-    item.fakeSpreadRisk <= 20 &&
+    item.monthSold >= 100 &&
+    item.fakeSpreadRisk <= 30 &&
     item.profit > 0
   ) {
     return "SAFE";
@@ -1169,9 +1058,8 @@ function getScannerTier(item) {
 
   if (
     item.scannerScore >= 55 &&
-    ["HIGH", "MEDIUM"].includes(item.exitConfidence) &&
-    item.monthSold >= 150 &&
-    item.fakeSpreadRisk <= 45 &&
+    item.monthSold >= 30 &&
+    item.fakeSpreadRisk <= 55 &&
     item.profit > 0
   ) {
     return "WATCH";
@@ -1180,143 +1068,62 @@ function getScannerTier(item) {
   return "SPECULATIVE";
 }
 
-function getUndervaluedPercent(item) {
-  if (!item.monthAverageSell || !item.sellOffer) return 0;
-  return (
-    ((item.monthAverageSell - item.sellOffer) / item.monthAverageSell) * 100
-  );
-}
-
 function calculateScannerScore(item) {
   let score = 0;
   const notes = [];
-  const hardCaps = [];
 
-  const profitPercentScore = clamp(item.profitPercent * 1.6, 0, 15);
+  const profitPercentScore = clamp(item.profitPercent * 2, 0, 25);
   score += profitPercentScore;
   notes.push(`profit% +${profitPercentScore.toFixed(1)}`);
 
-  const rawProfitScore = clamp(item.profit / 10000, 0, 10);
+  const rawProfitScore = clamp(item.profit / 5000, 0, 15);
   score += rawProfitScore;
   notes.push(`raw profit +${rawProfitScore.toFixed(1)}`);
 
   let liquidityScore = 0;
-  if (item.monthSold >= 1500) liquidityScore = 28;
-  else if (item.monthSold >= 700) liquidityScore = 25;
-  else if (item.monthSold >= 300) liquidityScore = 21;
-  else if (item.monthSold >= 150) liquidityScore = 15;
-  else if (item.monthSold >= 75) liquidityScore = 9;
-  else if (item.monthSold >= 30) liquidityScore = 4;
+  if (item.monthSold >= 1500) liquidityScore = 25;
+  else if (item.monthSold >= 500) liquidityScore = 22;
+  else if (item.monthSold >= 150) liquidityScore = 17;
+  else if (item.monthSold >= 50) liquidityScore = 10;
+  else if (item.monthSold >= 15) liquidityScore = 5;
+  else liquidityScore = 0;
   score += liquidityScore;
   notes.push(`liquidity +${liquidityScore}`);
 
-  const cappedVolumeRatio = clamp(item.volumeRatio, 0, 2.5);
-  const volumeScore = clamp(cappedVolumeRatio * 5, 0, 12);
+  const volumeScore = clamp(item.volumeRatio * 8, 0, 15);
   score += volumeScore;
   notes.push(`volume +${volumeScore.toFixed(1)}`);
 
-  let stabilityScore = 8;
+  let stabilityScore = 10;
   if (Math.abs(item.dayVsMonthSell) <= 2) stabilityScore = 15;
-  else if (Math.abs(item.dayVsMonthSell) <= 5) stabilityScore = 11;
-  else if (Math.abs(item.dayVsMonthSell) <= 10) stabilityScore = 6;
-  else stabilityScore = 2;
+  else if (Math.abs(item.dayVsMonthSell) <= 5) stabilityScore = 10;
+  else if (item.dayVsMonthSell < -5) stabilityScore = 2;
+  else stabilityScore = 6;
   score += stabilityScore;
   notes.push(`stability +${stabilityScore}`);
 
-  const undervaluedPercent = getUndervaluedPercent(item);
-  let undervaluedScore = 0;
-  if (item.profit > 0 && item.monthSold >= 100 && item.daySold >= 3) {
-    if (undervaluedPercent >= 20) undervaluedScore = 12;
-    else if (undervaluedPercent >= 12) undervaluedScore = 8;
-    else if (undervaluedPercent >= 6) undervaluedScore = 4;
-  }
-  score += undervaluedScore;
-  notes.push(
-    `undervalued +${undervaluedScore} (${undervaluedPercent.toFixed(1)}%)`,
-  );
-
-  const historyBonus = clamp(item.historyScore, -12, 12);
+  const historyBonus = clamp(item.historyScore, -15, 15);
   score += historyBonus;
   notes.push(`history ${historyBonus >= 0 ? "+" : ""}${historyBonus}`);
 
-  const riskPenalty = clamp(item.fakeSpreadRisk * 0.75, 0, 45);
+  const riskPenalty = clamp(item.fakeSpreadRisk * 0.7, 0, 35);
   score -= riskPenalty;
   notes.push(`risk -${riskPenalty.toFixed(1)}`);
 
   if (item.profit <= 0) {
-    score -= 35;
-    hardCaps.push(20);
-    notes.push("negative profit -35 / cap 20");
+    score -= 25;
+    notes.push("negative profit -25");
   }
 
   if (!item.buyOffer || !item.sellOffer) {
-    score -= 50;
-    hardCaps.push(0);
-    notes.push("missing offer -50 / cap 0");
+    score -= 30;
+    notes.push("missing offer -30");
   }
-
-  if (item.daySold === 0) {
-    score -= 40;
-    hardCaps.push(15);
-    notes.push("no sales today -40 / cap 15");
-  } else if (item.daySold <= 2) {
-    score -= 20;
-    hardCaps.push(25);
-    notes.push("very low day sales -20 / cap 25");
-  }
-
-  if (item.monthSold < 30) {
-    score -= 35;
-    hardCaps.push(25);
-    notes.push("very low month sales -35 / cap 25");
-  } else if (item.monthSold < 100) {
-    score -= 15;
-    hardCaps.push(45);
-    notes.push("low month sales -15 / cap 45");
-  }
-
-  if (item.fakeSpreadRisk >= 80) {
-    hardCaps.push(35);
-    notes.push("risk >=80 / cap 35");
-  }
-
-  if (item.profitPercent > 80 && item.monthSold < 250) {
-    hardCaps.push(30);
-    notes.push("huge spread + weak liquidity / cap 30");
-  }
-
-  const cap = hardCaps.length ? Math.min(...hardCaps) : 100;
-  const scannerScore = Math.round(clamp(Math.min(score, cap), 0, 100));
 
   return {
-    scannerScore,
+    scannerScore: Math.round(clamp(score, 0, 100)),
     scannerNotes: notes.join(" | "),
-    exitConfidence: getExitConfidence(item),
-    marketClass: getMarketClass(item),
-    undervaluedPercent,
   };
-}
-
-function scannerSortValue(item) {
-  const confidenceRank = { HIGH: 4, MEDIUM: 3, LOW: 2, "VERY LOW": 1 };
-  const classRank = {
-    "FAST FLIP": 6,
-    "SAFE FLIP": 5,
-    "SLOW FLIP": 4,
-    RISKY: 3,
-    "FAKE SPREAD": 2,
-    "DEAD MARKET": 1,
-    "NO PROFIT AFTER TAX": 0,
-    "NO MARKET": 0,
-  };
-
-  return (
-    item.scannerScore * 1000000 +
-    (confidenceRank[item.exitConfidence] || 0) * 100000 +
-    (classRank[item.marketClass] || 0) * 10000 +
-    item.monthSold * 10 +
-    Math.max(item.profit, 0) / 1000
-  );
 }
 
 function buildScannerReportItems(analyzedItems) {
@@ -1333,14 +1140,18 @@ function buildScannerReportItems(analyzedItems) {
         scannerTier: getScannerTier(withScanner),
       };
     })
-    .sort((a, b) => scannerSortValue(b) - scannerSortValue(a));
+    .sort(
+      (a, b) =>
+        b.scannerScore - a.scannerScore ||
+        b.monthSold - a.monthSold ||
+        b.profit - a.profit,
+    );
 }
 
 function getScannerColor(tier) {
   if (tier === "SAFE") return 0x00ff00;
   if (tier === "WATCH") return 0xffff00;
-  if (tier === "SPECULATIVE") return 0xff9900;
-  return 0xff0000;
+  return 0xff9900;
 }
 
 async function sendDiscordScannerReport(analyzedItems, volatility, runAdvice) {
@@ -1348,23 +1159,22 @@ async function sendDiscordScannerReport(analyzedItems, volatility, runAdvice) {
   const topItems = rankedItems.slice(0, SCANNER_TOP_LIMIT);
 
   if (topItems.length === 0) {
-    await axios.post(DISCORD_WEBHOOK_URL, {
+    await axios.post(process.env.DISCORD_WEBHOOK_URL, {
       content: `🔎 Tibia Flipper scanner checked **${SERVER}** but found no items.`,
     });
     return;
   }
 
   const embeds = topItems.slice(0, 10).map((item, index) => ({
-    title: `#${index + 1} ${item.name} — ${item.scannerTier} / ${item.marketClass}`,
+    title: `#${index + 1} ${item.name} — ${item.scannerTier}`,
     color: getScannerColor(item.scannerTier),
     fields: [
       {
-        name: "🧠 Scanner",
+        name: "🧠 Scanner Score",
         value:
-          `Score: **${item.scannerScore}/100**\n` +
+          `**${item.scannerScore}/100**\n` +
           `Brain: **${item.brainScore}/100**\n` +
-          `Risk: **${item.fakeSpreadRisk}/100**\n` +
-          `Exit confidence: **${item.exitConfidence}**`,
+          `Risk: **${item.fakeSpreadRisk}/100**`,
         inline: true,
       },
       {
@@ -1384,10 +1194,9 @@ async function sendDiscordScannerReport(analyzedItems, volatility, runAdvice) {
         inline: true,
       },
       {
-        name: "📈 Stability / Value",
+        name: "📈 Stability",
         value:
           `Day vs month avg: **${item.dayVsMonthSell.toFixed(2)}%**\n` +
-          `Undervalued vs month avg: **${item.undervaluedPercent.toFixed(2)}%**\n` +
           `History: **${item.historySignal}**`,
         inline: false,
       },
@@ -1407,16 +1216,15 @@ async function sendDiscordScannerReport(analyzedItems, volatility, runAdvice) {
       acc[item.scannerTier] = (acc[item.scannerTier] || 0) + 1;
       return acc;
     },
-    { SAFE: 0, WATCH: 0, SPECULATIVE: 0, AVOID: 0 },
+    { SAFE: 0, WATCH: 0, SPECULATIVE: 0 },
   );
 
-  await axios.post(DISCORD_WEBHOOK_URL, {
+  await axios.post(process.env.DISCORD_WEBHOOK_URL, {
     content:
       `🔎 **Top Flippable Items Scanner** on **${SERVER}**\n` +
       `Mode: research only — no BUY/SELL alerts sent.\n` +
-      `Pool: **${SCANNER_POOL}** | Checked: **${analyzedItems.length}** items\n` +
       `Market: **${runAdvice.level}** | Volatility: **${volatility}**\n` +
-      `Top ${topItems.length}: 🟢 SAFE ${tierCounts.SAFE || 0} | 🟡 WATCH ${tierCounts.WATCH || 0} | 🟠 SPECULATIVE ${tierCounts.SPECULATIVE || 0} | 🔴 AVOID ${tierCounts.AVOID || 0}`,
+      `Top ${topItems.length}: 🟢 SAFE ${tierCounts.SAFE || 0} | 🟡 WATCH ${tierCounts.WATCH || 0} | 🟠 SPECULATIVE ${tierCounts.SPECULATIVE || 0}`,
     embeds,
   });
 
@@ -1427,12 +1235,12 @@ async function sendDiscordErrorAlert(err) {
   const message = err?.stack || err?.message || String(err);
 
   try {
-    if (!process.env.ERROR_WEBHOOK_URL) {
-      console.error("Missing ERROR_WEBHOOK_URL");
+    if (!process.env.DISCORD_WEBHOOK_URL) {
+      console.error("Missing DISCORD_WEBHOOK_URL");
       return;
     }
 
-    await axios.post(process.env.ERROR_WEBHOOK_URL, {
+    await axios.post(process.env.DISCORD_WEBHOOK_URL, {
       content: `🚨 **Tibia Flipper crashed**\n\n\`\`\`${message.slice(
         0,
         1800,
@@ -1446,12 +1254,8 @@ async function sendDiscordErrorAlert(err) {
 }
 
 async function main() {
-  if (!DISCORD_WEBHOOK_URL) {
-    console.error(
-      SCANNER_MODE
-        ? "Missing TIBIA_SCANNER_WEBHOOK_URL"
-        : "Missing TIBIA_FLIPS_WEBHOOK_URL",
-    );
+  if (!process.env.DISCORD_WEBHOOK_URL) {
+    console.error("Missing DISCORD_WEBHOOK_URL");
     process.exit(1);
   }
 
@@ -1573,7 +1377,7 @@ async function main() {
     buySignals.length === 0 &&
     sellSignals.length === 0
   ) {
-    await axios.post(DISCORD_WEBHOOK_URL, {
+    await axios.post(process.env.DISCORD_WEBHOOK_URL, {
       content:
         `⚪ Tibia Flipper checked **${SERVER}**\n` +
         `No BUY or SELL signal right now.\n` +

@@ -1,0 +1,10 @@
+scanner check:
+$env:SCANNER_MODE="true"
+node check-flips.js
+
+regular check:
+node check-flips.js
+
+
+after scanner to go back to regular mode: 
+Remove-Item Env:SCANNER_MODE

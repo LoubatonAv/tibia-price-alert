@@ -1,19 +1,19 @@
-name: Tibia Flips
+name: Tibia Scanner
 
 on:
   schedule:
-    - cron: "0 */4 * * *"
+    - cron: "0 */12 * * *"
   workflow_dispatch:
 
 concurrency:
-  group: tibia-flips
+  group: tibia-scanner
   cancel-in-progress: true
 
 permissions:
   contents: write
 
 jobs:
-  flips:
+  scanner:
     runs-on: ubuntu-latest
 
     steps:
@@ -28,10 +28,11 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run Tibia flips
-        run: npm run flips
+      - name: Run Tibia scanner
+        run: npm run scanner
         env:
-          TIBIA_FLIPS_WEBHOOK_URL: ${{ secrets.TIBIA_FLIPS_WEBHOOK_URL }}
+          SCANNER_MODE: "true"
+          TIBIA_SCANNER_WEBHOOK_URL: ${{ secrets.TIBIA_SCANNER_WEBHOOK_URL }}
           ERROR_WEBHOOK_URL: ${{ secrets.ERROR_WEBHOOK_URL }}
           SEND_TO_DISCORD: "true"
 
@@ -41,7 +42,7 @@ jobs:
           git config user.email "actions@github.com"
 
           git add state.json
-          git commit -m "update tibia flips state" || echo "No state changes"
+          git commit -m "update tibia scanner state" || echo "No state changes"
 
           git pull --rebase
           git push
