@@ -4,7 +4,11 @@ import "dotenv/config";
 import { sendDiscordErrorAlert } from "./lib/discord.js";
 import { SERVER, getItemMap, getMarketValues } from "./lib/market.js";
 import { getTrackedItemIds } from "./lib/trackedItems.js";
-import { analyzeHistory, analyzeSellMomentum } from "./lib/scoring.js";
+import {
+  analyzeHistory,
+  analyzeSellMomentum,
+  getFakeSpreadRisk,
+} from "./lib/scoring.js";
 
 const TAX_RATE = 0.02;
 
@@ -153,89 +157,6 @@ function getNextRunRecommendation(volatility) {
     level: "LOW",
     nextRunHours: 6,
     message: "Market is calm.",
-  };
-}
-
-function getFakeSpreadRisk(item) {
-  const buyOffer = item.buy_offer || 0;
-  const sellOffer = item.sell_offer || 0;
-
-  const dayAvgSell = item.day_average_sell || 0;
-  const monthAvgSell = item.month_average_sell || 0;
-
-  const daySold = item.day_sold || 0;
-  const monthSold = item.month_sold || 0;
-
-  let risk = 0;
-  const warnings = [];
-
-  if (!buyOffer || !sellOffer) {
-    risk += 60;
-    warnings.push("Missing buy or sell offer.");
-  }
-
-  const rawSpreadPercent =
-    buyOffer > 0 ? ((sellOffer - buyOffer) / buyOffer) * 100 : 0;
-
-  if (rawSpreadPercent > 20) {
-    risk += 15;
-    warnings.push("Spread is getting large.");
-  }
-
-  if (rawSpreadPercent > 30) {
-    risk += 20;
-    warnings.push("Very large spread.");
-  }
-
-  if (rawSpreadPercent > 45) {
-    risk += 30;
-    warnings.push("Extreme spread. Likely unrealistic.");
-  }
-
-  if (monthAvgSell > 0 && sellOffer > monthAvgSell * 1.12) {
-    risk += 25;
-    warnings.push("Sell price is above monthly average.");
-  }
-
-  if (dayAvgSell > 0 && sellOffer > dayAvgSell * 1.08) {
-    risk += 20;
-    warnings.push("Sell price is above today's average.");
-  }
-
-  const avgDailyVolume = monthSold / 30;
-
-  const volumeRatio = avgDailyVolume > 0 ? daySold / avgDailyVolume : 0;
-
-  if (monthSold < 10) {
-    risk += 50;
-    warnings.push("Very low monthly liquidity.");
-  } else if (monthSold < 30) {
-    risk += 35;
-    warnings.push("Low monthly liquidity.");
-  } else if (monthSold < 100) {
-    risk += 15;
-    warnings.push("Moderate liquidity.");
-  }
-
-  if (avgDailyVolume > 0 && daySold < avgDailyVolume * 0.5) {
-    risk += 20;
-    warnings.push("Today's volume is weak.");
-  }
-
-  if (daySold === 0) {
-    risk += 25;
-    warnings.push("No sales today.");
-  }
-
-  risk = clamp(risk, 0, 100);
-
-  return {
-    fakeSpreadRisk: risk,
-    fakeSpreadWarnings: warnings.length
-      ? warnings.join("\n")
-      : "No major warning.",
-    rawSpreadPercent,
-    liquidityScore: volumeRatio,
   };
 }
 
