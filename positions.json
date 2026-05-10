@@ -1,4 +1,13 @@
 {
-  "version": 1,
-  "positions": []
+  "positions": [
+    {
+      "id": 10311,
+      "name": "sabretooth",
+      "status": "OPEN",
+      "quantity": 1,
+      "entryPrice": 4879,
+      "entryBrainScore": 90,
+      "desiredMargin": 0.06
+    }
+  ]
 }

@@ -9,6 +9,8 @@ import {
   getScannerColor,
 } from "./lib/discord.js";
 import { calculateProfit } from "./lib/profit.js";
+import { buildBuyPricingPlan } from "./lib/pricing.js";
+
 import { loadState, saveState, updateItemHistory } from "./lib/state.js";
 import { getTrackedItemIds } from "./lib/trackedItems.js";
 import { getItemMap, getMarketValues } from "./lib/market.js";
@@ -36,6 +38,8 @@ import {
   SCORE_DROP_PANIC,
   BATCH_SIZE,
 } from "./lib/constants.js";
+import { loadPositions, getOpenPositionForItem } from "./lib/positions.js";
+
 const DISCORD_WEBHOOK_URL = process.env.TIBIA_FLIPS_WEBHOOK_URL;
 
 const ITEM_IDS = getTrackedItemIds();
@@ -90,6 +94,11 @@ function getNextRunRecommendation(volatility) {
 }
 
 function isSimpleBuySignal(item) {
+  if (item.hasOpenPosition) {
+    item.reason = "Skipped BUY because there is already an OPEN position.";
+    return false;
+  }
+
   const hasGoodLiquidity = item.monthSold >= 100 && item.daySold >= 3;
 
   const hasSafeSpread = item.fakeSpreadRisk < 30;
@@ -127,25 +136,40 @@ function isSimpleBuySignal(item) {
 }
 
 function getSellDecision(item, state) {
-  const id = String(item.id);
-  const lastBuyAlert = state.alerts[id];
+  const position = getOpenPositionForItem(item.id);
 
-  if (!lastBuyAlert || lastBuyAlert.type !== "SIMPLE_BUY") {
+  if (!position) {
     return {
-      hasPreviousBuyAlert: false,
+      hasOpenPosition: false,
       trackedTargetSell: item.targetSell,
       previousBrainScore: item.brainScore,
       scoreDrop: 0,
       sellLevel: null,
       sellDecision: "HOLD",
       sellAction: "No sell signal.",
-      sellReason: "No previous simple BUY signal from this bot version.",
+      sellReason: "No open position in positions.json.",
     };
   }
 
-  const trackedTargetSell = lastBuyAlert.targetSell || item.targetSell;
-  const previousBrainScore = lastBuyAlert.brainScore ?? item.brainScore;
+  const entryPrice = Number(position.entryPrice || 0);
+  const quantity = Number(position.quantity || 1);
+
+  const desiredMargin = Number(position.desiredMargin ?? 0.06);
+
+  const trackedTargetSell =
+    Number(position.targetSell) ||
+    Math.ceil((entryPrice * (1 + desiredMargin)) / (1 - TAX_RATE));
+
+  const previousBrainScore =
+    Number(position.entryBrainScore) || item.brainScore;
+
   const scoreDrop = previousBrainScore - item.brainScore;
+
+  const currentNetSell = item.sellOffer * (1 - TAX_RATE);
+  const currentProfitEach = currentNetSell - entryPrice;
+  const currentProfitTotal = currentProfitEach * quantity;
+  const currentProfitPercent =
+    entryPrice > 0 ? (currentProfitEach / entryPrice) * 100 : 0;
 
   const targetHit = item.sellOffer >= trackedTargetSell;
   const scoreWarning = scoreDrop >= SCORE_DROP_WARNING;
@@ -161,19 +185,19 @@ function getSellDecision(item, state) {
   let sellLevel = null;
   let sellDecision = "HOLD";
   let sellAction = "Hold. No sell signal yet.";
-  let sellReason = "No strong exit signal right now.";
+  let sellReason = "Open position exists, but no strong exit signal.";
 
   if (exitRisk && (scorePanic || momentumBad)) {
     sellLevel = "PANIC";
     sellDecision = "SELL";
-    sellAction = "SELL / EXIT. Setup got dangerous.";
+    sellAction = "SELL / EXIT. Position got dangerous.";
     sellReason = "Risk got bad and momentum/Brain Score collapsed.";
   } else if (targetHit) {
     sellLevel = "SELL_NOW";
     sellDecision = "SELL";
     sellAction = `SELL / LIST now around ${formatGp(item.sellOffer)} gp.`;
     sellReason = `Target reached: ${formatGp(trackedTargetSell)} gp.`;
-  } else if (momentumDropping && item.profitPercent > 0) {
+  } else if (momentumDropping && currentProfitPercent > 0) {
     sellLevel = "TAKE_PROFIT";
     sellDecision = "SELL";
     sellAction = "SELL / TAKE PROFIT. Momentum is weakening.";
@@ -191,10 +215,16 @@ function getSellDecision(item, state) {
   }
 
   return {
-    hasPreviousBuyAlert: true,
+    hasOpenPosition: true,
+    position,
+    entryPrice,
+    quantity,
     trackedTargetSell,
     previousBrainScore,
     scoreDrop,
+    currentProfitEach,
+    currentProfitTotal,
+    currentProfitPercent,
     sellLevel,
     sellDecision,
     sellAction,
@@ -320,8 +350,8 @@ function markBuyAlertSent(state, item) {
     strength: item.strength,
     profit: item.profit,
     profitPercent: item.profitPercent,
-    maxBuy: item.maxBuy,
-    targetSell: item.targetSell,
+    maxBuy: item.maxRealisticBuy || item.maxBuy,
+    targetSell: item.realisticExit || item.targetSell,
     stopLoss: item.stopLoss,
     buyOffer: item.buyOffer,
     sellOffer: item.sellOffer,
@@ -384,12 +414,12 @@ async function sendDiscordBuyAlerts(buySignals, state) {
     fields: [
       {
         name: "👉 ACTION",
-        value: `Place BUY offer around **${formatGp(item.maxBuy)} gp** or lower.`,
+        value: `Place BUY offer around **${formatGp(item.maxRealisticBuy)} gp** or lower. Current top buy: ${formatGp(item.maxBuy)} gp.`,
         inline: false,
       },
       {
         name: "🎯 SELL TARGET",
-        value: `List/Sell around **${formatGp(item.targetSell)} gp**.`,
+        value: `Realistic exit around **${formatGp(item.realisticExit || item.targetSell)} gp**. Desired margin: ${item.desiredMarginPercent?.toFixed?.(1) || "?"}%.`,
         inline: false,
       },
       {
@@ -401,10 +431,10 @@ async function sendDiscordBuyAlerts(buySignals, state) {
         inline: true,
       },
       {
-        name: "💰 PROFIT",
+        name: "💰 REALISTIC PROFIT",
         value:
-          `Expected: **${formatGp(item.profit)} gp**\n` +
-          `Percent: **${item.profitPercent.toFixed(2)}%**`,
+          `Expected: **${formatGp(item.realisticProfit)} gp**\n` +
+          `Percent: **${item.realisticProfitPercent.toFixed(2)}%**`,
         inline: true,
       },
       {
@@ -488,8 +518,13 @@ async function sendDiscordSellAlerts(sellSignals, state) {
         inline: false,
       },
       {
-        name: "NOTE",
-        value: "This SELL alert assumes you followed the previous BUY signal.",
+        name: "📦 POSITION",
+        value:
+          `Based on OPEN position in positions.json.\n` +
+          `Entry: **${formatGp(item.entryPrice)} gp**\n` +
+          `Quantity: **${item.quantity}**\n` +
+          `Current net profit: **${formatGp(item.currentProfitEach)} gp each** ` +
+          `(**${item.currentProfitPercent.toFixed(2)}%**)`,
         inline: false,
       },
     ],
@@ -668,6 +703,7 @@ async function main() {
   const items = await getMarketValues(ITEM_IDS);
   const itemMap = getItemMap();
   const state = loadState();
+  const positionsData = loadPositions();
 
   const analyzedItems = items.map((item) => {
     const result = calculateProfit(item.buy_offer, item.sell_offer);
@@ -687,6 +723,17 @@ async function main() {
       historyData,
     );
 
+    const buyPricingPlan = buildBuyPricingPlan({
+      ...item,
+      ...decisionData,
+      ...fakeRiskData,
+      buyOffer: item.buy_offer,
+      sellOffer: item.sell_offer,
+      dayAverageSell: item.day_average_sell || 0,
+      monthAverageSell: item.month_average_sell || 0,
+      monthSold: item.month_sold || 0,
+    });
+
     const analyzedItem = {
       id: item.id,
       name: itemMap[item.id] || "Unknown",
@@ -701,6 +748,7 @@ async function main() {
       monthSold: item.month_sold || 0,
       dayAverageSell: item.day_average_sell || 0,
       monthAverageSell: item.month_average_sell || 0,
+      ...buyPricingPlan,
     };
 
     const withBrain = {
@@ -708,10 +756,34 @@ async function main() {
       ...calculateBrainScore(analyzedItem),
     };
 
-    const sellDecisionData = getSellDecision(withBrain, state);
+    const openPosition = getOpenPositionForItem(item.id);
+    const withPosition = openPosition
+      ? {
+          ...withBrain,
+          position: {
+            ...openPosition,
+
+            currentSellOffer: withBrain.sellOffer,
+            currentBuyOffer: withBrain.buyOffer,
+
+            currentProfitEach:
+              withBrain.sellOffer * (1 - TAX_RATE) - openPosition.entryPrice,
+
+            currentProfitPercent:
+              openPosition.entryPrice > 0
+                ? ((withBrain.sellOffer * (1 - TAX_RATE) -
+                    openPosition.entryPrice) /
+                    openPosition.entryPrice) *
+                  100
+                : 0,
+          },
+        }
+      : withBrain;
+
+    const sellDecisionData = getSellDecision(withPosition, state);
 
     return {
-      ...withBrain,
+      ...withPosition,
       ...sellDecisionData,
     };
   });
@@ -732,7 +804,7 @@ async function main() {
     .sort((a, b) => b.brainScore - a.brainScore || b.profit - a.profit);
 
   const sellSignals = analyzedItems
-    .filter((item) => item.hasPreviousBuyAlert && item.sellLevel)
+    .filter((item) => item.hasOpenPosition && item.sellLevel)
     .sort(
       (a, b) =>
         urgencyRank(b.sellLevel) - urgencyRank(a.sellLevel) ||
@@ -750,9 +822,9 @@ async function main() {
     console.log(
       `BUY ${item.name} (ID: ${item.id})\n` +
         `Brain: ${item.brainScore}/100 (${item.strength}) | Risk: ${item.riskLevel}\n` +
-        `Buy around: ${item.maxBuy} | Sell target: ${item.targetSell}\n` +
-        `Profit: ${item.profit.toFixed(0)} (${item.profitPercent.toFixed(2)}%)\n` +
-        `Reason: ${item.reason}\n`,
+        `Buy around: ${item.maxRealisticBuy} | Sell target: ${item.realisticExit}\n` +
+        `Realistic profit: ${item.realisticProfit.toFixed(0)} (${item.realisticProfitPercent.toFixed(2)}%)\n`,
+      `Reason: ${item.reason}\n`,
     );
   });
 
