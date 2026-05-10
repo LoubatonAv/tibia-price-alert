@@ -1,13 +1,14 @@
 {
   "positions": [
     {
-      "id": 10311,
-      "name": "sabretooth",
-      "status": "OPEN",
-      "quantity": 1,
-      "entryPrice": 4879,
-      "entryBrainScore": 90,
-      "desiredMargin": 0.06
+      "id": 3081,
+      "name": "stone skin amulet",
+      "entryPrice": 8150,
+      "quantity": 5,
+      "targetSell": 9200,
+      "desiredMargin": 0.06,
+      "entryBrainScore": 92,
+      "status": "OPEN"
     }
   ]
 }

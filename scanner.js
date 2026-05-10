@@ -40,6 +40,8 @@ import { loadState, saveState, updateItemHistory } from "./lib/state.js";
 
 const DISCORD_WEBHOOK_URL = process.env.TIBIA_SCANNER_WEBHOOK_URL;
 const ITEM_IDS = getTrackedItemIds();
+const SCANNER_DEBUG_DETAILS =
+  String(process.env.SCANNER_DEBUG_DETAILS || "false").toLowerCase() === "true";
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
@@ -47,6 +49,135 @@ function clamp(value, min, max) {
 
 function formatGp(value) {
   return Math.round(value || 0).toLocaleString();
+}
+
+function roundToNiceGp(value) {
+  const number = Math.max(0, Number(value || 0));
+
+  if (number >= 100000) return Math.round(number / 1000) * 1000;
+  if (number >= 10000) return Math.round(number / 100) * 100;
+  if (number >= 1000) return Math.round(number / 50) * 50;
+  if (number >= 100) return Math.round(number / 10) * 10;
+  return Math.round(number);
+}
+
+function formatGpRange(low, high) {
+  const cleanLow = roundToNiceGp(low);
+  const cleanHigh = roundToNiceGp(high);
+
+  if (cleanLow === cleanHigh) return `${formatGp(cleanLow)} gp`;
+  return `${formatGp(cleanLow)}–${formatGp(cleanHigh)} gp`;
+}
+
+function buildScannerActionPlan(item) {
+  const hasHardTrap =
+    item.scannerTier === "AVOID" ||
+    item.conviction === "AVOID / TRAP RISK" ||
+    ["TRAP SPREAD", "HARD TO EXIT", "LOW LIQUIDITY", "UNDERCUT WAR"].some(
+      (label) => item.tradeLabels?.includes(label),
+    );
+
+  const isStrongCandidate =
+    item.scannerTier === "SAFE" &&
+    item.conviction === "HIGH CONVICTION TRADE" &&
+    ["ELITE", "STRONG"].includes(item.qualityTier) &&
+    item.brainScore >= 82 &&
+    item.fakeSpreadRisk <= 25 &&
+    item.marketPressure < 35 &&
+    item.profit >= 500;
+
+  const isWorthTrying =
+    !hasHardTrap &&
+    ["SAFE", "WATCH"].includes(item.scannerTier) &&
+    ["HIGH CONVICTION TRADE", "MEDIUM CONVICTION TRADE"].includes(
+      item.conviction,
+    ) &&
+    item.tradeabilityScore >= 60 &&
+    item.fakeSpreadRisk <= 40 &&
+    item.profit >= 300;
+
+  const buyAroundLow = item.buyOffer * (isStrongCandidate ? 0.992 : 0.985);
+  const buyAroundHigh = item.buyOffer * (isStrongCandidate ? 1.004 : 0.998);
+  const maxChase = item.buyOffer * (isStrongCandidate ? 1.018 : 1.008);
+
+  const sellLow = item.sellOffer * 0.995;
+  const sellHigh = item.sellOffer * 1.005;
+
+  let headline = "🔎 Research only — not an automatic BUY.";
+  let instruction =
+    "Monitor it, but do not open a Buy Offer purely because of the spread.";
+
+  if (hasHardTrap) {
+    headline = "❌ AVOID FOR NOW";
+    instruction = "Exit quality or spread structure looks too dangerous.";
+  } else if (isStrongCandidate) {
+    headline = "✅ WORTH BUY OFFER";
+    instruction =
+      "This looks like a relatively clean trade — enter patiently, not aggressively.";
+  } else if (isWorthTrying) {
+    headline = "🟡 BUY ONLY IF DISCOUNTED";
+    instruction =
+      "The trade is reasonable, but do not fight for an expensive entry.";
+  }
+
+  let exitNote =
+    "If aggressive undercuts begin, exit quickly or lower your price.";
+
+  if (item.tradeLabels?.includes("EASY EXIT")) {
+    exitNote = "Exit should be relatively smooth, but do not get greedy.";
+  } else if (item.tradeLabels?.includes("GOOD EXIT")) {
+    exitNote = "Exit is reasonable, but expect possible small undercuts.";
+  } else if (item.tradeLabels?.includes("MODERATE EXIT")) {
+    exitNote = "Exit is not instant — only enter if your buy price is strong.";
+  }
+
+  if (item.tradeLabels?.includes("UNDERCUT WAR")) {
+    exitNote = "Undercut pressure detected — avoid holding too aggressively.";
+  }
+
+  const whyParts = [];
+
+  if (item.tradeLabels?.includes("ACTIVE DEMAND")) {
+    whyParts.push("strong demand today");
+  }
+
+  if (
+    ["EASY EXIT", "GOOD EXIT"].some((label) =>
+      item.tradeLabels?.includes(label),
+    )
+  ) {
+    whyParts.push("reasonable resale potential");
+  }
+
+  if (item.tradeLabels?.includes("TRUSTWORTHY SPREAD")) {
+    whyParts.push("spread looks realistic");
+  }
+
+  if (item.fakeSpreadRisk > 25) {
+    whyParts.push("some fake-spread risk exists");
+  }
+
+  if (item.profit < 500) {
+    whyParts.push("raw profit is relatively small");
+  }
+
+  if (item.brainScore < 70) {
+    whyParts.push("Brain Score is weaker than ideal");
+  }
+
+  const why = whyParts.length
+    ? whyParts.join(" • ")
+    : "No strong reason to treat this as an automatic BUY.";
+
+  return {
+    actionHeadline: headline,
+    actionInstruction: instruction,
+    buyRange: formatGpRange(buyAroundLow, buyAroundHigh),
+    maxChase: `${formatGp(roundToNiceGp(maxChase))} gp`,
+    sellRange: formatGpRange(sellLow, sellHigh),
+    exitNote,
+    why,
+  };
 }
 
 function calculateProfit(buyPrice, sellPrice) {
@@ -392,42 +523,32 @@ async function sendDiscordBuyAlerts(buySignals, state) {
     color: getColor(item.brainScore),
     fields: [
       {
-        name: "👉 ACTION",
-        value: `Place BUY offer around **${formatGp(item.maxBuy)} gp** or lower.`,
-        inline: false,
-      },
-      {
-        name: "🎯 SELL TARGET",
-        value: `List/Sell around **${formatGp(item.targetSell)} gp**.`,
-        inline: false,
-      },
-      {
-        name: "🧠 BRAIN",
+        name: "👉 Action",
         value:
-          `Score: **${item.brainScore}/100**\n` +
-          `Strength: **${item.strength}**\n` +
-          `Risk: **${item.riskLevel}**`,
-        inline: true,
+          `Place a BUY offer around **${formatGp(item.maxBuy)} gp** or lower. ` +
+          `Do not chase above that price. ` +
+          `Expect to sell around **${formatGp(item.targetSell)} gp**.`,
+        inline: false,
       },
       {
-        name: "💰 PROFIT",
+        name: "🧠 Why",
+        value:
+          `${item.reason}\n` +
+          `Brain: **${item.brainScore}/100** | Strength: **${item.strength}** | Risk: **${item.riskLevel}**`,
+        inline: false,
+      },
+      {
+        name: "💰 Profit",
         value:
           `Expected: **${formatGp(item.profit)} gp**\n` +
           `Percent: **${item.profitPercent.toFixed(2)}%**`,
         inline: true,
       },
       {
-        name: "📊 WHY",
-        value:
-          `${item.reason}\n` +
-          `Trend: ${item.dayVsMonthSell.toFixed(2)}%\n` +
-          `Volume: ${item.volumeRatio.toFixed(2)}x\n` +
-          `Fake spread risk: ${item.fakeSpreadRisk}/100`,
-        inline: false,
-      },
-      {
-        name: "🛑 SAFETY",
-        value: `If price drops hard, consider exiting around **${formatGp(item.stopLoss)} gp**.`,
+        name: "🛑 Safety",
+        value: `If price drops hard, consider exiting around **${formatGp(
+          item.stopLoss,
+        )} gp**.`,
         inline: false,
       },
     ],
@@ -599,8 +720,12 @@ function scannerSortValue(item) {
     "NO MARKET": -5,
   };
 
-  const hardLabelPenalty = ["UNDERCUT WAR", "TRAP SPREAD", "LOW LIQUIDITY", "CROWDED MARKET"]
-    .filter((label) => item.tradeLabels?.includes(label)).length;
+  const hardLabelPenalty = [
+    "UNDERCUT WAR",
+    "TRAP SPREAD",
+    "LOW LIQUIDITY",
+    "CROWDED MARKET",
+  ].filter((label) => item.tradeLabels?.includes(label)).length;
 
   return (
     item.tradeabilityScore * 1400000 +
@@ -645,71 +770,96 @@ async function sendDiscordScannerReport(analyzedItems, volatility, runAdvice) {
     return;
   }
 
-  const embeds = topItems.slice(0, 5).map((item, index) => ({
-    title: `#${index + 1} ${item.name} — ${item.scannerTier} / ${item.qualityTier || "WEAK"} / ${item.conviction}`,
-    color: getScannerColor(item.scannerTier),
-    fields: [
+  const embeds = topItems.slice(0, 5).map((item, index) => {
+    const actionPlan = buildScannerActionPlan(item);
+
+    const fields = [
       {
-        name: "🧠 Scanner",
+        name: "🎯 Action Plan",
         value:
-          `Score: **${item.scannerScore}/100**\n` +
-          `Brain: **${item.brainScore}/100**\n` +
-          `Risk: **${item.fakeSpreadRisk}/100**\n` +
-          `Exit confidence: **${item.exitConfidence}**`,
-        inline: true,
-      },
-      {
-        name: "🧭 Trade Read",
-        value:
-          `**${item.conviction}** | **${item.qualityTier || "WEAK"}**\n` +
-          `${item.tradeLabels?.join(" • ") || "No labels"}\n` +
-          `Sustainability: **${item.spreadSustainability || "UNKNOWN"}**\n` +
-          `Pressure: **${item.marketPressureLevel || "UNKNOWN"}** (${Number(item.marketPressure || 0).toFixed(0)}/100)`,
-        inline: true,
-      },
-      {
-        name: "💰 Profit",
-        value:
-          `Expected: **${formatGp(item.profit)} gp**\n` +
-          `Percent: **${item.profitPercent.toFixed(2)}%**\n` +
-          `Buy/Sell: **${formatGp(item.buyOffer)} → ${formatGp(item.sellOffer)}**`,
-        inline: true,
-      },
-      {
-        name: "📊 Liquidity / Volume",
-        value:
-          `Today sold: **${formatGp(item.daySold)}**\n` +
-          `Month sold: **${formatGp(item.monthSold)}**\n` +
-          `Volume ratio: **${item.volumeRatio.toFixed(2)}x**`,
-        inline: true,
-      },
-      {
-        name: "📈 Stability / Value",
-        value:
-          `Day vs month avg: **${item.dayVsMonthSell.toFixed(2)}%**\n` +
-          `Undervalued vs month avg: **${item.undervaluedPercent.toFixed(2)}%**\n` +
-          `History: **${item.historySignal}**`,
+          `**${actionPlan.actionHeadline}**\n` +
+          `${actionPlan.actionInstruction}\n\n` +
+          `Place a Buy Offer between **${actionPlan.buyRange}**. ` +
+          `Do not put anything above **${actionPlan.maxChase}**. ` +
+          `Expect to sell around **${actionPlan.sellRange}**.\n\n` +
+          `⚠️ ${actionPlan.exitNote}`,
         inline: false,
       },
       {
-        name: "🧠 Trader Explanation",
+        name: "🧠 Quick Read",
         value:
-          `${item.recommendation}\n` +
-          `Notes: ${(item.tradeNotes || []).join(" ").slice(0, 260) || "No clean positive notes."}\n` +
-          `Warnings: ${(item.tradeWarnings || []).join(" ").slice(0, 260) || "No major warnings."}\n` +
-          `Spread memory: ${item.spreadSustainabilityAdvice || "Historical spread persistence data is still building."}`,
+          `${actionPlan.why}\n\n` +
+          `Read: **${item.conviction}** / **${item.qualityTier || "WEAK"}**\n` +
+          `Exit: **${
+            item.tradeLabels?.find((label) => label.includes("EXIT")) ||
+            item.exitConfidence
+          }** | Sustainability: **${
+            item.spreadSustainability || "BUILDING MEMORY"
+          }**`,
         inline: false,
       },
       {
-        name: "📝 Score Notes",
-        value: item.scannerNotes.slice(0, 500),
+        name: "⚠️ Warnings",
+        value:
+          `${
+            (item.tradeWarnings || []).join(" ").slice(0, 260) ||
+            "No major warnings right now."
+          }\n` +
+          `${
+            item.spreadSustainabilityAdvice ||
+            "Historical spread persistence data is still building."
+          }`,
         inline: false,
       },
-    ],
-    footer: {
-      text: `Item ID: ${item.id} | Tax included | Scanner mode only`,
-    },
-  }));
+    ];
+
+    if (SCANNER_DEBUG_DETAILS) {
+      fields.push(
+        {
+          name: "🧪 Debug — Scores",
+          value:
+            `Scanner: **${item.scannerScore}/100** | Brain: **${item.brainScore}/100** | Tradeability: **${item.tradeabilityScore}/100**\n` +
+            `Risk: **${item.fakeSpreadRisk}/100** | Pressure: **${
+              item.marketPressureLevel || "UNKNOWN"
+            }** (${Number(item.marketPressure || 0).toFixed(0)}/100)`,
+          inline: false,
+        },
+        {
+          name: "🧪 Debug — Market Data",
+          value:
+            `Profit: **${formatGp(item.profit)} gp** (${item.profitPercent.toFixed(
+              2,
+            )}%)\n` +
+            `Buy/Sell: **${formatGp(item.buyOffer)} → ${formatGp(
+              item.sellOffer,
+            )}**\n` +
+            `Today/month sold: **${formatGp(item.daySold)} / ${formatGp(
+              item.monthSold,
+            )}** | Volume: **${item.volumeRatio.toFixed(2)}x**\n` +
+            `History: **${item.historySignal}**`,
+          inline: false,
+        },
+        {
+          name: "🧪 Debug — Score Notes",
+          value: item.scannerNotes.slice(0, 500),
+          inline: false,
+        },
+      );
+    }
+
+    return {
+      title: `#${index + 1} ${item.name} — ${item.scannerTier} / ${
+        item.qualityTier || "WEAK"
+      } / ${item.conviction}`,
+      color: getScannerColor(item.scannerTier),
+      fields,
+      footer: {
+        text: `Item ID: ${item.id} | Tax included | Scanner mode only${
+          SCANNER_DEBUG_DETAILS ? " | Debug details ON" : ""
+        }`,
+      },
+    };
+  });
 
   const tierCounts = topItems.reduce(
     (acc, item) => {
