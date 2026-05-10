@@ -16,6 +16,8 @@ import {
   calculateBrainScore,
   getDecision,
   calculateScannerScore,
+  calculateMarketPressure,
+  calculateTradeabilityConviction,
 } from "./lib/scoring.js";
 import {
   SERVER,
@@ -517,6 +519,8 @@ async function sendDiscordSellAlerts(sellSignals, state) {
 
 function getScannerTier(item) {
   if (
+    item.conviction === "AVOID / TRAP RISK" ||
+    item.marketPressureLevel === "EXTREME" ||
     ["DEAD MARKET", "FAKE SPREAD", "NO MARKET", "NO PROFIT AFTER TAX"].includes(
       item.marketClass,
     )
@@ -525,21 +529,44 @@ function getScannerTier(item) {
   }
 
   if (
-    item.scannerScore >= 75 &&
-    item.exitConfidence === "HIGH" &&
-    item.monthSold >= 500 &&
-    item.fakeSpreadRisk <= 20 &&
-    item.profit > 0
+    item.marketPressureLevel === "HIGH" ||
+    item.tradeabilityScore < 48 ||
+    ["UNDERCUT WAR", "TRAP SPREAD", "LOW LIQUIDITY"].some((label) =>
+      item.tradeLabels?.includes(label),
+    )
+  ) {
+    return "SPECULATIVE";
+  }
+
+  if (
+    item.conviction === "HIGH CONVICTION TRADE" &&
+    ["ELITE", "STRONG"].includes(item.qualityTier) &&
+    item.scannerScore >= 72 &&
+    item.tradeabilityScore >= 73 &&
+    item.brainScore >= 82 &&
+    ["HIGH", "MEDIUM"].includes(item.exitConfidence) &&
+    item.fakeSpreadRisk <= 22 &&
+    item.marketPressure < 35 &&
+    item.daySold >= 12 &&
+    item.monthSold >= 350 &&
+    item.profit >= 700 &&
+    item.profitPercent >= 5.5
   ) {
     return "SAFE";
   }
 
   if (
-    item.scannerScore >= 55 &&
-    ["HIGH", "MEDIUM"].includes(item.exitConfidence) &&
-    item.monthSold >= 150 &&
-    item.fakeSpreadRisk <= 45 &&
-    item.profit > 0
+    ["HIGH CONVICTION TRADE", "MEDIUM CONVICTION TRADE"].includes(
+      item.conviction,
+    ) &&
+    ["ELITE", "STRONG", "DECENT"].includes(item.qualityTier) &&
+    item.scannerScore >= 54 &&
+    item.tradeabilityScore >= 62 &&
+    ["HIGH", "MEDIUM", "LOW"].includes(item.exitConfidence) &&
+    item.monthSold >= 120 &&
+    item.fakeSpreadRisk <= 40 &&
+    item.profit >= 300 &&
+    item.profitPercent >= 4
   ) {
     return "WATCH";
   }
@@ -549,23 +576,44 @@ function getScannerTier(item) {
 
 function scannerSortValue(item) {
   const confidenceRank = { HIGH: 4, MEDIUM: 3, LOW: 2, "VERY LOW": 1 };
+  const convictionRank = {
+    "HIGH CONVICTION TRADE": 5,
+    "MEDIUM CONVICTION TRADE": 3,
+    "LOW CONVICTION": 1,
+    "AVOID / TRAP RISK": -4,
+  };
+  const qualityRank = {
+    ELITE: 5,
+    STRONG: 4,
+    DECENT: 2,
+    WEAK: 0,
+  };
   const classRank = {
     "FAST FLIP": 6,
     "SAFE FLIP": 5,
     "SLOW FLIP": 4,
-    RISKY: 3,
-    "FAKE SPREAD": 2,
-    "DEAD MARKET": 1,
-    "NO PROFIT AFTER TAX": 0,
-    "NO MARKET": 0,
+    RISKY: 2,
+    "FAKE SPREAD": -3,
+    "DEAD MARKET": -4,
+    "NO PROFIT AFTER TAX": -5,
+    "NO MARKET": -5,
   };
 
+  const hardLabelPenalty = ["UNDERCUT WAR", "TRAP SPREAD", "LOW LIQUIDITY", "CROWDED MARKET"]
+    .filter((label) => item.tradeLabels?.includes(label)).length;
+
   return (
-    item.scannerScore * 1000000 +
+    item.tradeabilityScore * 1400000 +
+    item.scannerScore * 700000 +
+    (qualityRank[item.qualityTier] || 0) * 350000 +
+    (convictionRank[item.conviction] || 0) * 260000 +
     (confidenceRank[item.exitConfidence] || 0) * 100000 +
-    (classRank[item.marketClass] || 0) * 10000 +
-    item.monthSold * 10 +
-    Math.max(item.profit, 0) / 1000
+    (classRank[item.marketClass] || 0) * 20000 +
+    item.monthSold * 12 +
+    Math.max(item.realisticProfit ?? item.profit, 0) / 400 -
+    (item.marketPressure || 0) * 80000 -
+    (item.fakeSpreadRisk || 0) * 55000 -
+    hardLabelPenalty * 350000
   );
 }
 
@@ -597,8 +645,8 @@ async function sendDiscordScannerReport(analyzedItems, volatility, runAdvice) {
     return;
   }
 
-  const embeds = topItems.slice(0, 10).map((item, index) => ({
-    title: `#${index + 1} ${item.name} — ${item.scannerTier} / ${item.marketClass}`,
+  const embeds = topItems.slice(0, 5).map((item, index) => ({
+    title: `#${index + 1} ${item.name} — ${item.scannerTier} / ${item.qualityTier || "WEAK"} / ${item.conviction}`,
     color: getScannerColor(item.scannerTier),
     fields: [
       {
@@ -608,6 +656,15 @@ async function sendDiscordScannerReport(analyzedItems, volatility, runAdvice) {
           `Brain: **${item.brainScore}/100**\n` +
           `Risk: **${item.fakeSpreadRisk}/100**\n` +
           `Exit confidence: **${item.exitConfidence}**`,
+        inline: true,
+      },
+      {
+        name: "🧭 Trade Read",
+        value:
+          `**${item.conviction}** | **${item.qualityTier || "WEAK"}**\n` +
+          `${item.tradeLabels?.join(" • ") || "No labels"}\n` +
+          `Sustainability: **${item.spreadSustainability || "UNKNOWN"}**\n` +
+          `Pressure: **${item.marketPressureLevel || "UNKNOWN"}** (${Number(item.marketPressure || 0).toFixed(0)}/100)`,
         inline: true,
       },
       {
@@ -635,8 +692,17 @@ async function sendDiscordScannerReport(analyzedItems, volatility, runAdvice) {
         inline: false,
       },
       {
-        name: "📝 Notes",
-        value: item.scannerNotes.slice(0, 900),
+        name: "🧠 Trader Explanation",
+        value:
+          `${item.recommendation}\n` +
+          `Notes: ${(item.tradeNotes || []).join(" ").slice(0, 260) || "No clean positive notes."}\n` +
+          `Warnings: ${(item.tradeWarnings || []).join(" ").slice(0, 260) || "No major warnings."}\n` +
+          `Spread memory: ${item.spreadSustainabilityAdvice || "Historical spread persistence data is still building."}`,
+        inline: false,
+      },
+      {
+        name: "📝 Score Notes",
+        value: item.scannerNotes.slice(0, 500),
         inline: false,
       },
     ],
@@ -659,7 +725,7 @@ async function sendDiscordScannerReport(analyzedItems, volatility, runAdvice) {
       `Mode: research only — no BUY/SELL alerts sent.\n` +
       `Pool: **${SCANNER_POOL}** | Checked: **${analyzedItems.length}** items\n` +
       `Market: **${runAdvice.level}** | Volatility: **${volatility}**\n` +
-      `Top ${topItems.length}: 🟢 SAFE ${tierCounts.SAFE || 0} | 🟡 WATCH ${tierCounts.WATCH || 0} | 🟠 SPECULATIVE ${tierCounts.SPECULATIVE || 0} | 🔴 AVOID ${tierCounts.AVOID || 0}`,
+      `Shown: **${embeds.length}** / ${topItems.length}: 🟢 SAFE ${tierCounts.SAFE || 0} | 🟡 WATCH ${tierCounts.WATCH || 0} | 🟠 SPECULATIVE ${tierCounts.SPECULATIVE || 0} | 🔴 AVOID ${tierCounts.AVOID || 0}`,
     embeds,
   });
 
@@ -715,10 +781,20 @@ async function main() {
       ...calculateBrainScore(analyzedItem),
     };
 
-    const sellDecisionData = getSellDecision(withBrain, state);
+    const withPressure = {
+      ...withBrain,
+      ...calculateMarketPressure(withBrain),
+    };
+
+    const withConviction = {
+      ...withPressure,
+      ...calculateTradeabilityConviction(withPressure),
+    };
+
+    const sellDecisionData = getSellDecision(withConviction, state);
 
     return {
-      ...withBrain,
+      ...withConviction,
       ...sellDecisionData,
     };
   });

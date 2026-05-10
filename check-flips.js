@@ -21,6 +21,8 @@ import {
   calculateBrainScore,
   getDecision,
   calculateScannerScore,
+  calculateMarketPressure,
+  calculateTradeabilityConviction,
 } from "./lib/scoring.js";
 import {
   SERVER,
@@ -99,6 +101,11 @@ function isSimpleBuySignal(item) {
     return false;
   }
 
+  if (["HIGH", "EXTREME"].includes(item.marketPressureLevel)) {
+    item.reason = `Skipped BUY because market pressure is ${item.marketPressureLevel}.`;
+    return false;
+  }
+
   const hasGoodLiquidity = item.monthSold >= 100 && item.daySold >= 3;
 
   const hasSafeSpread = item.fakeSpreadRisk < 30;
@@ -109,6 +116,11 @@ function isSimpleBuySignal(item) {
 
   const hasGoodBrain = item.brainScore >= 75;
 
+  const hasGoodConviction =
+    ["HIGH CONVICTION TRADE", "MEDIUM CONVICTION TRADE"].includes(
+      item.conviction,
+    ) && item.tradeabilityScore >= 60;
+
   const notFalling = !item.fallingHard;
 
   if (
@@ -118,10 +130,11 @@ function isSimpleBuySignal(item) {
     hasHealthyVolume &&
     hasGoodProfit &&
     hasGoodBrain &&
+    hasGoodConviction &&
     notFalling
   ) {
     item.reason =
-      "High Brain Score, safe spread, good liquidity, and profitable setup.";
+      "High Brain Score, safe spread, good liquidity, and good tradeability/conviction.";
   }
 
   return (
@@ -131,6 +144,7 @@ function isSimpleBuySignal(item) {
     hasHealthyVolume &&
     hasGoodProfit &&
     hasGoodBrain &&
+    hasGoodConviction &&
     notFalling
   );
 }
@@ -431,6 +445,14 @@ async function sendDiscordBuyAlerts(buySignals, state) {
         inline: true,
       },
       {
+        name: "🧭 CONVICTION",
+        value:
+          `**${item.conviction}**\n` +
+          `Tradeability: **${item.tradeabilityScore}/100**\n` +
+          `${item.tradeLabels?.join(" • ") || "No labels"}`,
+        inline: true,
+      },
+      {
         name: "💰 REALISTIC PROFIT",
         value:
           `Expected: **${formatGp(item.realisticProfit)} gp**\n` +
@@ -441,9 +463,18 @@ async function sendDiscordBuyAlerts(buySignals, state) {
         name: "📊 WHY",
         value:
           `${item.reason}\n` +
-          `Trend: ${item.dayVsMonthSell.toFixed(2)}%\n` +
-          `Volume: ${item.volumeRatio.toFixed(2)}x\n` +
+          `${item.recommendation}\n` +
+          `Trend: ${item.dayVsMonthSell.toFixed(2)}% | Volume: ${item.volumeRatio.toFixed(2)}x\n` +
           `Fake spread risk: ${item.fakeSpreadRisk}/100`,
+        inline: false,
+      },
+      {
+        name: "🌊 MARKET PRESSURE",
+        value:
+          `Level: **${item.marketPressureLevel}**\n` +
+          `Score: **${item.marketPressure}/100**\n` +
+          `${item.marketPressureReasons.slice(0, 2).join("\n") || "No major pressure detected."}\n` +
+          `${(item.tradeWarnings || []).slice(0, 2).join("\n")}`,
         inline: false,
       },
       {
@@ -587,13 +618,13 @@ function scannerSortValue(item) {
     "NO PROFIT AFTER TAX": 0,
     "NO MARKET": 0,
   };
-
   return (
     item.scannerScore * 1000000 +
     (confidenceRank[item.exitConfidence] || 0) * 100000 +
     (classRank[item.marketClass] || 0) * 10000 +
     item.monthSold * 10 +
-    Math.max(item.profit, 0) / 1000
+    Math.max(item.profit, 0) / 1000 -
+    (item.marketPressure || 0) * 50000
   );
 }
 
@@ -756,29 +787,40 @@ async function main() {
       ...calculateBrainScore(analyzedItem),
     };
 
+    const withPressure = {
+      ...withBrain,
+      ...calculateMarketPressure(withBrain),
+    };
+
+    const withConviction = {
+      ...withPressure,
+      ...calculateTradeabilityConviction(withPressure),
+    };
+
     const openPosition = getOpenPositionForItem(item.id);
+
     const withPosition = openPosition
       ? {
-          ...withBrain,
+          ...withConviction,
           position: {
             ...openPosition,
 
-            currentSellOffer: withBrain.sellOffer,
-            currentBuyOffer: withBrain.buyOffer,
+            currentSellOffer: withPressure.sellOffer,
+            currentBuyOffer: withPressure.buyOffer,
 
             currentProfitEach:
-              withBrain.sellOffer * (1 - TAX_RATE) - openPosition.entryPrice,
+              withPressure.sellOffer * (1 - TAX_RATE) - openPosition.entryPrice,
 
             currentProfitPercent:
               openPosition.entryPrice > 0
-                ? ((withBrain.sellOffer * (1 - TAX_RATE) -
+                ? ((withPressure.sellOffer * (1 - TAX_RATE) -
                     openPosition.entryPrice) /
                     openPosition.entryPrice) *
                   100
                 : 0,
           },
         }
-      : withBrain;
+      : withConviction;
 
     const sellDecisionData = getSellDecision(withPosition, state);
 
@@ -801,7 +843,12 @@ async function main() {
 
   const buySignals = analyzedItems
     .filter(isSimpleBuySignal)
-    .sort((a, b) => b.brainScore - a.brainScore || b.profit - a.profit);
+    .sort(
+      (a, b) =>
+        b.tradeabilityScore - a.tradeabilityScore ||
+        b.brainScore - a.brainScore ||
+        b.profit - a.profit,
+    );
 
   const sellSignals = analyzedItems
     .filter((item) => item.hasOpenPosition && item.sellLevel)
