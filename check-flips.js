@@ -102,8 +102,21 @@ function isSimpleBuySignal(item) {
 
   const notFalling = !item.fallingHard;
 
+  if (
+    item.decision === "WATCH" &&
+    hasGoodLiquidity &&
+    hasSafeSpread &&
+    hasHealthyVolume &&
+    hasGoodProfit &&
+    hasGoodBrain &&
+    notFalling
+  ) {
+    item.reason =
+      "High Brain Score, safe spread, good liquidity, and profitable setup.";
+  }
+
   return (
-    item.decision === "BUY" &&
+    ["BUY", "WATCH"].includes(item.decision) &&
     hasGoodLiquidity &&
     hasSafeSpread &&
     hasHealthyVolume &&
@@ -341,7 +354,7 @@ function buildSimpleBuyTitle(item) {
 function buildSimpleSellTitle(item) {
   if (item.sellLevel === "PANIC") return `🚨 SELL — ${item.name} — EXIT`;
   if (item.sellLevel === "SELL_NOW")
-    return `🔴 SELL — ${item.name} — TARGET HIT`;
+    return `🟢 SELL — ${item.name} — TARGET HIT`;
   if (item.sellLevel === "TAKE_PROFIT") {
     return `🟠 SELL — ${item.name} — TAKE PROFIT`;
   }

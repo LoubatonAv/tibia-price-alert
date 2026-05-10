@@ -361,7 +361,7 @@ function buildSimpleBuyTitle(item) {
 function buildSimpleSellTitle(item) {
   if (item.sellLevel === "PANIC") return `🚨 SELL — ${item.name} — EXIT`;
   if (item.sellLevel === "SELL_NOW")
-    return `🔴 SELL — ${item.name} — TARGET HIT`;
+    return `🟢 SELL — ${item.name} — TARGET HIT`;
   if (item.sellLevel === "TAKE_PROFIT") {
     return `🟠 SELL — ${item.name} — TAKE PROFIT`;
   }
