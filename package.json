@@ -5,14 +5,16 @@
   "scripts": {
     "flips": "node check-flips.js",
     "scanner": "node scanner.js",
-    "trade": "node trade.js"
+    "trade": "node trade.js",
+    "inventory": "node inventory.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "axios": "^1.15.2",
+    "axios": "^1.16.0",
+    "discord.js": "^14.26.4",
     "dotenv": "^17.4.2"
   },
   "type": "module"

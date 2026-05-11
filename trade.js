@@ -1,11 +1,13 @@
 import fs from "fs";
 import { loadState, saveState } from "./lib/state.js";
-import { closeTrade } from "./lib/trades.js";
+import { closeTrade, normalizePosition } from "./lib/trades.js";
 import { getItemMap } from "./lib/market.js";
+
+const POSITIONS_FILE = "./positions.json";
+
 function resolveItem(input) {
   const itemMap = getItemMap();
 
-  // Numeric ID
   if (!isNaN(Number(input))) {
     const id = Number(input);
 
@@ -15,7 +17,6 @@ function resolveItem(input) {
     };
   }
 
-  // Search by name
   const normalized = String(input).trim().toLowerCase();
 
   const found = Object.entries(itemMap).find(
@@ -23,7 +24,9 @@ function resolveItem(input) {
   );
 
   if (!found) {
-    throw new Error(`Item not found: ${input}`);
+    throw new Error(
+      `Item not found: ${input}. Try using the numeric item ID instead.`,
+    );
   }
 
   return {
@@ -32,14 +35,15 @@ function resolveItem(input) {
   };
 }
 
-const POSITIONS_FILE = "./positions.json";
-
 function loadPositions() {
   if (!fs.existsSync(POSITIONS_FILE)) {
     return { positions: [] };
   }
 
-  return JSON.parse(fs.readFileSync(POSITIONS_FILE, "utf8"));
+  const data = JSON.parse(fs.readFileSync(POSITIONS_FILE, "utf8"));
+  if (!data.positions) data.positions = [];
+  data.positions.forEach(normalizePosition);
+  return data;
 }
 
 function savePositions(data) {
@@ -55,29 +59,58 @@ function fail(message) {
   process.exit(1);
 }
 
+function formatGp(value) {
+  return Math.round(Number(value || 0)).toLocaleString();
+}
+
 function printUsage() {
   console.log(`
 Usage:
 
-Open position:
-  node trade.js open ITEM_ID ENTRY_PRICE QUANTITY TARGET_SELL BRAIN_SCORE
-Close position:
-  node trade.js close ITEM_ID SELL_PRICE
+New safer flow:
+  node trade.js buy ITEM_ID_OR_NAME ENTRY_PRICE QUANTITY TARGET_SELL [BRAIN_SCORE]
+  node trade.js receive ITEM_ID_OR_NAME QUANTITY [ACTUAL_ENTRY_PRICE]
+  node trade.js list ITEM_ID_OR_NAME QUANTITY LIST_PRICE
+  node trade.js sold ITEM_ID_OR_NAME QUANTITY SELL_PRICE
+
+Backward compatible old flow:
+  node trade.js open ITEM_ID_OR_NAME ENTRY_PRICE QUANTITY TARGET_SELL [BRAIN_SCORE]
+  node trade.js close ITEM_ID_OR_NAME SELL_PRICE [QUANTITY]
 
 Stats:
   node trade.js stats
 `);
 }
 
-const [, , action, ...args] = process.argv;
-
-if (!["open", "close", "stats"].includes(action)) {
-  printUsage();
-  process.exit(1);
+function findActivePosition(positionsData, itemId) {
+  return positionsData.positions.find(
+    (p) => Number(p.id) === Number(itemId) && p.status !== "CLOSED",
+  );
 }
 
-const positionsData = loadPositions();
-if (action === "stats") {
+function addEvent(position, type, details = {}) {
+  normalizePosition(position);
+  position.events.push({
+    type,
+    at: new Date().toISOString(),
+    ...details,
+  });
+}
+
+function printPosition(position) {
+  console.log(`Item: ${position.name}`);
+  console.log(`Status: ${position.status}`);
+  console.log(`Remaining quantity: ${position.quantity}`);
+  console.log(`Original quantity: ${position.originalQuantity}`);
+  console.log(`Received: ${position.receivedQuantity}`);
+  console.log(`Listed: ${position.listedQuantity}`);
+  console.log(`Sold: ${position.soldQuantity}`);
+  console.log(`Entry: ${formatGp(position.entryPrice)} gp`);
+  console.log(`Target sell: ${formatGp(position.targetSell)} gp`);
+  console.log(`Brain: ${position.entryBrainScore ?? "N/A"}`);
+}
+
+function printStats() {
   const state = loadState();
   const history = state.tradeHistory || [];
 
@@ -88,6 +121,10 @@ if (action === "stats") {
     (sum, t) => sum + Number(t.netProfit || 0),
     0,
   );
+  const totalQuantity = history.reduce(
+    (sum, t) => sum + Number(t.quantity || 0),
+    0,
+  );
   const avgProfit = totalTrades > 0 ? totalProfit / totalTrades : 0;
   const avgRoi =
     totalTrades > 0
@@ -96,6 +133,7 @@ if (action === "stats") {
       : 0;
 
   const bestTrade = [...history].sort((a, b) => b.netProfit - a.netProfit)[0];
+  const worstTrade = [...history].sort((a, b) => a.netProfit - b.netProfit)[0];
 
   const itemStats = {};
 
@@ -106,12 +144,14 @@ if (action === "stats") {
         id: trade.id,
         name: trade.name,
         trades: 0,
+        quantity: 0,
         totalProfit: 0,
         totalRoi: 0,
       };
     }
 
     itemStats[key].trades += 1;
+    itemStats[key].quantity += Number(trade.quantity || 0);
     itemStats[key].totalProfit += Number(trade.netProfit || 0);
     itemStats[key].totalRoi += Number(trade.roiPercent || 0);
   }
@@ -121,54 +161,73 @@ if (action === "stats") {
       id: stats.id,
       name: stats.name,
       trades: stats.trades,
+      quantity: stats.quantity,
       totalProfit: stats.totalProfit,
       avgRoi: stats.totalRoi / stats.trades,
     }))
     .sort((a, b) => b.totalProfit - a.totalProfit);
 
-  const worstTrade = [...history].sort((a, b) => a.netProfit - b.netProfit)[0];
-
   console.log("\nTIBIA TRADE STATS\n");
-  console.log(`Total trades: ${totalTrades}`);
+  console.log(`Closed sale events: ${totalTrades}`);
+  console.log(`Total items sold: ${totalQuantity}`);
   console.log(`Wins: ${wins}`);
   console.log(`Losses: ${losses}`);
   console.log(
     `Winrate: ${totalTrades > 0 ? ((wins / totalTrades) * 100).toFixed(2) : "0.00"}%`,
   );
-  console.log(`Total profit: ${Math.round(totalProfit).toLocaleString()} gp`);
-  console.log(`Average profit: ${Math.round(avgProfit).toLocaleString()} gp`);
+  console.log(`Total profit: ${formatGp(totalProfit)} gp`);
+  console.log(`Average profit per sale event: ${formatGp(avgProfit)} gp`);
   console.log(`Average ROI: ${avgRoi.toFixed(2)}%`);
 
   if (bestTrade) {
     console.log(
-      `\nBest trade: ${bestTrade.name} (+${Math.round(bestTrade.netProfit).toLocaleString()} gp)`,
+      `\nBest sale: ${bestTrade.name} (+${formatGp(bestTrade.netProfit)} gp, qty ${bestTrade.quantity})`,
     );
   }
 
   if (worstTrade) {
     console.log(
-      `Worst trade: ${worstTrade.name} (${Math.round(worstTrade.netProfit).toLocaleString()} gp)`,
+      `Worst sale: ${worstTrade.name} (${formatGp(worstTrade.netProfit)} gp, qty ${worstTrade.quantity})`,
     );
   }
+
   if (rankedItems.length > 0) {
     console.log("\nTop items:\n");
 
     rankedItems.slice(0, 5).forEach((item, index) => {
       console.log(
         `#${index + 1} ${item.name}\n` +
-          `Trades: ${item.trades}\n` +
-          `Profit: ${Math.round(item.totalProfit).toLocaleString()} gp\n` +
+          `Sale events: ${item.trades}\n` +
+          `Quantity sold: ${item.quantity}\n` +
+          `Profit: ${formatGp(item.totalProfit)} gp\n` +
           `Average ROI: ${item.avgRoi.toFixed(2)}%\n`,
       );
     });
   }
-  process.exit(0);
-}
-if (!positionsData.positions) {
-  positionsData.positions = [];
 }
 
-if (action === "open") {
+const [, , rawAction, ...args] = process.argv;
+const actionAliases = {
+  "buy-order": "buy",
+  add: "buy",
+  open: "open",
+  close: "close",
+};
+const action = actionAliases[rawAction] || rawAction;
+
+if (!["buy", "receive", "list", "sold", "open", "close", "stats"].includes(action)) {
+  printUsage();
+  process.exit(1);
+}
+
+if (action === "stats") {
+  printStats();
+  process.exit(0);
+}
+
+const positionsData = loadPositions();
+
+if (action === "buy" || action === "open") {
   const [itemInput, entryPrice, quantity, targetSell, brainScore] = args;
 
   if (!itemInput || !entryPrice || !quantity || !targetSell) {
@@ -176,11 +235,9 @@ if (action === "open") {
     process.exit(1);
   }
 
-  if (!isPositiveNumber(entryPrice))
-    fail("ENTRY_PRICE must be a positive number.");
+  if (!isPositiveNumber(entryPrice)) fail("ENTRY_PRICE must be a positive number.");
   if (!isPositiveNumber(quantity)) fail("QUANTITY must be a positive number.");
-  if (!isPositiveNumber(targetSell))
-    fail("TARGET_SELL must be a positive number.");
+  if (!isPositiveNumber(targetSell)) fail("TARGET_SELL must be a positive number.");
 
   if (
     brainScore &&
@@ -190,86 +247,174 @@ if (action === "open") {
   ) {
     fail("BRAIN_SCORE must be between 0 and 100.");
   }
+
   const resolvedItem = resolveItem(itemInput);
-  const existingOpen = positionsData.positions.find(
-    (p) => Number(p.id) === resolvedItem.id && p.status !== "CLOSED",
-  );
+  const existingOpen = findActivePosition(positionsData, resolvedItem.id);
 
   if (existingOpen) {
-    console.log("There is already an OPEN position for this item.");
+    console.log("There is already an active position for this item.");
     process.exit(1);
   }
 
+  const now = new Date().toISOString();
+  const qty = Number(quantity);
   const position = {
     id: resolvedItem.id,
     name: resolvedItem.name,
-    openedAt: new Date().toISOString(),
+    createdAt: now,
+    openedAt: now,
+    flow: action === "open" ? "LEGACY_OPEN" : "BUY_ORDER_FLOW",
     entryPrice: Number(entryPrice),
-    quantity: Number(quantity),
+    averageEntryPrice: Number(entryPrice),
+    originalQuantity: qty,
+    quantity: action === "open" ? qty : 0,
+    orderedQuantity: qty,
+    receivedQuantity: action === "open" ? qty : 0,
+    listedQuantity: 0,
+    soldQuantity: 0,
     targetSell: Number(targetSell),
     desiredMargin: 0.06,
     entryBrainScore: brainScore ? Number(brainScore) : null,
-    status: "OPEN",
+    status: action === "open" ? "OPEN" : "BUY_ORDER_PLACED",
+    events: [
+      {
+        type: action === "open" ? "LEGACY_OPEN" : "BUY_ORDER_PLACED",
+        at: now,
+        entryPrice: Number(entryPrice),
+        quantity: qty,
+        targetSell: Number(targetSell),
+        brainScore: brainScore ? Number(brainScore) : null,
+      },
+    ],
   };
 
   positionsData.positions.push(position);
   savePositions(positionsData);
 
-  console.log("\nPOSITION OPENED\n");
-  console.log(`Item: ${position.name}`);
-  console.log(`Quantity: ${position.quantity}`);
-  console.log(`Entry: ${position.entryPrice}`);
-  console.log(`Target sell: ${position.targetSell}`);
-  console.log(`Brain: ${position.entryBrainScore ?? "N/A"}`);
-
+  console.log(action === "open" ? "\nPOSITION OPENED\n" : "\nBUY ORDER ADDED\n");
+  printPosition(position);
   process.exit(0);
 }
 
-if (action === "close") {
-  const [itemInput, sellPrice] = args;
-  if (!itemInput || !sellPrice) {
+if (action === "receive") {
+  const [itemInput, quantity, actualEntryPrice] = args;
+  if (!itemInput || !quantity) {
     printUsage();
     process.exit(1);
   }
 
-  if (!isPositiveNumber(sellPrice))
-    fail("SELL_PRICE must be a positive number.");
+  if (!isPositiveNumber(quantity)) fail("QUANTITY must be a positive number.");
+  if (actualEntryPrice && !isPositiveNumber(actualEntryPrice)) {
+    fail("ACTUAL_ENTRY_PRICE must be a positive number.");
+  }
 
   const resolvedItem = resolveItem(itemInput);
-  const position = positionsData.positions.find(
-    (p) => Number(p.id) === resolvedItem.id && p.status !== "CLOSED",
-  );
+  const position = findActivePosition(positionsData, resolvedItem.id);
 
-  if (!position) {
-    console.log("No OPEN position found.");
+  if (!position) fail("No active position found for this item.");
+
+  const receiveQty = Number(quantity);
+  const newEntry = actualEntryPrice ? Number(actualEntryPrice) : position.entryPrice;
+  const previousReceived = Number(position.receivedQuantity || 0);
+  const previousCost = previousReceived * Number(position.averageEntryPrice || position.entryPrice || 0);
+  const newCost = receiveQty * newEntry;
+  const newReceivedTotal = previousReceived + receiveQty;
+
+  position.receivedQuantity = newReceivedTotal;
+  position.quantity = Number(position.quantity || 0) + receiveQty;
+  position.averageEntryPrice = newReceivedTotal > 0 ? (previousCost + newCost) / newReceivedTotal : newEntry;
+  position.entryPrice = position.averageEntryPrice;
+  position.status = "ITEMS_RECEIVED";
+
+  addEvent(position, "ITEMS_RECEIVED", {
+    quantity: receiveQty,
+    entryPrice: newEntry,
+    averageEntryPrice: position.averageEntryPrice,
+  });
+
+  savePositions(positionsData);
+
+  console.log("\nITEMS RECEIVED\n");
+  printPosition(position);
+  process.exit(0);
+}
+
+if (action === "list") {
+  const [itemInput, quantity, listPrice] = args;
+  if (!itemInput || !quantity || !listPrice) {
+    printUsage();
     process.exit(1);
   }
 
-  if (!position.openedAt) {
-    position.openedAt = new Date().toISOString();
+  if (!isPositiveNumber(quantity)) fail("QUANTITY must be a positive number.");
+  if (!isPositiveNumber(listPrice)) fail("LIST_PRICE must be a positive number.");
+
+  const resolvedItem = resolveItem(itemInput);
+  const position = findActivePosition(positionsData, resolvedItem.id);
+
+  if (!position) fail("No active position found for this item.");
+
+  const listQty = Number(quantity);
+  if (listQty > Number(position.quantity || 0)) {
+    fail(`Cannot list ${listQty}; only ${position.quantity} unsold items are tracked.`);
   }
+
+  position.listedQuantity = Number(position.listedQuantity || 0) + listQty;
+  position.lastListPrice = Number(listPrice);
+  position.lastListedAt = new Date().toISOString();
+  position.status = position.listedQuantity >= position.quantity ? "LISTED_FOR_SALE" : "PARTIALLY_LISTED";
+
+  addEvent(position, "LISTED_FOR_SALE", {
+    quantity: listQty,
+    listPrice: Number(listPrice),
+  });
+
+  savePositions(positionsData);
+
+  console.log("\nITEMS LISTED FOR SALE\n");
+  printPosition(position);
+  console.log(`List price: ${formatGp(listPrice)} gp`);
+  process.exit(0);
+}
+
+if (action === "sold" || action === "close") {
+  const [itemInput, firstNumber, secondNumber] = args;
+  if (!itemInput || !firstNumber) {
+    printUsage();
+    process.exit(1);
+  }
+
+  const resolvedItem = resolveItem(itemInput);
+  const position = findActivePosition(positionsData, resolvedItem.id);
+
+  if (!position) fail("No active position found.");
+
+  const quantity = action === "close" && !secondNumber ? position.quantity : Number(firstNumber);
+  const sellPrice = action === "close" && !secondNumber ? Number(firstNumber) : Number(secondNumber);
+
+  if (!isPositiveNumber(quantity)) fail("QUANTITY must be a positive number.");
+  if (!isPositiveNumber(sellPrice)) fail("SELL_PRICE must be a positive number.");
 
   const state = loadState();
 
   const trade = closeTrade({
     state,
     position,
-    sellPrice: Number(sellPrice),
-    exitReason: "MANUAL_CLOSE",
+    sellPrice,
+    quantity,
+    exitReason: action === "close" ? "MANUAL_CLOSE" : "PARTIAL_OR_FULL_SOLD",
   });
-
-  position.status = "CLOSED";
-  position.closedAt = trade.closedAt;
-  position.finalSellPrice = Number(sellPrice);
 
   savePositions(positionsData);
   saveState(state);
 
-  console.log("\nTRADE CLOSED\n");
+  console.log(position.status === "CLOSED" ? "\nTRADE CLOSED\n" : "\nPARTIAL SALE RECORDED\n");
   console.log(`Item: ${trade.name}`);
-  console.log(`Quantity: ${trade.quantity}`);
-  console.log(`Entry: ${trade.entryPrice}`);
-  console.log(`Sell: ${trade.sellPrice}`);
-  console.log(`Profit: ${Math.round(trade.netProfit)} gp`);
+  console.log(`Sold quantity: ${trade.quantity}`);
+  console.log(`Remaining quantity: ${position.quantity}`);
+  console.log(`Entry: ${formatGp(trade.entryPrice)} gp`);
+  console.log(`Sell: ${formatGp(trade.sellPrice)} gp`);
+  console.log(`Profit: ${formatGp(trade.netProfit)} gp`);
   console.log(`ROI: ${trade.roiPercent.toFixed(2)}%`);
+  process.exit(0);
 }

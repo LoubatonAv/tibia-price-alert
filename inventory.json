@@ -1,0 +1,11 @@
+{
+  "items": [
+    {
+      "id": 3081,
+      "name": "stone skin amulet",
+      "quantity": 1,
+      "minSellPrice": 0,
+      "notes": "Example item. Replace/add your own drops here."
+    }
+  ]
+}

@@ -10,6 +10,78 @@
       "entryBrainScore": 92,
       "status": "CLOSED",
       "closedAt": "2026-05-10T23:17:33.801Z",
+      "finalSellPrice": 9200,
+      "flow": "LEGACY",
+      "originalQuantity": 5,
+      "receivedQuantity": 5,
+      "listedQuantity": 0,
+      "soldQuantity": 0,
+      "events": []
+    },
+    {
+      "id": 3081,
+      "name": "stone skin amulet",
+      "createdAt": "2026-05-11T09:04:34.128Z",
+      "openedAt": "2026-05-11T09:04:34.128Z",
+      "flow": "BUY_ORDER_FLOW",
+      "entryPrice": 8150,
+      "averageEntryPrice": 8150,
+      "originalQuantity": 15,
+      "quantity": 0,
+      "orderedQuantity": 15,
+      "receivedQuantity": 5,
+      "listedQuantity": 0,
+      "soldQuantity": 5,
+      "targetSell": 9200,
+      "desiredMargin": 0.06,
+      "entryBrainScore": null,
+      "status": "CLOSED",
+      "events": [
+        {
+          "type": "BUY_ORDER_PLACED",
+          "at": "2026-05-11T09:04:34.128Z",
+          "entryPrice": 8150,
+          "quantity": 15,
+          "targetSell": 9200,
+          "brainScore": null
+        },
+        {
+          "type": "ITEMS_RECEIVED",
+          "at": "2026-05-11T09:04:44.706Z",
+          "quantity": 5,
+          "entryPrice": 8150,
+          "averageEntryPrice": 8150
+        },
+        {
+          "type": "LISTED_FOR_SALE",
+          "at": "2026-05-11T09:04:44.895Z",
+          "quantity": 5,
+          "listPrice": 9200
+        },
+        {
+          "type": "SOLD_ITEMS",
+          "at": "2026-05-11T09:04:45.086Z",
+          "quantity": 1,
+          "sellPrice": 9200,
+          "netProfit": 866,
+          "roiPercent": 10.625766871165645,
+          "exitReason": "PARTIAL_OR_FULL_SOLD"
+        },
+        {
+          "type": "SOLD_ITEMS",
+          "at": "2026-05-11T09:05:06.279Z",
+          "quantity": 4,
+          "sellPrice": 9200,
+          "netProfit": 3464,
+          "roiPercent": 10.625766871165645,
+          "exitReason": "PARTIAL_OR_FULL_SOLD"
+        }
+      ],
+      "lastListPrice": 9200,
+      "lastListedAt": "2026-05-11T09:04:44.894Z",
+      "lastSoldAt": "2026-05-11T09:05:06.279Z",
+      "lastSellPrice": 9200,
+      "closedAt": "2026-05-11T09:05:06.279Z",
       "finalSellPrice": 9200
     }
   ]
