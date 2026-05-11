@@ -271,110 +271,124 @@ function buildSellAdvice(check) {
 }
 
 function buildBuyAdvice(check) {
-  const realisticSell = getRealisticSellPrice(check);
+  const buyPrice = check.plannedBuyPrice;
+  const quantity = check.quantity;
+
+  // Important:
+  // currentBuyOffer = highest price someone is willing to pay now
+  // currentSellOffer = lowest/realistic listed sell offer, if API has it
+  const instantSellPrice = check.currentBuyOffer;
+  const lowestSellOffer = check.currentSellOffer;
+  const avgBuyPrice = check.dayAverageSell || check.monthAverageSell || 0;
+
   const trendPercent = getTrendPercent(
     check.dayAverageSell,
     check.monthAverageSell,
-  );
-  const spreadPercent = getSpreadPercent(
-    check.currentBuyOffer,
-    check.currentSellOffer,
   );
   const demand = getDemandLabel(check.daySold, check.monthSold);
   const exit = getExitLabel(check.daySold, check.monthSold);
   const trend = getTrendLabel(trendPercent);
 
-  const plannedBuyPrice = check.plannedBuyPrice;
-  const quantity = check.quantity;
+  const safeMarketValue =
+    instantSellPrice > 0
+      ? instantSellPrice
+      : avgBuyPrice > 0
+        ? avgBuyPrice
+        : lowestSellOffer > 0
+          ? lowestSellOffer
+          : 0;
 
-  const netSell = realisticSell * (1 - TAX_RATE);
-  const profitPerItem =
-    plannedBuyPrice > 0 && realisticSell > 0 ? netSell - plannedBuyPrice : 0;
-  const totalProfit = profitPerItem * quantity;
-  const roi = plannedBuyPrice > 0 ? (profitPerItem / plannedBuyPrice) * 100 : 0;
+  const optimisticListPrice =
+    lowestSellOffer > 0
+      ? lowestSellOffer
+      : avgBuyPrice > 0
+        ? avgBuyPrice
+        : instantSellPrice;
 
-  let action = "AVOID BUY";
+  const instantProfitPerItem =
+    instantSellPrice > 0 ? instantSellPrice - buyPrice : 0;
+
+  const optimisticNetSell = optimisticListPrice * (1 - TAX_RATE);
+  const optimisticProfitPerItem =
+    optimisticListPrice > 0 ? optimisticNetSell - buyPrice : 0;
+
+  const totalOptimisticProfit = optimisticProfitPerItem * quantity;
+  const optimisticRoi =
+    buyPrice > 0 ? (optimisticProfitPerItem / buyPrice) * 100 : 0;
+
+  let action = "UNKNOWN";
   const reasons = [];
   const warnings = [];
 
-  let suggestedMaxBuy = 0;
-  let suggestedSellPrice = realisticSell || check.currentSellOffer || 0;
-
-  if (realisticSell > 0) {
-    const wantedRoi =
-      check.monthSold >= 300 ? 0.06 : check.monthSold >= 100 ? 0.08 : 0.12;
-    suggestedMaxBuy = Math.floor(
-      (realisticSell * (1 - TAX_RATE)) / (1 + wantedRoi),
-    );
-  }
-
-  if (!plannedBuyPrice) {
+  if (!buyPrice) {
     action = "MISSING PRICE";
-    reasons.push("You need to enter the buy price you are considering.");
-  } else if (!realisticSell) {
-    action = "NO MARKET DATA";
-    reasons.push(
-      "I could not get a realistic sell price from the market data.",
-    );
+    reasons.push("Enter the price you are thinking of paying.");
+  } else if (!safeMarketValue) {
+    action = "LIMITED DATA";
+    reasons.push("I do not have enough market data to judge this price.");
   } else {
-    const goodDemand = ["STRONG", "GOOD"].includes(demand);
-    const okayDemand = demand === "OK";
-    const slowDemand = ["SLOW", "UNKNOWN"].includes(demand);
-
-    if (profitPerItem <= 0) {
-      action = "AVOID BUY";
-      reasons.push("After market tax, this does not look profitable.");
-    } else if (
-      plannedBuyPrice <= suggestedMaxBuy &&
-      roi >= 8 &&
-      goodDemand &&
-      spreadPercent <= 35
-    ) {
-      action = "WORTH BUY OFFER";
-      reasons.push("Good profit, good demand, and a realistic exit price.");
-    } else if (
-      plannedBuyPrice <= suggestedMaxBuy &&
-      roi >= 5 &&
-      (goodDemand || okayDemand)
-    ) {
-      action = "SMALL BUY ONLY";
-      reasons.push("This can work, but the margin is not amazing.");
-    } else if (roi >= 10 && slowDemand) {
-      action = "SPECULATIVE BUY";
-      reasons.push("Profit looks good, but selling may be slow.");
+    if (instantSellPrice > 0 && buyPrice <= instantSellPrice * 0.7) {
+      action = "✅ Cheap Buy";
+      reasons.push(
+        "This looks like a cheap buy. You are paying much less than normal market value.",
+      );
+    } else if (instantSellPrice > 0 && buyPrice <= instantSellPrice * 0.9) {
+      action = "✅ Good Price";
+      reasons.push("Your price is below the current instant-sell value.");
+    } else if (instantSellPrice > 0 && buyPrice <= instantSellPrice * 1.05) {
+      action = "👍 Fair Price";
+      reasons.push("Your price is close to the current real market value.");
+    } else if (lowestSellOffer > 0 && buyPrice < lowestSellOffer) {
+      action = "🙂 Okay Price";
+      reasons.push(
+        "Your price is below the cheapest listed sell offer, but not clearly cheap.",
+      );
     } else {
-      action = "AVOID / LOWER BUY PRICE";
-      reasons.push("The buy price is too high for the expected profit.");
+      action = "⚠️ Expensive / Wait";
+      reasons.push("Your price looks high compared to the current market.");
     }
 
-    if (plannedBuyPrice > suggestedMaxBuy) {
-      warnings.push("Your buy price is above my suggested max buy.");
+    if (
+      lowestSellOffer > 0 &&
+      instantSellPrice > 0 &&
+      lowestSellOffer > instantSellPrice * 2
+    ) {
+      warnings.push(
+        "Listed sell prices look much higher than real instant-buy demand, so do not trust high listings too much.",
+      );
+    }
+
+    if (demand === "SLOW" || demand === "UNKNOWN") {
+      warnings.push("This item may be slow to resell.");
     }
 
     if (trendPercent < -6) {
-      warnings.push("Price may be cooling down, so buying now is riskier.");
-    }
-
-    if (spreadPercent > 35) {
-      warnings.push(
-        "The market gap is large, so the sell price may not be realistic.",
-      );
+      warnings.push("Price looks weaker today than usual.");
     }
   }
 
+  const flipLooksGood =
+    buyPrice > 0 &&
+    optimisticProfitPerItem > 0 &&
+    optimisticRoi >= 8 &&
+    ["STRONG", "GOOD", "OK"].includes(demand);
+
   return {
     action,
-    suggestedMaxBuy: Math.round(suggestedMaxBuy),
-    suggestedSellPrice: Math.round(suggestedSellPrice),
-    realisticSell: Math.round(realisticSell),
-    profitPerItem,
-    totalProfit,
-    roi,
+    safeMarketValue: Math.round(safeMarketValue),
+    instantSellPrice: Math.round(instantSellPrice),
+    lowestSellOffer: Math.round(lowestSellOffer),
+    optimisticListPrice: Math.round(optimisticListPrice),
+    instantProfitPerItem: Math.round(instantProfitPerItem),
+    optimisticProfitPerItem: Math.round(optimisticProfitPerItem),
+    totalOptimisticProfit: Math.round(totalOptimisticProfit),
+    optimisticRoi,
     demand,
     exit,
     trend,
     reasons,
     warnings,
+    flipLooksGood,
   };
 }
 
@@ -397,21 +411,29 @@ function askYesNo(question) {
 }
 
 async function maybeAddGoodBuyToTracked(check, advice) {
-  const goodActions = ["WORTH BUY OFFER", "SMALL BUY ONLY"];
-
   if (check.mode !== "buy") return;
-  if (!goodActions.includes(advice.action)) return;
+
+  const shouldSuggestTracking = advice.flipLooksGood && check.monthSold >= 30;
+
+  if (!shouldSuggestTracking) return;
 
   const shouldAdd = await askYesNo(
-    "\nThis looks like a good flipping item. Add it to tracked-items for future scanner runs? Y/N",
+    "\nThis may be a good repeat-flip item. Track it for future scanner checks? Y/N",
   );
 
   if (!shouldAdd) return;
 
-  const result = addTrackedItem(
-    check.id,
-    advice.action === "WORTH BUY OFFER" ? "safe" : "watch",
-  );
+  let section = "watch";
+
+  if (check.monthSold >= 300) {
+    section = "safe";
+  } else if (check.monthSold >= 100) {
+    section = "watch";
+  } else {
+    section = "experimental";
+  }
+
+  const result = addTrackedItem(check.id, section);
 
   if (result.added) {
     console.log(
@@ -535,7 +557,7 @@ function printBuyReport(check) {
   const advice = buildBuyAdvice(check);
 
   console.log("\n==============================");
-  console.log("         BUY ADVISOR");
+  console.log("       BUY PRICE CHECK");
   console.log("==============================\n");
 
   console.log(`${check.name}`);
@@ -544,32 +566,48 @@ function printBuyReport(check) {
   console.log("");
 
   console.log(`Decision: ${advice.action}`);
-  console.log(`Suggested max buy: ${formatGp(advice.suggestedMaxBuy)} gp`);
-  console.log(
-    `Suggested sell/list target: ${formatGp(advice.suggestedSellPrice)} gp`,
-  );
+  printBuyReport;
+
+  if (advice.instantSellPrice > 0) {
+    console.log(
+      `People are buying now at: ${formatGp(advice.instantSellPrice)} gp`,
+    );
+  }
+
+  if (advice.lowestSellOffer > 0) {
+    console.log(
+      `Cheapest listed sell offer: ${formatGp(advice.lowestSellOffer)} gp`,
+    );
+  }
+
+  if (advice.safeMarketValue > 0) {
+    console.log(
+      `Safe market reference: around ${formatGp(advice.safeMarketValue)} gp`,
+    );
+  }
 
   console.log("");
 
-  console.log("Expected profit:");
-  console.log(
-    `Profit per item after tax: ${formatGp(advice.profitPerItem)} gp`,
-  );
-  console.log(`Total profit: ${formatGp(advice.totalProfit)} gp`);
-  console.log(`ROI: ${formatPercent(advice.roi)}`);
-
-  console.log("");
-
-  console.log("Market read:");
+  console.log("Simple read:");
   console.log(`Demand: ${advice.demand}`);
-  console.log(`Exit: ${advice.exit}`);
-  console.log(`Trend: ${advice.trend}`);
-  console.log(
-    `Realistic sell area: around ${formatGp(advice.realisticSell)} gp`,
-  );
+  console.log(`Resell speed: ${advice.exit}`);
+  console.log(`Price direction: ${advice.trend}`);
+
+  if (advice.flipLooksGood) {
+    console.log("");
+    console.log("Flip potential:");
+    console.log(
+      `Possible list target: ${formatGp(advice.optimisticListPrice)} gp`,
+    );
+    console.log(
+      `Possible profit per item after sell fee: ${formatGp(advice.optimisticProfitPerItem)} gp`,
+    );
+
+    console.log(`Estimated ROI: ${formatPercent(advice.optimisticRoi)}`);
+  }
 
   console.log("");
-  console.log(`Why: ${advice.reasons.join(" ")}`);
+  console.log(`Meaning: ${advice.reasons.join(" ")}`);
 
   if (advice.warnings.length) {
     console.log("");
