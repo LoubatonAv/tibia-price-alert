@@ -8,7 +8,9 @@
       "targetSell": 9200,
       "desiredMargin": 0.06,
       "entryBrainScore": 92,
-      "status": "OPEN"
+      "status": "CLOSED",
+      "closedAt": "2026-05-10T23:17:33.801Z",
+      "finalSellPrice": 9200
     }
   ]
 }
