@@ -1,11 +1,122 @@
 {
   "items": [
     {
+      "id": 7438,
+      "name": "elvish bow",
+      "quantity": 1,
+      "lastMode": "sell",
+      "lastCheckedAt": "2026-05-11T09:22:54.859Z",
+      "lastAdvisorInput": {
+        "yourSellPrice": 1000000,
+        "plannedBuyPrice": 0,
+        "minSellPrice": 0,
+        "entryPrice": 0
+      },
+      "lastMarketData": {
+        "currentSellOffer": 2099,
+        "currentBuyOffer": 1675,
+        "daySold": 0,
+        "monthSold": 26,
+        "dayAverageSell": 0,
+        "monthAverageSell": 2572,
+        "apiDataAvailable": true
+      }
+    },
+    {
       "id": 3081,
       "name": "stone skin amulet",
-      "quantity": 1,
+      "quantity": 15,
+      "lastMode": "buy",
+      "lastCheckedAt": "2026-05-11T09:34:01.577Z",
+      "lastAdvisorInput": {
+        "yourSellPrice": 0,
+        "plannedBuyPrice": 8150,
+        "minSellPrice": 0,
+        "entryPrice": 0
+      },
+      "lastMarketData": {
+        "currentSellOffer": 9200,
+        "currentBuyOffer": 8115,
+        "daySold": 50,
+        "monthSold": 678,
+        "dayAverageSell": 9213,
+        "monthAverageSell": 9095,
+        "apiDataAvailable": true
+      }
+    }
+  ],
+  "checks": [
+    {
+      "checkedAt": "2026-05-11T09:34:01.577Z",
+      "mode": "buy",
+      "id": 3081,
+      "name": "stone skin amulet",
+      "quantity": 15,
+      "currentSellOffer": 9200,
+      "currentBuyOffer": 8115,
+      "daySold": 50,
+      "monthSold": 678,
+      "dayAverageSell": 9213,
+      "monthAverageSell": 9095,
+      "apiDataAvailable": true,
+      "plannedBuyPrice": 8150,
+      "yourSellPrice": 0,
       "minSellPrice": 0,
-      "notes": "Example item. Replace/add your own drops here."
+      "entryPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-11T09:29:16.585Z",
+      "mode": "buy",
+      "id": 3081,
+      "name": "stone skin amulet",
+      "quantity": 15,
+      "currentSellOffer": 9200,
+      "currentBuyOffer": 8115,
+      "daySold": 50,
+      "monthSold": 678,
+      "dayAverageSell": 9213,
+      "monthAverageSell": 9095,
+      "apiDataAvailable": true,
+      "plannedBuyPrice": 8150,
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-11T09:29:08.830Z",
+      "mode": "sell",
+      "id": 3081,
+      "name": "stone skin amulet",
+      "quantity": 5,
+      "currentSellOffer": 9200,
+      "currentBuyOffer": 8115,
+      "daySold": 50,
+      "monthSold": 678,
+      "dayAverageSell": 9213,
+      "monthAverageSell": 9095,
+      "apiDataAvailable": true,
+      "yourSellPrice": 9200,
+      "minSellPrice": 0,
+      "entryPrice": 0,
+      "plannedBuyPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-11T09:22:54.859Z",
+      "mode": "sell",
+      "id": 7438,
+      "name": "elvish bow",
+      "quantity": 1,
+      "currentSellOffer": 2099,
+      "currentBuyOffer": 1675,
+      "daySold": 0,
+      "monthSold": 26,
+      "dayAverageSell": 0,
+      "monthAverageSell": 2572,
+      "apiDataAvailable": true,
+      "yourSellPrice": 1000000,
+      "minSellPrice": 0,
+      "entryPrice": 0,
+      "plannedBuyPrice": 0
     }
   ]
 }

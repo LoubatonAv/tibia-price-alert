@@ -7,16 +7,20 @@ echo ============================
 echo     TIBIA TRADE MANAGER
 echo ============================
 echo.
+echo ===== Trade Tracking =====
 echo 1. Add Buy Order
 echo 2. Receive Items
 echo 3. List Items For Sale
 echo 4. Sold Items
 echo 5. Trade Stats
-echo 6. Inventory Advisor
-echo 7. Legacy Open Trade
-echo 8. Legacy Close Trade
-echo 9. Git Push
-echo 10. Exit
+echo.
+echo ===== Market Advisor =====
+echo 6. Sell Advisor
+echo 7. Buy Advisor
+echo.
+echo ===== Tools =====
+echo 8. Git Push
+echo 9. Exit
 echo.
 
 set /p choice=Choose option: 
@@ -27,10 +31,9 @@ if "%choice%"=="3" goto list
 if "%choice%"=="4" goto sold
 if "%choice%"=="5" goto stats
 if "%choice%"=="6" goto inventory
-if "%choice%"=="7" goto open
-if "%choice%"=="8" goto close
-if "%choice%"=="9" goto gitpush
-if "%choice%"=="10" exit
+if "%choice%"=="7" goto inventorybuy
+if "%choice%"=="8" goto gitpush
+if "%choice%"=="9" exit
 
 goto menu
 
@@ -92,35 +95,6 @@ call npm run trade -- sold "%itemInput%" %quantity% %sellPrice%
 pause
 goto menu
 
-:open
-cls
-echo LEGACY OPEN TRADE
-echo.
-
-set /p itemInput=Item Name or ID: 
-set /p entryPrice=Entry Price: 
-set /p quantity=Quantity: 
-set /p targetSell=Target Sell: 
-set /p brainScore=Brain Score: 
-
-call npm run trade -- open "%itemInput%" %entryPrice% %quantity% %targetSell% %brainScore%
-
-pause
-goto menu
-
-:close
-cls
-echo LEGACY CLOSE TRADE
-echo.
-
-set /p itemInput=Item Name or ID: 
-set /p sellPrice=Sell Price: 
-
-call npm run trade -- close "%itemInput%" %sellPrice%
-
-pause
-goto menu
-
 :stats
 cls
 
@@ -131,8 +105,36 @@ goto menu
 
 :inventory
 cls
+echo SELL ADVISOR
+echo.
+echo Enter only your item, quantity, and the price you are thinking of listing/selling for.
+echo The bot will fetch liquidity, day/month sold, averages, trend, spread, and market offers automatically.
+echo.
 
-call npm run inventory
+set /p itemInput=Item Name or ID: 
+set /p quantity=Quantity you have: 
+set /p yourSell=Your sell/list price: 
+set /p minSell=Minimum price optional, press Enter for none: 
+set /p yourCost=Your cost optional, press Enter for none/drop: 
+
+call node inventory.js sell "%itemInput%" %quantity% %yourSell% %minSell% %yourCost%
+
+pause
+goto menu
+
+:inventorybuy
+cls
+echo BUY ADVISOR
+echo.
+echo Enter only your item, quantity, and planned buy offer.
+echo The bot will fetch liquidity, day/month sold, averages, trend, spread, and market offers automatically.
+echo.
+
+set /p itemInput=Item Name or ID: 
+set /p quantity=Quantity you want to buy: 
+set /p plannedBuy=Your planned buy offer price: 
+
+call node inventory.js buy "%itemInput%" %quantity% %plannedBuy%
 
 pause
 goto menu
