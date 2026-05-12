@@ -105,7 +105,11 @@ function addEvent(position, type, details = {}) {
 function printPosition(position) {
   console.log(`Item: ${position.name}`);
   console.log(`Status: ${position.status}`);
-  console.log(`Remaining quantity: ${position.quantity}`);
+  if (position.status === "BUY_ORDER_PLACED") {
+    console.log(`Ordered quantity: ${position.orderedQuantity}`);
+  } else {
+    console.log(`Remaining quantity: ${position.quantity}`);
+  }
   console.log(`Original quantity: ${position.originalQuantity}`);
   console.log(`Received: ${position.receivedQuantity}`);
   console.log(`Listed: ${position.listedQuantity}`);

@@ -16,7 +16,7 @@ echo 5. Trade Stats
 echo.
 echo ===== Market Advisor =====
 echo 6. Sell Advisor
-echo 7. Buy Advisor
+echo 7. Buy Price Check
 echo.
 echo ===== Tools =====
 echo 8. Git Push
@@ -108,7 +108,7 @@ cls
 echo SELL ADVISOR
 echo.
 echo Enter only your item, quantity, and the price you are thinking of listing/selling for.
-echo The bot will fetch liquidity, day/month sold, averages, trend, spread, and market offers automatically.
+echo The bot checks real buy demand, realistic listing area, liquidity, undercut risk, and NPC value automatically.
 echo.
 
 set /p itemInput=Item Name or ID: 
@@ -116,25 +116,29 @@ set /p quantity=Quantity you have:
 set /p yourSell=Your sell/list price: 
 set /p minSell=Minimum price optional, press Enter for none: 
 set /p yourCost=Your cost optional, press Enter for none/drop: 
+set /p liveSell=Live lowest sell offer optional, press Enter to use API: 
+set /p liveBuy=Live highest buy offer optional, press Enter to use API: 
 
-call node inventory.js sell "%itemInput%" %quantity% %yourSell% %minSell% %yourCost%
+call node inventory.js sell "%itemInput%" %quantity% %yourSell% %minSell% %yourCost% --live-sell %liveSell% --live-buy %liveBuy%
 
 pause
 goto menu
 
 :inventorybuy
 cls
-echo BUY ADVISOR
+echo BUY PRICE CHECK
 echo.
-echo Enter only your item, quantity, and planned buy offer.
-echo The bot will fetch liquidity, day/month sold, averages, trend, spread, and market offers automatically.
+echo Enter item, quantity, and the price you are thinking of paying.
+echo The bot checks real buy demand, listings, liquidity, undercut risk, and NPC value automatically.
 echo.
 
 set /p itemInput=Item Name or ID: 
 set /p quantity=Quantity you want to buy: 
-set /p plannedBuy=Your planned buy offer price: 
+set /p plannedBuy=Your planned buy price: 
+set /p liveSell=Live lowest sell offer optional, press Enter to use API: 
+set /p liveBuy=Live highest buy offer optional, press Enter to use API: 
 
-call node inventory.js buy "%itemInput%" %quantity% %plannedBuy%
+call node inventory.js buy "%itemInput%" %quantity% %plannedBuy% --live-sell %liveSell% --live-buy %liveBuy%
 
 pause
 goto menu
