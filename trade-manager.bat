@@ -170,8 +170,9 @@ set /p quantity=Quantity you want to buy:
 set /p plannedBuy=Your planned buy price: 
 set /p liveSell=Live lowest sell offer optional, press Enter to use API: 
 set /p liveBuy=Live highest buy offer optional, press Enter to use API: 
+set /p buyAhead=How many items are ahead of your buy price optional, press Enter if unknown: 
 
-call node inventory.js buy "%itemInput%" %quantity% %plannedBuy% --live-sell %liveSell% --live-buy %liveBuy%
+call node inventory.js buy "%itemInput%" %quantity% %plannedBuy% --live-sell %liveSell% --live-buy %liveBuy% --buy-ahead %buyAhead%
 
 pause
 goto menu
