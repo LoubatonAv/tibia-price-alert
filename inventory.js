@@ -2,7 +2,7 @@ import fs from "fs";
 import "dotenv/config";
 import readline from "readline";
 import { TAX_RATE } from "./lib/constants.js";
-import { getItemMap, getMarketValues } from "./lib/market.js";
+import { getItemMap, getMarketValues, getMarketBoard } from "./lib/market.js";
 import { addTrackedItem } from "./lib/trackedItemsWriter.js";
 
 const INVENTORY_FILE = "./inventory.json";
@@ -90,6 +90,10 @@ function effectiveSellOffer(check) {
 }
 
 function formatApiDelayNote(check) {
+  if (check.marketBoardAvailable) {
+    return "Live market board was fetched automatically; history/liquidity still comes from API averages.";
+  }
+
   return hasLiveQueue(check)
     ? "Live queue was provided manually; API data is used mostly for history/liquidity."
     : "No live queue was provided; API data may be delayed, so verify the live market before acting.";
@@ -172,6 +176,83 @@ async function getApiDataSafe(itemId) {
   } catch {
     return null;
   }
+}
+
+async function getMarketBoardSafe(itemId) {
+  try {
+    return await getMarketBoard(itemId);
+  } catch {
+    return null;
+  }
+}
+
+function getBoardSellers(board) {
+  return Array.isArray(board?.sellers) ? board.sellers : [];
+}
+
+function getBoardBuyers(board) {
+  return Array.isArray(board?.buyers) ? board.buyers : [];
+}
+
+function getTopSeller(board) {
+  return getBoardSellers(board)[0] || null;
+}
+
+function getTopBuyer(board) {
+  return getBoardBuyers(board)[0] || null;
+}
+
+function getSellQueueAhead(board, targetPrice) {
+  const price = safeNumber(targetPrice, 0);
+  if (!price) return 0;
+
+  return getBoardSellers(board).reduce((sum, offer) => {
+    return offer.price <= price ? sum + safeNumber(offer.amount, 0) : sum;
+  }, 0);
+}
+
+function getBuyQueueAhead(board, targetPrice) {
+  const price = safeNumber(targetPrice, 0);
+  if (!price) return 0;
+
+  return getBoardBuyers(board).reduce((sum, offer) => {
+    return offer.price >= price ? sum + safeNumber(offer.amount, 0) : sum;
+  }, 0);
+}
+
+function getTopBuyAvailable(board) {
+  const top = getTopBuyer(board);
+  if (!top?.price) return 0;
+
+  return getBoardBuyers(board).reduce((sum, offer) => {
+    return offer.price === top.price ? sum + safeNumber(offer.amount, 0) : sum;
+  }, 0);
+}
+
+function simulateInstantSell(board, quantity) {
+  let remaining = safeNumber(quantity, 0);
+  let total = 0;
+  let sold = 0;
+
+  if (!remaining) {
+    return { quantity: 0, total: 0, averagePrice: 0, fullyCovered: false };
+  }
+
+  for (const offer of getBoardBuyers(board)) {
+    if (remaining <= 0) break;
+
+    const take = Math.min(remaining, safeNumber(offer.amount, 0));
+    total += take * safeNumber(offer.price, 0);
+    sold += take;
+    remaining -= take;
+  }
+
+  return {
+    quantity: sold,
+    total,
+    averagePrice: sold > 0 ? total / sold : 0,
+    fullyCovered: sold >= safeNumber(quantity, 0),
+  };
 }
 
 function normalizeMarketData(apiData = {}) {
@@ -516,15 +597,25 @@ function buildSellAdvice(check) {
   const listingTotalNet = listingNetPerItem * quantity;
 
   const buyAvailable = safeNumber(check.liveBuyAvailable, 0);
-  const instantQty =
-    buyAvailable > 0 ? Math.min(quantity, buyAvailable) : quantity;
 
-  const instantTotalNet = instantSellPrice * instantQty;
+  const topBuyCoveredQty =
+    buyAvailable > 0 ? Math.min(quantity, buyAvailable) : 0;
+
+  const boardInstantQty = safeNumber(check.instantSellQuantity, 0);
+  const boardInstantTotal = safeNumber(check.instantSellTotal, 0);
+  const boardInstantAverage = safeNumber(check.instantSellAveragePrice, 0);
+
+  const instantQty =
+    boardInstantQty ||
+    (buyAvailable > 0 ? Math.min(quantity, buyAvailable) : quantity);
+  const instantTotalNet = boardInstantTotal || instantSellPrice * instantQty;
+  const instantAveragePrice =
+    instantQty > 0 ? instantTotalNet / instantQty : instantSellPrice;
   const npcTotalNet = npcPrice * quantity;
 
   const listingExtraVsInstant = listingNetPerItem - instantSellPrice;
   const listingExtraVsNpc = listingNetPerItem - npcPrice;
-  const instantExtraVsNpc = instantSellPrice - npcPrice;
+  const instantExtraVsNpc = instantAveragePrice - npcPrice;
 
   const listingLooksSuspicious =
     lowestSellOffer > 0 &&
@@ -552,8 +643,8 @@ function buildSellAdvice(check) {
     );
   } else if (
     instantSellPrice > 0 &&
-    instantSellPrice >= listingNetPerItem * 0.98 &&
-    (buyAvailable === 0 || buyAvailable >= quantity)
+    instantAveragePrice >= listingNetPerItem * 0.98 &&
+    (instantQty >= quantity || buyAvailable === 0)
   ) {
     action = "🟢 INSTANT SELL";
     bestRoute = "INSTANT_SELL";
@@ -624,6 +715,7 @@ function buildSellAdvice(check) {
     sellQueue,
     reasons,
     warnings,
+    topBuyCoveredQty,
   };
 }
 
@@ -907,27 +999,56 @@ async function buildCheck(args, itemMap, itemDb) {
 
   const apiData = await getApiDataSafe(itemId);
   const market = normalizeMarketData(apiData || {});
+  const marketBoard = await getMarketBoardSafe(itemId);
+  const topSeller = getTopSeller(marketBoard);
+  const topBuyer = getTopBuyer(marketBoard);
   const itemInfo = findItemInfo(itemId, itemDb);
   const itemName =
     itemMap[itemId] || apiData?.name || itemInfo?.name || itemInput;
   const bestNpcBuy = getBestNpcBuy(itemInfo);
+  const quantity = Math.max(1, safeNumber(quantityArg, 1));
+  const plannedOrListingPrice = safeNumber(priceArg, 0);
+
+  const liveSellOffer =
+    safeNumber(options.liveSellOffer, 0) || safeNumber(topSeller?.price, 0);
+  const liveBuyOffer =
+    safeNumber(options.liveBuyOffer, 0) || safeNumber(topBuyer?.price, 0);
+
+  const sellQueueTargetPrice = liveSellOffer || plannedOrListingPrice;
+  const buyQueueTargetPrice = plannedOrListingPrice || liveBuyOffer;
+
+  const instantSellSimulation = simulateInstantSell(marketBoard, quantity);
+  const boardBuyAvailable = getTopBuyAvailable(marketBoard);
+
+  const parsedBuyLadder = parseBuyLadder(options.liveBuyLadder);
+  const boardBuyLadder = getBoardBuyers(marketBoard).slice(0, 12);
 
   const base = {
     checkedAt: new Date().toISOString(),
     mode,
     id: itemId,
     name: itemName,
-    quantity: Math.max(1, safeNumber(quantityArg, 1)),
+    quantity,
     itemInfo,
     bestNpcBuy,
     ...market,
-    liveSellOffer: safeNumber(options.liveSellOffer, 0),
-    liveBuyOffer: safeNumber(options.liveBuyOffer, 0),
-    liveBuyQueueAhead: safeNumber(options.liveBuyQueueAhead, 0),
-    liveSellQueueAhead: safeNumber(options.liveSellQueueAhead, 0),
-    liveBuyAvailable: safeNumber(options.liveBuyAvailable, 0),
+    marketBoardAvailable: Boolean(marketBoard),
+    liveSellOffer,
+    liveBuyOffer,
+    liveBuyQueueAhead:
+      safeNumber(options.liveBuyQueueAhead, 0) ||
+      getBuyQueueAhead(marketBoard, buyQueueTargetPrice),
+    liveSellQueueAhead:
+      safeNumber(options.liveSellQueueAhead, 0) ||
+      getSellQueueAhead(marketBoard, sellQueueTargetPrice),
+    liveBuyAvailable:
+      safeNumber(options.liveBuyAvailable, 0) || boardBuyAvailable,
+    instantSellQuantity: instantSellSimulation.quantity,
+    instantSellTotal: instantSellSimulation.total,
+    instantSellAveragePrice: instantSellSimulation.averagePrice,
+    instantSellFullyCovered: instantSellSimulation.fullyCovered,
     apiDataAvailable: Boolean(apiData),
-    liveBuyLadder: parseBuyLadder(options.liveBuyLadder),
+    liveBuyLadder: parsedBuyLadder.length ? parsedBuyLadder : boardBuyLadder,
   };
 
   if (mode === "sell") {
@@ -981,25 +1102,6 @@ function printSellReport(check) {
 
   console.log("");
   console.log(`Decision: ${advice.action}`);
-  if (advice.priceSuggestions) {
-    const s = advice.priceSuggestions;
-
-    console.log("");
-    console.log("Suggested buy prices:");
-    console.log(`⚡ Fast fill: ${formatGp(s.fast)}+ gp`);
-    console.log(
-      `🙂 Normal fill: ${formatGp(s.normalLow)}–${formatGp(s.normalHigh)} gp`,
-    );
-    console.log(
-      `🧠 Patient / value entry: ${formatGp(s.patientLow)}–${formatGp(s.patientHigh)} gp`,
-    );
-    console.log(
-      `🎯 Sniper price: ${formatGp(s.sniperLow)}–${formatGp(s.sniperHigh)} gp`,
-    );
-    console.log(
-      `Recommended for you: ${formatGp(s.recommendedLow)}–${formatGp(s.recommendedHigh)} gp`,
-    );
-  }
   console.log("");
   console.log("Options:");
 
@@ -1020,12 +1122,20 @@ function printSellReport(check) {
   }
 
   if (advice.instantSellPrice > 0) {
-    console.log(`Instant sell: ${formatGp(advice.instantSellPrice)} gp each`);
+    console.log(
+      `Instant sell top price: ${formatGp(advice.instantSellPrice)} gp each`,
+    );
 
-    if (check.liveBuyAvailable > 0) {
+    if (advice.instantQty > 0) {
       console.log(
-        `Can instant-sell now: ${formatGp(advice.instantQty)} / ${formatGp(check.quantity)} items`,
+        `Top buy offer covers: ${formatGp(advice.topBuyCoveredQty)} / ${formatGp(check.quantity)} items`,
       );
+
+      if (advice.instantAveragePrice > 0 && advice.instantQty > 1) {
+        console.log(
+          `Average instant-sell price: ~${formatGp(advice.instantAveragePrice)} gp`,
+        );
+      }
     }
   }
 
@@ -1252,16 +1362,19 @@ function printUsage() {
   console.log(`
 Usage:
 
-Sell advisor:
-  node inventory.js sell ITEM_ID_OR_NAME QUANTITY YOUR_SELL_PRICE [MIN_SELL_PRICE] [YOUR_COST] [--live-sell PRICE] [--live-buy PRICE]
+Sell check:
+  node inventory.js sell ITEM_ID_OR_NAME QUANTITY 0
 
 Buy price check:
-  node inventory.js buy ITEM_ID_OR_NAME QUANTITY BUY_PRICE [--live-sell PRICE] [--live-buy PRICE] [--buy-ahead QUANTITY]
+  node inventory.js buy ITEM_ID_OR_NAME QUANTITY BUY_PRICE
+
+Manual fallback options still work:
+  --live-sell PRICE --live-buy PRICE --sell-ahead QUANTITY --buy-available QUANTITY --buy-ahead QUANTITY
 
 Examples:
-  node inventory.js sell 3081 5 9200
-  node inventory.js sell 3081 5 9200 8900 8150 --live-sell 9233 --live-buy 8222
-  node inventory.js buy 3081 15 8150 --live-sell 9233 --live-buy 8222
+  node inventory.js sell 3081 14 0
+  node inventory.js buy 9633 10 10100
+  node inventory.js sell 3081 14 9233 --live-sell 9233 --sell-ahead 220 --live-buy 8222 --buy-available 9
 `);
 }
 

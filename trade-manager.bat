@@ -140,25 +140,19 @@ goto menu
 cls
 echo SELL CHECK
 echo.
-echo Look at the Offers tab in Tibia Market.
-echo.
-echo Sell Offers = people selling the item.
-echo Buy Offers  = people willing to buy instantly.
-echo.
-echo This compares:
-echo 1. Listing on market
-echo 2. Instant sell to buy offer
+echo The bot will use the TibiaMarket board API for Harmonia.
+echo It compares:
+echo 1. Market listing
+echo 2. Instant sell to buy offers
 echo 3. NPC sell
+echo.
+echo If the API fails, run the manual command directly with --live-sell / --live-buy.
 echo.
 
 set /p itemInput=Item Name or ID: 
 set /p quantity=Quantity you have: 
-set /p liveSell=Lowest sell offer price: 
-set /p sellAhead=How many items are listed at or below that sell price: 
-set /p liveBuy=Highest buy offer price: 
-set /p buyAvailable=How many items can you instant-sell at that buy price: 
 
-call node inventory.js sell "%itemInput%" %quantity% %liveSell% 0 0 --live-sell %liveSell% --live-buy %liveBuy% --sell-ahead %sellAhead% --buy-available %buyAvailable%
+call node inventory.js sell "%itemInput%" %quantity% 0
 
 pause
 goto menu
@@ -167,18 +161,15 @@ goto menu
 cls
 echo BUY PRICE CHECK
 echo.
-echo Enter the buy price you are thinking of paying.
-echo Optional: paste the visible buy ladder for better price suggestions.
-echo Example buy ladder: 43620:8,43615:51,43614:81
+echo The bot will use the TibiaMarket board API for Harmonia.
+echo It will read the live buy/sell board and estimate queue pressure automatically.
 echo.
 
 set /p ITEM=Item Name or ID: 
 set /p QTY=Quantity you want to buy: 
-set /p BUY_PRICE=Buy price: 
-set /p LIVE_SELL=Lowest sell listing optional, press Enter to use API: 
-set /p BUY_LADDER=Visible buy ladder optional, price:amount comma-separated: 
+set /p BUY_PRICE=Buy price you are thinking of paying: 
 
-call node inventory.js buy "%ITEM%" %QTY% %BUY_PRICE% --live-sell "%LIVE_SELL%" --buy-ladder "%BUY_LADDER%"
+call node inventory.js buy "%ITEM%" %QTY% %BUY_PRICE%
 
 pause
 goto menu

@@ -26,7 +26,7 @@ jobs:
         run: npm ci --no-audit --no-fund
 
       - name: Restore scanner state cache
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: state.json
           key: tibia-scanner-state-${{ github.run_id }}
@@ -39,3 +39,10 @@ jobs:
           TIBIA_SCANNER_WEBHOOK_URL: ${{ secrets.TIBIA_SCANNER_WEBHOOK_URL }}
           ERROR_WEBHOOK_URL: ${{ secrets.ERROR_WEBHOOK_URL }}
           SEND_TO_DISCORD: "true"
+
+      - name: Save scanner state cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: state.json
+          key: tibia-scanner-state-${{ github.run_id }}

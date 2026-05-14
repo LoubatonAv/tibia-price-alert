@@ -8,6 +8,7 @@ import {
   getScannerColor,
 } from "./lib/discord.js";
 import { getItemMap, getMarketValues } from "./lib/market.js";
+import { applyMarketIntelligence } from "./lib/marketIntelligence.js";
 import { getTrackedItemIds } from "./lib/trackedItems.js";
 import {
   analyzeHistory,
@@ -37,6 +38,7 @@ import {
   SCANNER_POOL,
 } from "./lib/constants.js";
 import { loadState, saveState, updateItemHistory } from "./lib/state.js";
+import { updateMarketMemory } from "./lib/marketMemory.js";
 
 const DISCORD_WEBHOOK_URL = process.env.TIBIA_SCANNER_WEBHOOK_URL;
 const ITEM_IDS = getTrackedItemIds();
@@ -795,7 +797,8 @@ async function sendDiscordScannerReport(analyzedItems, volatility, runAdvice) {
             item.exitConfidence
           }** | Sustainability: **${
             item.spreadSustainability || "BUILDING MEMORY"
-          }**`,
+          }**` +
+          `${item.marketIntelSummary ? `\n${item.marketIntelSummary.slice(0, 350)}` : ""}`,
         inline: false,
       },
       {
@@ -948,6 +951,9 @@ async function main() {
       ...sellDecisionData,
     };
   });
+
+  await applyMarketIntelligence(analyzedItems, { state, mode: "scanner" });
+  updateMarketMemory(state, analyzedItems);
 
   const volatility = calculateMarketVolatility(analyzedItems, state);
   const runAdvice = getNextRunRecommendation(volatility);
