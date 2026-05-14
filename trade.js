@@ -161,7 +161,11 @@ function printPosition(position) {
   console.log(`Listed: ${position.listedQuantity}`);
   console.log(`Sold: ${position.soldQuantity}`);
   console.log(`Entry: ${formatGp(position.entryPrice)} gp`);
-  console.log(`Target sell: ${formatGp(position.targetSell)} gp`);
+  console.log(
+    targetSell > 0
+      ? `Target sell: ${formatGp(targetSell)} gp`
+      : "Target sell: Not set",
+  );
   console.log(`Brain: ${position.entryBrainScore ?? "N/A"}`);
 }
 
@@ -375,7 +379,7 @@ if (action === "add") {
 if (action === "buy" || action === "open") {
   const [itemInput, entryPrice, quantity, targetSell, brainScore] = args;
 
-  if (!itemInput || !entryPrice || !quantity || !targetSell) {
+  if (!itemInput || !entryPrice || !quantity) {
     printUsage();
     process.exit(1);
   }
@@ -386,10 +390,6 @@ if (action === "buy" || action === "open") {
 
   if (!isPositiveNumber(quantity)) {
     fail("QUANTITY must be a positive number.");
-  }
-
-  if (!isPositiveNumber(targetSell)) {
-    fail("TARGET_SELL must be a positive number.");
   }
 
   if (

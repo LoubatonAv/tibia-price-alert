@@ -43,6 +43,32 @@ function parseAdvisorArgs(args) {
       continue;
     }
 
+    if (
+      value === "--sell-ahead" ||
+      value === "--listing-ahead" ||
+      value === "--live-sell-ahead"
+    ) {
+      options.liveSellQueueAhead = safeNumber(args[i + 1], 0);
+      i += 1;
+      continue;
+    }
+
+    if (
+      value === "--buy-available" ||
+      value === "--instant-available" ||
+      value === "--live-buy-available"
+    ) {
+      options.liveBuyAvailable = safeNumber(args[i + 1], 0);
+      i += 1;
+      continue;
+    }
+
+    if (value === "--buy-ladder" || value === "--live-buy-ladder") {
+      options.liveBuyLadder = args[i + 1] || "";
+      i += 1;
+      continue;
+    }
+
     positional.push(value);
   }
 
@@ -436,128 +462,241 @@ function getBuyQueueAnalysis(check) {
   };
 }
 
+function getSellQueueAnalysis(check) {
+  const queueAhead = safeNumber(check.liveSellQueueAhead, 0);
+  const dailyMovement = getDailyMovement(check);
+
+  if (!queueAhead || !dailyMovement) {
+    return {
+      label: "Unknown",
+      estimatedDays: null,
+      queueAhead,
+    };
+  }
+
+  const estimatedDays = queueAhead / dailyMovement;
+
+  let label = "Normal";
+  if (estimatedDays > 2) label = "Crowded";
+  else if (estimatedDays > 0.75) label = "Busy";
+
+  return {
+    label,
+    estimatedDays,
+    queueAhead,
+  };
+}
+
 function buildSellAdvice(check) {
-  const realisticListPrice = getRealisticListPrice(check);
-  const undercutRisk = getUndercutRisk(check);
-  const trendPercent = getTrendPercent(
-    check.dayAverageSell,
-    check.monthAverageSell,
-  );
-  const spreadPercent = getSpreadPercent(
-    effectiveBuyOffer(check),
-    effectiveSellOffer(check),
-  );
-  const demand = getDemandLabel(check.daySold, check.monthSold);
-  const exit = getExitLabel(check.daySold, check.monthSold);
-  const trend = getTrendLabel(trendPercent);
-  const confidence = getMarketConfidence(check);
-  const behavior = getItemBehaviorLabel(check.itemInfo, check.monthSold);
-
-  const yourPrice = check.yourSellPrice;
   const quantity = check.quantity;
-  const minSellPrice = check.minSellPrice;
-  const entryPrice = check.entryPrice;
 
-  const sellOfferFeePerItem = yourPrice * TAX_RATE;
-  const netPerItem = yourPrice - sellOfferFeePerItem;
-  const netTotal = netPerItem * quantity;
-  const profitPerItem = entryPrice > 0 ? netPerItem - entryPrice : 0;
-  const roi = entryPrice > 0 ? (profitPerItem / entryPrice) * 100 : 0;
+  const instantSellPrice = effectiveBuyOffer(check);
+  const lowestSellOffer =
+    safeNumber(check.liveSellOffer, 0) ||
+    safeNumber(check.yourSellPrice, 0) ||
+    getRealisticListPrice(check);
 
-  let action = "WAIT";
-  let suggestedPrice =
-    yourPrice || realisticListPrice || check.currentSellOffer || 0;
-  let minRecommended = minSellPrice || 0;
+  const bestNpcBuy = check.bestNpcBuy;
+  const npcPrice = bestNpcBuy?.price || 0;
+
+  const demand = getDemandLabel(check.daySold, check.monthSold);
+  const undercutRisk = getUndercutRisk(check);
+
+  const marketStability =
+    undercutRisk.level === "LOW"
+      ? "STABLE"
+      : undercutRisk.level === "LOW-MEDIUM" || undercutRisk.level === "MEDIUM"
+        ? "WATCH"
+        : "UNSTABLE";
+
+  const sellQueue = getSellQueueAnalysis(check);
+
+  const listingFeePerItem = lowestSellOffer * TAX_RATE;
+  const listingNetPerItem = lowestSellOffer - listingFeePerItem;
+  const listingTotalNet = listingNetPerItem * quantity;
+
+  const buyAvailable = safeNumber(check.liveBuyAvailable, 0);
+  const instantQty =
+    buyAvailable > 0 ? Math.min(quantity, buyAvailable) : quantity;
+
+  const instantTotalNet = instantSellPrice * instantQty;
+  const npcTotalNet = npcPrice * quantity;
+
+  const listingExtraVsInstant = listingNetPerItem - instantSellPrice;
+  const listingExtraVsNpc = listingNetPerItem - npcPrice;
+  const instantExtraVsNpc = instantSellPrice - npcPrice;
+
+  const listingLooksSuspicious =
+    lowestSellOffer > 0 &&
+    instantSellPrice > 0 &&
+    lowestSellOffer < instantSellPrice * 0.9;
+
+  let action = "UNKNOWN";
+  let bestRoute = "UNKNOWN";
   const reasons = [];
   const warnings = [];
 
-  if (!yourPrice) {
-    action = "MISSING PRICE";
-    reasons.push("Enter the price you are thinking of listing for.");
-  } else if (!realisticListPrice && !check.currentBuyOffer) {
+  if (!lowestSellOffer && !instantSellPrice && !npcPrice) {
     action = "LIMITED DATA";
-    suggestedPrice = yourPrice;
-    reasons.push("I do not have enough market data to judge this listing.");
+    bestRoute = "UNKNOWN";
+    reasons.push("Not enough data to compare selling options.");
+  } else if (
+    npcPrice > 0 &&
+    npcPrice >= listingNetPerItem &&
+    npcPrice >= instantSellPrice
+  ) {
+    action = "🔵 SELL TO NPC";
+    bestRoute = "NPC";
+    reasons.push(
+      "NPC pays more than market listing after fee and instant sell.",
+    );
+  } else if (
+    instantSellPrice > 0 &&
+    instantSellPrice >= listingNetPerItem * 0.98 &&
+    (buyAvailable === 0 || buyAvailable >= quantity)
+  ) {
+    action = "🟢 INSTANT SELL";
+    bestRoute = "INSTANT_SELL";
+    reasons.push(
+      "Instant sell is close to market listing after fee and avoids waiting.",
+    );
+  } else if (
+    lowestSellOffer > 0 &&
+    listingExtraVsInstant >= Math.max(250, instantSellPrice * 0.04) &&
+    marketStability !== "UNSTABLE" &&
+    !["SLOW", "UNKNOWN"].includes(demand)
+  ) {
+    action = "🟡 LIST ON MARKET";
+    bestRoute = "MARKET_LISTING";
+    reasons.push(
+      "Market listing pays meaningfully more and the market looks stable enough.",
+    );
+  } else if (instantSellPrice > 0) {
+    action = "🟢 INSTANT SELL";
+    bestRoute = "INSTANT_SELL";
+    reasons.push(
+      "The extra profit from listing does not look worth the waiting risk.",
+    );
+  } else if (npcPrice > 0) {
+    action = "🔵 SELL TO NPC";
+    bestRoute = "NPC";
+    reasons.push("NPC gives a guaranteed sale.");
   } else {
-    const goodDemand = ["STRONG", "GOOD"].includes(demand);
-    const slowDemand = ["SLOW", "UNKNOWN"].includes(demand);
-    const referencePrice = realisticListPrice || check.currentBuyOffer;
+    action = "🟡 LIST ON MARKET";
+    bestRoute = "MARKET_LISTING";
+    reasons.push("Market listing is the only useful route found.");
+  }
 
-    const tooCheap = yourPrice < referencePrice * 0.97;
-    const fairPrice =
-      yourPrice >= referencePrice * 0.97 && yourPrice <= referencePrice * 1.07;
-    const highButPossible =
-      yourPrice > referencePrice * 1.07 && yourPrice <= referencePrice * 1.18;
-    const tooHigh = yourPrice > referencePrice * 1.18;
+  if (buyAvailable > 0 && buyAvailable < quantity) {
+    warnings.push(
+      `Only ${formatGp(buyAvailable)} of your ${formatGp(quantity)} items can instant-sell at the top buy price.`,
+    );
+  }
 
-    if (minSellPrice > 0 && yourPrice < minSellPrice) {
-      action = "WAIT";
-      suggestedPrice = minSellPrice;
-      reasons.push("Your price is below your own minimum.");
-    } else if (tooCheap) {
-      action = "DO NOT UNDERCUT";
-      suggestedPrice = Math.max(referencePrice, minSellPrice);
-      reasons.push("You are listing below the realistic market area.");
-    } else if (goodDemand && fairPrice && undercutRisk.level !== "HIGH") {
-      action = "✅ LIST / SELL";
-      suggestedPrice = yourPrice;
-      reasons.push("Your price is realistic and the item should move.");
-    } else if (fairPrice) {
-      action = "LIST NORMAL / PATIENT";
-      suggestedPrice = yourPrice;
-      reasons.push("Your price is fair, but expect some waiting.");
-    } else if (
-      highButPossible &&
-      !slowDemand &&
-      undercutRisk.level !== "HIGH"
-    ) {
-      action = "LIST HIGH / PATIENT";
-      suggestedPrice = yourPrice;
-      reasons.push("You can try this price, but watch for undercuts.");
-    } else if (tooHigh || undercutRisk.level === "HIGH") {
-      action = "⚠️ PRICE MAY BE TOO HIGH";
-      suggestedPrice = referencePrice;
-      reasons.push(
-        "The listing price may look good on paper, but the real buyer demand is lower.",
-      );
-    } else {
-      action = "LIST NORMAL";
-      suggestedPrice = yourPrice;
-      reasons.push("This is within a reasonable market range.");
-    }
+  if (listingLooksSuspicious) {
+    warnings.push(
+      "Lowest listing is below highest buy. Verify the live market before placing a large order.",
+    );
+  }
 
-    if (trendPercent < -6)
-      warnings.push("Price looks weaker today than usual.");
-    if (spreadPercent > 35) warnings.push(undercutRisk.message);
-    if (entryPrice > 0 && roi < 3 && action.includes("SELL")) {
-      warnings.push("Profit after market fee is low compared with your cost.");
-    }
-
-    minRecommended = Math.max(
-      minSellPrice,
-      Math.floor(referencePrice * 0.97),
-      effectiveBuyOffer(check) || 0,
+  if (sellQueue.label === "Crowded") {
+    warnings.push(
+      "Market listing queue looks crowded, so selling may take time.",
     );
   }
 
   return {
     action,
-    suggestedPrice: Math.round(suggestedPrice),
-    minRecommended: Math.round(minRecommended),
-    realisticListPrice: Math.round(realisticListPrice),
-    fastSellPrice: Math.round(effectiveBuyOffer(check) || 0),
-    sellOfferFeePerItem,
-    netTotal,
-    profitPerItem,
-    roi,
+    bestRoute,
+    lowestSellOffer: Math.round(lowestSellOffer),
+    instantSellPrice: Math.round(instantSellPrice),
+    npcPrice: Math.round(npcPrice),
+    listingNetPerItem,
+    listingTotalNet,
+    instantQty,
+    instantTotalNet,
+    npcTotalNet,
+    listingExtraVsInstant,
+    listingExtraVsNpc,
+    instantExtraVsNpc,
     demand,
-    exit,
-    trend,
-    confidence,
-    behavior,
-    undercutRisk,
+    marketStability,
+    sellQueue,
     reasons,
     warnings,
+  };
+}
+
+function suggestBuyPrices(check) {
+  const ladder = Array.isArray(check.liveBuyLadder) ? check.liveBuyLadder : [];
+
+  const highestBuy = ladder[0]?.price || effectiveBuyOffer(check);
+  const lowestSell = effectiveSellOffer(check);
+
+  if (!highestBuy) return null;
+
+  if (ladder.length >= 3) {
+    const prices = ladder.map((row) => row.price);
+
+    const fastLow = prices[1] || highestBuy;
+    const fastHigh = highestBuy;
+
+    const balancedLow =
+      prices[Math.min(5, prices.length - 1)] || highestBuy * 0.997;
+    const balancedHigh = prices[2] || highestBuy;
+
+    const visibleBottom = prices[prices.length - 1];
+    const patientLow = Math.min(visibleBottom, highestBuy * 0.998);
+    const patientHigh =
+      prices[Math.min(7, prices.length - 1)] || highestBuy * 0.995;
+
+    return {
+      mode: "ladder",
+      fastLow: Math.round(fastLow),
+      fastHigh: Math.round(fastHigh),
+      balancedLow: Math.round(balancedLow),
+      balancedHigh: Math.round(balancedHigh),
+      patientLow: Math.round(patientLow),
+      patientHigh: Math.round(patientHigh),
+      recommendedLow: Math.round(patientLow),
+      recommendedHigh: Math.round(patientHigh),
+    };
+  }
+
+  if (!lowestSell) return null;
+
+  const spreadPercent = getSpreadPercent(highestBuy, lowestSell);
+
+  let normalLow = highestBuy * 0.997;
+  let normalHigh = highestBuy;
+
+  let patientLow = highestBuy * 0.985;
+  let patientHigh = highestBuy * 0.995;
+
+  let sniperLow = highestBuy * 0.96;
+  let sniperHigh = highestBuy * 0.98;
+
+  if (spreadPercent >= 6) {
+    normalLow = highestBuy * 0.994;
+    normalHigh = highestBuy * 0.998;
+    patientLow = highestBuy * 0.975;
+    patientHigh = highestBuy * 0.99;
+    sniperLow = highestBuy * 0.94;
+    sniperHigh = highestBuy * 0.965;
+  }
+
+  return {
+    mode: "api",
+    fastLow: Math.round(highestBuy + 1),
+    fastHigh: Math.round(highestBuy + 1),
+    balancedLow: Math.round(normalLow),
+    balancedHigh: Math.round(normalHigh),
+    patientLow: Math.round(patientLow),
+    patientHigh: Math.round(patientHigh),
+    sniperLow: Math.round(sniperLow),
+    sniperHigh: Math.round(sniperHigh),
+    recommendedLow: Math.round(patientLow),
+    recommendedHigh: Math.round(patientHigh),
   };
 }
 
@@ -580,6 +719,8 @@ function buildBuyAdvice(check) {
   const behavior = getItemBehaviorLabel(check.itemInfo, check.monthSold);
   const npcArbitrage = calculateNpcArbitrage(check);
   const queueAnalysis = getBuyQueueAnalysis(check);
+
+  const priceSuggestions = suggestBuyPrices(check);
 
   const buyOfferFeePerItem = buyPrice * TAX_RATE;
   const instantProfitPerItem =
@@ -677,6 +818,7 @@ function buildBuyAdvice(check) {
     npcLooksGood,
     trackable,
     queueAnalysis,
+    priceSuggestions,
   };
 }
 
@@ -724,6 +866,20 @@ async function maybeAddGoodBuyToTracked(check, advice) {
   }
 }
 
+function parseBuyLadder(value = "") {
+  return String(value)
+    .split(",")
+    .map((part) => {
+      const [price, amount] = part.split(":");
+      return {
+        price: safeNumber(price, 0),
+        amount: safeNumber(amount, 0),
+      };
+    })
+    .filter((row) => row.price > 0 && row.amount > 0)
+    .sort((a, b) => b.price - a.price);
+}
+
 async function buildCheck(args, itemMap, itemDb) {
   const { positional, options } = parseAdvisorArgs(args);
   const [mode, itemInput, quantityArg, priceArg, optionalA, optionalB] =
@@ -768,7 +924,10 @@ async function buildCheck(args, itemMap, itemDb) {
     liveSellOffer: safeNumber(options.liveSellOffer, 0),
     liveBuyOffer: safeNumber(options.liveBuyOffer, 0),
     liveBuyQueueAhead: safeNumber(options.liveBuyQueueAhead, 0),
+    liveSellQueueAhead: safeNumber(options.liveSellQueueAhead, 0),
+    liveBuyAvailable: safeNumber(options.liveBuyAvailable, 0),
     apiDataAvailable: Boolean(apiData),
+    liveBuyLadder: parseBuyLadder(options.liveBuyLadder),
   };
 
   if (mode === "sell") {
@@ -794,69 +953,99 @@ function printSellReport(check) {
   const advice = buildSellAdvice(check);
 
   console.log("\n==============================");
-  console.log("        SELL ADVISOR");
+  console.log("         SELL CHECK");
   console.log("==============================\n");
 
   console.log(`${check.name}`);
   console.log(`Quantity: ${check.quantity}`);
-  console.log(`Your list price: ${formatGp(check.yourSellPrice)} gp`);
-  if (check.liveSellOffer > 0)
-    console.log(
-      `Live lowest sell listing: ${formatGp(check.liveSellOffer)} gp`,
-    );
-  if (check.liveBuyOffer > 0)
-    console.log(`Live highest buy offer: ${formatGp(check.liveBuyOffer)} gp`);
-  console.log("");
 
+  if (advice.lowestSellOffer > 0) {
+    console.log(`Lowest sell offer: ${formatGp(advice.lowestSellOffer)} gp`);
+  }
+
+  if (check.liveSellQueueAhead > 0) {
+    console.log(
+      `Items listed at/below that price: ${formatGp(check.liveSellQueueAhead)}`,
+    );
+  }
+
+  if (advice.instantSellPrice > 0) {
+    console.log(`Highest buy offer: ${formatGp(advice.instantSellPrice)} gp`);
+  }
+
+  if (check.liveBuyAvailable > 0) {
+    console.log(
+      `Instant-buy quantity available: ${formatGp(check.liveBuyAvailable)}`,
+    );
+  }
+
+  console.log("");
   console.log(`Decision: ${advice.action}`);
-  console.log(`Competitive list price: ${formatGp(advice.suggestedPrice)} gp`);
-  console.log(`Do not list below: ${formatGp(advice.minRecommended)} gp`);
+  if (advice.priceSuggestions) {
+    const s = advice.priceSuggestions;
 
-  if (advice.fastSellPrice > 0)
-    console.log(`Fast sell now: ${formatGp(advice.fastSellPrice)} gp each`);
-  if (advice.sellOfferFeePerItem > 0)
+    console.log("");
+    console.log("Suggested buy prices:");
+    console.log(`⚡ Fast fill: ${formatGp(s.fast)}+ gp`);
     console.log(
-      `Market fee if listed: ${formatGp(advice.sellOfferFeePerItem)} gp each`,
+      `🙂 Normal fill: ${formatGp(s.normalLow)}–${formatGp(s.normalHigh)} gp`,
     );
+    console.log(
+      `🧠 Patient / value entry: ${formatGp(s.patientLow)}–${formatGp(s.patientHigh)} gp`,
+    );
+    console.log(
+      `🎯 Sniper price: ${formatGp(s.sniperLow)}–${formatGp(s.sniperHigh)} gp`,
+    );
+    console.log(
+      `Recommended for you: ${formatGp(s.recommendedLow)}–${formatGp(s.recommendedHigh)} gp`,
+    );
+  }
+  console.log("");
+  console.log("Options:");
+
+  if (advice.lowestSellOffer > 0) {
+    console.log(
+      `Market listing: ${formatGp(advice.lowestSellOffer)} gp each → ~${formatGp(advice.listingNetPerItem)} gp after fee`,
+    );
+
+    if (advice.sellQueue.queueAhead > 0) {
+      console.log(`Listing queue: ${advice.sellQueue.label}`);
+
+      if (advice.sellQueue.estimatedDays !== null) {
+        console.log(
+          `Estimated wait: ~${Math.round(advice.sellQueue.estimatedDays)} days`,
+        );
+      }
+    }
+  }
+
+  if (advice.instantSellPrice > 0) {
+    console.log(`Instant sell: ${formatGp(advice.instantSellPrice)} gp each`);
+
+    if (check.liveBuyAvailable > 0) {
+      console.log(
+        `Can instant-sell now: ${formatGp(advice.instantQty)} / ${formatGp(check.quantity)} items`,
+      );
+    }
+  }
+
+  if (advice.npcPrice > 0) {
+    console.log(`NPC: ${formatGp(advice.npcPrice)} gp each guaranteed`);
+  }
 
   console.log("");
-  console.log("Market read:");
+  console.log("Market:");
   console.log(`Demand: ${advice.demand}`);
-  console.log(`Resell speed: ${advice.exit}`);
-  console.log(`Confidence: ${advice.confidence}`);
-  console.log(`Item behavior: ${advice.behavior}`);
-  console.log(`Price direction: ${advice.trend}`);
-  console.log(
-    `${hasLiveQueue(check) ? "Live competitive area" : "API/historical value area"}: around ${formatGp(advice.realisticListPrice)} gp`,
-  );
-  console.log(`Undercut risk: ${advice.undercutRisk.level}`);
-  console.log(`Execution note: ${formatApiDelayNote(check)}`);
-  console.log(`Execution note: ${formatApiDelayNote(check)}`);
-
-  if (check.entryPrice > 0) {
-    console.log("");
-    console.log("Profit:");
-    console.log(
-      `Profit per item after listing fee: ${formatGp(advice.profitPerItem)} gp`,
-    );
-    console.log(`ROI: ${formatPercent(advice.roi)}`);
-    console.log(`Net total if sold: ${formatGp(advice.netTotal)} gp`);
-  }
-
-  if (check.bestNpcBuy?.price) {
-    console.log("");
-    console.log("NPC floor:");
-    console.log(
-      `NPC buys for: ${formatGp(check.bestNpcBuy.price)} gp (${check.bestNpcBuy.name}, ${check.bestNpcBuy.location})`,
-    );
-  }
+  console.log(`Market stability: ${advice.marketStability}`);
 
   console.log("");
   console.log(`Meaning: ${advice.reasons.join(" ")}`);
 
   if (advice.warnings.length) {
     console.log("");
-    console.log(`Careful: ${advice.warnings.join(" ")}`);
+    advice.warnings.forEach((warning) => {
+      console.log(`Careful: ${warning}`);
+    });
   }
 
   console.log("");
@@ -875,7 +1064,7 @@ function printBuyReport(check) {
 
   console.log(`${check.name}`);
   console.log(`Quantity: ${check.quantity}`);
-  console.log(`Your buy price: ${formatGp(check.plannedBuyPrice)} gp`);
+  console.log(`Buy price: ${formatGp(check.plannedBuyPrice)} gp`);
   if (check.liveBuyOffer > 0)
     console.log(`Live highest buy offer: ${formatGp(check.liveBuyOffer)} gp`);
   if (check.liveSellOffer > 0)
@@ -885,7 +1074,31 @@ function printBuyReport(check) {
   console.log("");
 
   console.log(`Decision: ${advice.action}`);
+  if (advice.priceSuggestions) {
+    const s = advice.priceSuggestions;
 
+    console.log("");
+    console.log("Suggested buy prices:");
+    console.log(
+      `⚡ Fast fills: ${formatGp(s.fastLow)}–${formatGp(s.fastHigh)} gp`,
+    );
+    console.log(
+      `⚖️ Balanced: ${formatGp(s.balancedLow)}–${formatGp(s.balancedHigh)} gp`,
+    );
+    console.log(
+      `🧠 Value / patient: ${formatGp(s.patientLow)}–${formatGp(s.patientHigh)} gp`,
+    );
+
+    if (s.sniperLow && s.sniperHigh) {
+      console.log(
+        `🎯 Sniper: ${formatGp(s.sniperLow)}–${formatGp(s.sniperHigh)} gp`,
+      );
+    }
+
+    console.log(
+      `Recommended for you: ${formatGp(s.recommendedLow)}–${formatGp(s.recommendedHigh)} gp`,
+    );
+  }
   if (advice.instantSellPrice > 0)
     console.log(
       `People are buying now at: ${formatGp(advice.instantSellPrice)} gp`,
@@ -1043,7 +1256,7 @@ Sell advisor:
   node inventory.js sell ITEM_ID_OR_NAME QUANTITY YOUR_SELL_PRICE [MIN_SELL_PRICE] [YOUR_COST] [--live-sell PRICE] [--live-buy PRICE]
 
 Buy price check:
-  node inventory.js buy ITEM_ID_OR_NAME QUANTITY PLANNED_BUY_PRICE [--live-sell PRICE] [--live-buy PRICE] [--buy-ahead QUANTITY]
+  node inventory.js buy ITEM_ID_OR_NAME QUANTITY BUY_PRICE [--live-sell PRICE] [--live-buy PRICE] [--buy-ahead QUANTITY]
 
 Examples:
   node inventory.js sell 3081 5 9200

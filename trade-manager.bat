@@ -43,14 +43,14 @@ goto menu
 cls
 echo ADD BUY ORDER
 echo.
+echo Use this after placing a buy offer in Tibia Market.
+echo.
 
 set /p itemInput=Item Name or ID: 
-set /p entryPrice=Buy Offer / Entry Price: 
-set /p quantity=Quantity Ordered: 
-set /p targetSell=Target Sell: 
-set /p brainScore=Brain Score optional: 
+set /p entryPrice=Buy price: 
+set /p quantity=Quantity ordered: 
 
-call npm run trade -- buy "%itemInput%" %entryPrice% %quantity% %targetSell% %brainScore%
+call npm run trade -- buy "%itemInput%" %entryPrice% %quantity% 0
 
 pause
 goto menu
@@ -138,21 +138,27 @@ goto menu
 
 :inventory
 cls
-echo SELL ADVISOR
+echo SELL CHECK
 echo.
-echo Enter only your item, quantity, and the price you are thinking of listing/selling for.
-echo The bot checks real buy demand, realistic listing area, liquidity, undercut risk, and NPC value automatically.
+echo Look at the Offers tab in Tibia Market.
+echo.
+echo Sell Offers = people selling the item.
+echo Buy Offers  = people willing to buy instantly.
+echo.
+echo This compares:
+echo 1. Listing on market
+echo 2. Instant sell to buy offer
+echo 3. NPC sell
 echo.
 
 set /p itemInput=Item Name or ID: 
 set /p quantity=Quantity you have: 
-set /p yourSell=Your sell/list price: 
-set /p minSell=Minimum price optional, press Enter for none: 
-set /p yourCost=Your cost optional, press Enter for none/drop: 
-set /p liveSell=Live lowest sell offer optional, press Enter to use API: 
-set /p liveBuy=Live highest buy offer optional, press Enter to use API: 
+set /p liveSell=Lowest sell offer price: 
+set /p sellAhead=How many items are listed at or below that sell price: 
+set /p liveBuy=Highest buy offer price: 
+set /p buyAvailable=How many items can you instant-sell at that buy price: 
 
-call node inventory.js sell "%itemInput%" %quantity% %yourSell% %minSell% %yourCost% --live-sell %liveSell% --live-buy %liveBuy%
+call node inventory.js sell "%itemInput%" %quantity% %liveSell% 0 0 --live-sell %liveSell% --live-buy %liveBuy% --sell-ahead %sellAhead% --buy-available %buyAvailable%
 
 pause
 goto menu
@@ -161,18 +167,18 @@ goto menu
 cls
 echo BUY PRICE CHECK
 echo.
-echo Enter item, quantity, and the price you are thinking of paying.
-echo The bot checks real buy demand, listings, liquidity, undercut risk, and NPC value automatically.
+echo Enter the buy price you are thinking of paying.
+echo Optional: paste the visible buy ladder for better price suggestions.
+echo Example buy ladder: 43620:8,43615:51,43614:81
 echo.
 
-set /p itemInput=Item Name or ID: 
-set /p quantity=Quantity you want to buy: 
-set /p plannedBuy=Your planned buy price: 
-set /p liveSell=Live lowest sell offer optional, press Enter to use API: 
-set /p liveBuy=Live highest buy offer optional, press Enter to use API: 
-set /p buyAhead=How many items are ahead of your buy price optional, press Enter if unknown: 
+set /p ITEM=Item Name or ID: 
+set /p QTY=Quantity you want to buy: 
+set /p BUY_PRICE=Buy price: 
+set /p LIVE_SELL=Lowest sell listing optional, press Enter to use API: 
+set /p BUY_LADDER=Visible buy ladder optional, price:amount comma-separated: 
 
-call node inventory.js buy "%itemInput%" %quantity% %plannedBuy% --live-sell %liveSell% --live-buy %liveBuy% --buy-ahead %buyAhead%
+call node inventory.js buy "%ITEM%" %QTY% %BUY_PRICE% --live-sell "%LIVE_SELL%" --buy-ladder "%BUY_LADDER%"
 
 pause
 goto menu
