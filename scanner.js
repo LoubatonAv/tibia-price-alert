@@ -36,9 +36,16 @@ import {
   SCORE_DROP_PANIC,
   SCANNER_TOP_LIMIT,
   SCANNER_POOL,
+  SNIPE_MIN_SELL_PRICE,
+  SNIPE_MIN_DISCOUNT_PERCENT,
+  SNIPE_TOP_LIMIT,
 } from "./lib/constants.js";
 import { loadState, saveState, updateItemHistory } from "./lib/state.js";
-import { updateMarketMemory } from "./lib/marketMemory.js";
+import {
+  updateMarketMemory,
+  updateMarketMemoryFromTrades,
+  getPersonalTradeConfidence,
+} from "./lib/marketMemory.js";
 
 const DISCORD_WEBHOOK_URL = process.env.TIBIA_SCANNER_WEBHOOK_URL;
 const ITEM_IDS = getTrackedItemIds();
@@ -744,6 +751,89 @@ function scannerSortValue(item) {
   );
 }
 
+function getSnipeData(item) {
+  const sellOffer = Number(item.sellOffer || 0);
+  const monthAverageSell = Number(item.monthAverageSell || 0);
+  const dayAverageSell = Number(item.dayAverageSell || 0);
+  const referencePrice = monthAverageSell || dayAverageSell || 0;
+
+  if (!sellOffer || !referencePrice) {
+    return {
+      isSnipe: false,
+      discountPercent: 0,
+      referencePrice,
+      reason: "Not enough price history for snipe mode.",
+    };
+  }
+
+  const discountPercent = ((referencePrice - sellOffer) / referencePrice) * 100;
+  const isExpensiveEnough = sellOffer >= SNIPE_MIN_SELL_PRICE;
+  const isDiscountedEnough = discountPercent >= SNIPE_MIN_DISCOUNT_PERCENT;
+  const hasSomeLiquidity = Number(item.monthSold || 0) >= 3 || Number(item.daySold || 0) > 0;
+  const notObviousTrap = Number(item.fakeSpreadRisk || 0) < 75;
+
+  return {
+    isSnipe: isExpensiveEnough && isDiscountedEnough && hasSomeLiquidity && notObviousTrap,
+    discountPercent,
+    referencePrice,
+    reason: isExpensiveEnough
+      ? `Discount ${discountPercent.toFixed(1)}% vs reference ${formatGp(referencePrice)} gp.`
+      : `Below snipe threshold ${formatGp(SNIPE_MIN_SELL_PRICE)} gp.`,
+  };
+}
+
+async function sendDiscordSnipeReport(analyzedItems) {
+  const candidates = analyzedItems
+    .map((item) => ({
+      ...item,
+      snipe: getSnipeData(item),
+    }))
+    .filter((item) => item.snipe.isSnipe)
+    .sort((a, b) => b.snipe.discountPercent - a.snipe.discountPercent)
+    .slice(0, SNIPE_TOP_LIMIT);
+
+  if (candidates.length === 0) return;
+
+  const embeds = candidates.map((item, index) => ({
+    title: `#${index + 1} 🎯 SNIPE WATCH — ${item.name}`,
+    color: 0xff00ff,
+    fields: [
+      {
+        name: "Price gap",
+        value:
+          `Current sell: **${formatGp(item.sellOffer)} gp**\n` +
+          `Reference: **${formatGp(item.snipe.referencePrice)} gp**\n` +
+          `Discount: **${item.snipe.discountPercent.toFixed(1)}%**`,
+        inline: false,
+      },
+      {
+        name: "Risk read",
+        value:
+          `Demand: day/month sold **${formatGp(item.daySold)} / ${formatGp(item.monthSold)}**\n` +
+          `Fake spread risk: **${item.fakeSpreadRisk}/100**\n` +
+          `Exit: **${item.exitConfidence || "UNKNOWN"}**`,
+        inline: false,
+      },
+      {
+        name: "Action",
+        value:
+          "Manual check only. Open the market board, verify the sell listing is real, then use Sell/Buy Check before buying.",
+        inline: false,
+      },
+    ],
+    footer: {
+      text: `Item ID: ${item.id} | Snipe mode | Not an automatic BUY`,
+    },
+  }));
+
+  await axios.post(DISCORD_WEBHOOK_URL, {
+    content: `🎯 **Snipe Watch** on **${SERVER}** — expensive discounted listings`,
+    embeds,
+  });
+
+  console.log(`Discord snipe report sent (${candidates.length}).`);
+}
+
 function buildScannerReportItems(analyzedItems) {
   return analyzedItems
     .map((item) => {
@@ -944,16 +1034,26 @@ async function main() {
       ...calculateTradeabilityConviction(withPressure),
     };
 
-    const sellDecisionData = getSellDecision(withConviction, state);
+    const personalConfidence = getPersonalTradeConfidence(state, item.id);
+
+    const withPersonalMemory = {
+      ...withConviction,
+      brainScore: clamp(withConviction.brainScore + personalConfidence.scoreAdjust, 0, 100),
+      personalTradeConfidence: personalConfidence.label,
+      personalTradeSummary: personalConfidence.summary,
+    };
+
+    const sellDecisionData = getSellDecision(withPersonalMemory, state);
 
     return {
-      ...withConviction,
+      ...withPersonalMemory,
       ...sellDecisionData,
     };
   });
 
   await applyMarketIntelligence(analyzedItems, { state, mode: "scanner" });
   updateMarketMemory(state, analyzedItems);
+  updateMarketMemoryFromTrades(state);
 
   const volatility = calculateMarketVolatility(analyzedItems, state);
   const runAdvice = getNextRunRecommendation(volatility);
@@ -977,6 +1077,7 @@ TIBIA FLIPPER SCANNER MODE
   );
 
   await sendDiscordScannerReport(analyzedItems, volatility, runAdvice);
+  await sendDiscordSnipeReport(analyzedItems);
   saveState(state);
 }
 

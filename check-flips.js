@@ -14,7 +14,6 @@ import { buildBuyPricingPlan } from "./lib/pricing.js";
 import { loadState, saveState, updateItemHistory } from "./lib/state.js";
 import { getTrackedItemIds } from "./lib/trackedItems.js";
 import { getItemMap, getMarketValues } from "./lib/market.js";
-import { applyMarketIntelligence } from "./lib/marketIntelligence.js";
 import {
   analyzeHistory,
   analyzeSellMomentum,
@@ -466,8 +465,7 @@ async function sendDiscordBuyAlerts(buySignals, state) {
           `${item.reason}\n` +
           `${item.recommendation}\n` +
           `Trend: ${item.dayVsMonthSell.toFixed(2)}% | Volume: ${item.volumeRatio.toFixed(2)}x\n` +
-          `Fake spread risk: ${item.fakeSpreadRisk}/100` +
-          `${item.marketIntelSummary ? `\n${item.marketIntelSummary}` : ""}`,
+          `Fake spread risk: ${item.fakeSpreadRisk}/100`,
         inline: false,
       },
       {
@@ -692,8 +690,7 @@ async function sendDiscordScannerReport(analyzedItems, volatility, runAdvice) {
         value:
           `Day vs month avg: **${item.dayVsMonthSell.toFixed(2)}%**\n` +
           `Undervalued vs month avg: **${item.undervaluedPercent.toFixed(2)}%**\n` +
-          `History: **${item.historySignal}**` +
-          `${item.marketIntelSummary ? `\nIntel: ${item.marketIntelSummary.slice(0, 240)}` : ""}`,
+          `History: **${item.historySignal}**`,
         inline: false,
       },
       {
@@ -832,8 +829,6 @@ async function main() {
       ...sellDecisionData,
     };
   });
-
-  await applyMarketIntelligence(analyzedItems, { state, mode: "flips" });
 
   const volatility = calculateMarketVolatility(analyzedItems, state);
   const runAdvice = getNextRunRecommendation(volatility);

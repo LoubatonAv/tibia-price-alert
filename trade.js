@@ -5,11 +5,8 @@ import {
   normalizePosition,
   calculateBuyOfferFee,
   calculateSellOfferFee,
-  calculateClosedTrade,
 } from "./lib/trades.js";
 import { getItemMap } from "./lib/market.js";
-import readline from "readline/promises";
-import { stdin as input, stdout as output } from "process";
 
 const POSITIONS_FILE = "./positions.json";
 
@@ -71,22 +68,39 @@ function formatGp(value) {
   return Math.round(Number(value || 0)).toLocaleString();
 }
 
+function calculateDefaultTargetSell(entryPrice, desiredMargin = 0.06) {
+  const price = Number(entryPrice || 0);
+  if (!price) return 0;
+  return Math.ceil((price * (1 + desiredMargin)) / (1 - 0.02));
+}
+
+function formatAge(fromDate) {
+  if (!fromDate) return "N/A";
+  const diffMs = Date.now() - new Date(fromDate).getTime();
+  if (!Number.isFinite(diffMs) || diffMs < 0) return "N/A";
+  const hours = diffMs / 1000 / 60 / 60;
+  if (hours < 48) return `${hours.toFixed(1)}h`;
+  return `${(hours / 24).toFixed(1)}d`;
+}
+
 function printUsage() {
   console.log(`
 Usage:
 
 New safer flow:
-  node trade.js buy ITEM_ID_OR_NAME ENTRY_PRICE QUANTITY TARGET_SELL [BRAIN_SCORE]
+  node trade.js buy ITEM_ID_OR_NAME ENTRY_PRICE QUANTITY [TARGET_SELL] [BRAIN_SCORE]
   node trade.js receive ITEM_ID_OR_NAME QUANTITY [ACTUAL_ENTRY_PRICE]
-  node trade.js add ITEM_ID_OR_NAME QUANTITY COST_PER_ITEM
   node trade.js list ITEM_ID_OR_NAME QUANTITY LIST_PRICE
-  node trade.js sold ITEM_ID_OR_NAME QUANTITY [SELL_PRICE]
+  node trade.js sold ITEM_ID_OR_NAME QUANTITY SELL_PRICE
 
 Backward compatible old flow:
   node trade.js open ITEM_ID_OR_NAME ENTRY_PRICE QUANTITY TARGET_SELL [BRAIN_SCORE]
   node trade.js close ITEM_ID_OR_NAME SELL_PRICE [QUANTITY]
 
 Stats:
+  node trade.js orders
+  node trade.js cancel ITEM_ID_OR_NAME [REASON]
+  node trade.js expire ITEM_ID_OR_NAME
   node trade.js stats
 `);
 }
@@ -95,48 +109,6 @@ function findActivePosition(positionsData, itemId) {
   return positionsData.positions.find(
     (p) => Number(p.id) === Number(itemId) && p.status !== "CLOSED",
   );
-}
-
-function findActivePositions(positionsData, itemId) {
-  return positionsData.positions.filter(
-    (p) => Number(p.id) === Number(itemId) && p.status !== "CLOSED",
-  );
-}
-
-async function askYesNo(question) {
-  const rl = readline.createInterface({ input, output });
-
-  const answer = await rl.question(`${question} `);
-  rl.close();
-
-  return ["y", "yes", "כן", "כ"].includes(answer.trim().toLowerCase());
-}
-
-async function chooseActivePosition(positionsData, itemId) {
-  const positions = findActivePositions(positionsData, itemId);
-
-  if (positions.length === 0) return null;
-  if (positions.length === 1) return positions[0];
-
-  console.log("\nMultiple active positions found:\n");
-
-  positions.forEach((position, index) => {
-    console.log(
-      `${index + 1}. ${position.flow} | qty ${position.quantity} | listed ${position.listedQuantity} | cost ${formatGp(position.entryPrice)} gp | status ${position.status}`,
-    );
-  });
-
-  const rl = readline.createInterface({ input, output });
-  const answer = await rl.question("\nChoose position number: ");
-  rl.close();
-
-  const selectedIndex = Number(answer) - 1;
-
-  if (!Number.isInteger(selectedIndex) || !positions[selectedIndex]) {
-    fail("Invalid position choice.");
-  }
-
-  return positions[selectedIndex];
 }
 
 function addEvent(position, type, details = {}) {
@@ -149,23 +121,27 @@ function addEvent(position, type, details = {}) {
 }
 
 function printPosition(position) {
+  const targetSell = Number(position.targetSell || 0);
+  const ordered = Number(position.orderedQuantity || position.originalQuantity || 0);
+  const received = Number(position.receivedQuantity || 0);
+  const stillWaiting = Math.max(0, ordered - received);
+
   console.log(`Item: ${position.name}`);
   console.log(`Status: ${position.status}`);
-  if (position.status === "BUY_ORDER_PLACED") {
-    console.log(`Ordered quantity: ${position.orderedQuantity}`);
-  } else {
-    console.log(`Remaining quantity: ${position.quantity}`);
-  }
+  console.log(`Order age: ${formatAge(position.openedAt || position.createdAt)}`);
+  console.log(`Ordered quantity: ${ordered}`);
+  console.log(`Still waiting: ${stillWaiting}`);
+  console.log(`Owned / unsold quantity: ${position.quantity}`);
   console.log(`Original quantity: ${position.originalQuantity}`);
   console.log(`Received: ${position.receivedQuantity}`);
   console.log(`Listed: ${position.listedQuantity}`);
   console.log(`Sold: ${position.soldQuantity}`);
   console.log(`Entry: ${formatGp(position.entryPrice)} gp`);
-  console.log(
-    targetSell > 0
-      ? `Target sell: ${formatGp(targetSell)} gp`
-      : "Target sell: Not set",
-  );
+  console.log(`Target sell: ${targetSell > 0 ? `${formatGp(targetSell)} gp` : "auto / not set"}`);
+  console.log(`Buy fee paid: ${formatGp(position.buyOfferFeePaid)} gp`);
+  if (["BUY_ORDER_PLACED", "BUY_ORDER_PARTIAL"].includes(position.status)) {
+    console.log(`If cancelled now, buy fee is already lost: ${formatGp(position.buyOfferFeePaid)} gp`);
+  }
   console.log(`Brain: ${position.entryBrainScore ?? "N/A"}`);
 }
 
@@ -265,18 +241,45 @@ function printStats() {
   }
 }
 
+function printOrders() {
+  const positionsData = loadPositions();
+  const active = positionsData.positions.filter((position) => position.status !== "CLOSED");
+
+  console.log("\nOPEN ORDERS / POSITIONS\n");
+
+  if (active.length === 0) {
+    console.log("No open orders or positions.");
+    return;
+  }
+
+  active.forEach((position, index) => {
+    normalizePosition(position);
+    const ordered = Number(position.orderedQuantity || position.originalQuantity || 0);
+    const received = Number(position.receivedQuantity || 0);
+    const waiting = Math.max(0, ordered - received);
+
+    console.log(`#${index + 1} ${position.name} (${position.id})`);
+    console.log(`Status: ${position.status}`);
+    console.log(`Age: ${formatAge(position.openedAt || position.createdAt)}`);
+    console.log(`Entry: ${formatGp(position.entryPrice)} gp | Target: ${position.targetSell ? `${formatGp(position.targetSell)} gp` : "auto / not set"}`);
+    console.log(`Ordered: ${ordered} | Waiting: ${waiting} | Owned: ${position.quantity} | Listed: ${position.listedQuantity} | Sold: ${position.soldQuantity}`);
+    console.log(`Fees paid: buy ${formatGp(position.buyOfferFeePaid)} gp, sell ${formatGp(position.sellOfferFeePaid)} gp`);
+    console.log("");
+  });
+}
+
 const [, , rawAction, ...args] = process.argv;
 const actionAliases = {
   "buy-order": "buy",
+  add: "add",
   open: "open",
   close: "close",
+  positions: "orders",
 };
 const action = actionAliases[rawAction] || rawAction;
 
 if (
-  !["buy", "receive", "list", "sold", "open", "close", "stats", "add"].includes(
-    action,
-  )
+  !["buy", "receive", "list", "sold", "open", "close", "add", "orders", "cancel", "expire", "stats"].includes(action)
 ) {
   printUsage();
   process.exit(1);
@@ -287,94 +290,12 @@ if (action === "stats") {
   process.exit(0);
 }
 
-const positionsData = loadPositions();
-
-if (action === "add") {
-  const [itemInput, quantity, costPerItem] = args;
-
-  if (!itemInput || !quantity || costPerItem === undefined) {
-    printUsage();
-    process.exit(1);
-  }
-
-  const qty = Number(quantity);
-  const cost = Number(costPerItem);
-
-  if (!isPositiveNumber(qty)) {
-    fail("QUANTITY must be a positive number.");
-  }
-
-  if (!Number.isFinite(cost) || cost < 0) {
-    fail("COST_PER_ITEM must be 0 or higher.");
-  }
-  if (cost > 0) {
-    const confirmedCost = await askYesNo(
-      `\nYou entered cost ${formatGp(cost)} gp per item. For loot/drop this should usually be 0. Are you sure? Y/N`,
-    );
-
-    if (!confirmedCost) {
-      console.log(
-        "\nCancelled. Add the item again with cost 0 if this was loot/drop.\n",
-      );
-      process.exit(0);
-    }
-  }
-
-  const resolvedItem = resolveItem(itemInput);
-  const positionsData = loadPositions();
-
-  const now = new Date().toISOString();
-
-  const position = {
-    id: resolvedItem.id,
-    name: resolvedItem.name,
-    createdAt: now,
-    openedAt: now,
-    flow: "EXTERNAL_INVENTORY",
-    entryPrice: cost,
-    averageEntryPrice: cost,
-    originalQuantity: qty,
-    quantity: qty,
-    orderedQuantity: qty,
-    receivedQuantity: qty,
-    listedQuantity: 0,
-    soldQuantity: 0,
-    totalListedQuantity: 0,
-    buyOfferFeePaid: 0,
-    sellOfferFeePaid: 0,
-    targetSell: null,
-    desiredMargin: 0,
-    entryBrainScore: null,
-    status: "EXTERNAL_READY",
-    events: [
-      {
-        type: "EXTERNAL_ITEMS_ADDED",
-        at: now,
-        quantity: qty,
-        entryPrice: cost,
-      },
-    ],
-  };
-
-  positionsData.positions.push(position);
-  savePositions(positionsData);
-
-  console.log("\nEXTERNAL ITEMS ADDED\n");
-  console.log(`Item: ${resolvedItem.name}`);
-  console.log(`Quantity: ${qty}`);
-  console.log(`Cost per item: ${formatGp(cost)} gp`);
-  console.log(`Status: READY`);
-  console.log(`Next step:`);
-
-  if (cost === 0) {
-    console.log(`- Usually: LIST ITEMS FOR SALE`);
-    console.log(`- Or use SOLD ITEMS only for instant sell to buy offers`);
-  } else {
-    console.log(`- List or sell when ready`);
-  }
-
+if (action === "orders") {
+  printOrders();
   process.exit(0);
 }
+
+const positionsData = loadPositions();
 
 if (action === "buy" || action === "open") {
   const [itemInput, entryPrice, quantity, targetSell, brainScore] = args;
@@ -384,13 +305,12 @@ if (action === "buy" || action === "open") {
     process.exit(1);
   }
 
-  if (!isPositiveNumber(entryPrice)) {
+  if (!isPositiveNumber(entryPrice))
     fail("ENTRY_PRICE must be a positive number.");
-  }
-
-  if (!isPositiveNumber(quantity)) {
-    fail("QUANTITY must be a positive number.");
-  }
+  if (!isPositiveNumber(quantity)) fail("QUANTITY must be a positive number.");
+  const finalTargetSell = isPositiveNumber(targetSell)
+    ? Number(targetSell)
+    : calculateDefaultTargetSell(Number(entryPrice));
 
   if (
     brainScore &&
@@ -421,26 +341,38 @@ if (action === "buy" || action === "open") {
     flow: action === "open" ? "LEGACY_OPEN" : "BUY_ORDER_FLOW",
     entryPrice: Number(entryPrice),
     averageEntryPrice: Number(entryPrice),
+
     originalQuantity: qty,
+
+    // quantity = how many items you CURRENTLY own and have not sold yet
     quantity: action === "open" ? qty : 0,
+
     orderedQuantity: qty,
     receivedQuantity: action === "open" ? qty : 0,
+
     listedQuantity: 0,
+
+    // ADD THIS:
     soldQuantity: 0,
+
     totalListedQuantity: 0,
+
     buyOfferFeePaid,
     sellOfferFeePaid: 0,
-    targetSell: Number(targetSell),
+
+    targetSell: finalTargetSell,
     desiredMargin: 0.06,
     entryBrainScore: brainScore ? Number(brainScore) : null,
+
     status: action === "open" ? "OPEN" : "BUY_ORDER_PLACED",
+
     events: [
       {
         type: action === "open" ? "LEGACY_OPEN" : "BUY_ORDER_PLACED",
         at: now,
         entryPrice: Number(entryPrice),
         quantity: qty,
-        targetSell: Number(targetSell),
+        targetSell: finalTargetSell,
         offerFeePaid: buyOfferFeePaid,
         brainScore: brainScore ? Number(brainScore) : null,
       },
@@ -458,6 +390,105 @@ if (action === "buy" || action === "open") {
   process.exit(0);
 }
 
+if (action === "add") {
+  const [itemInput, quantity, costPerItem = 0] = args;
+  if (!itemInput || !quantity) {
+    printUsage();
+    process.exit(1);
+  }
+
+  if (!isPositiveNumber(quantity)) fail("QUANTITY must be a positive number.");
+  if (costPerItem && !Number.isFinite(Number(costPerItem))) fail("COST_PER_ITEM must be a number.");
+
+  const resolvedItem = resolveItem(itemInput);
+  const existingOpen = findActivePosition(positionsData, resolvedItem.id);
+
+  if (existingOpen) {
+    console.log("There is already an active position for this item.");
+    process.exit(1);
+  }
+
+  const now = new Date().toISOString();
+  const qty = Number(quantity);
+  const cost = Number(costPerItem || 0);
+
+  const position = {
+    id: resolvedItem.id,
+    name: resolvedItem.name,
+    createdAt: now,
+    openedAt: now,
+    flow: "EXTERNAL_INVENTORY",
+    entryPrice: cost,
+    averageEntryPrice: cost,
+    originalQuantity: qty,
+    quantity: qty,
+    orderedQuantity: qty,
+    receivedQuantity: qty,
+    listedQuantity: 0,
+    soldQuantity: 0,
+    totalListedQuantity: 0,
+    buyOfferFeePaid: 0,
+    sellOfferFeePaid: 0,
+    targetSell: 0,
+    desiredMargin: 0.06,
+    entryBrainScore: null,
+    status: "EXTERNAL_READY",
+    events: [
+      {
+        type: "EXTERNAL_ITEMS_ADDED",
+        at: now,
+        quantity: qty,
+        entryPrice: cost,
+      },
+    ],
+  };
+
+  positionsData.positions.push(position);
+  savePositions(positionsData);
+
+  console.log("\nEXTERNAL ITEMS ADDED\n");
+  printPosition(position);
+  console.log("Next step: list items for sale, instant sell, or keep tracking.");
+  process.exit(0);
+}
+
+if (action === "cancel" || action === "expire") {
+  const [itemInput, ...reasonParts] = args;
+  if (!itemInput) {
+    printUsage();
+    process.exit(1);
+  }
+
+  const resolvedItem = resolveItem(itemInput);
+  const position = findActivePosition(positionsData, resolvedItem.id);
+  if (!position) fail("No active order/position found for this item.");
+
+  normalizePosition(position);
+
+  if (position.quantity > 0 || position.receivedQuantity > 0) {
+    fail("This order already received items. Use list/sold flow for owned items; cancel only untouched buy orders.");
+  }
+
+  const now = new Date().toISOString();
+  const reason = reasonParts.join(" ") || (action === "expire" ? "Order expired after 30 days" : "Manual cancel");
+
+  position.status = action === "expire" ? "BUY_ORDER_EXPIRED" : "BUY_ORDER_CANCELLED";
+  position.cancelledAt = now;
+  position.cancelReason = reason;
+  addEvent(position, position.status, {
+    reason,
+    lostBuyOfferFee: Number(position.buyOfferFeePaid || 0),
+  });
+
+  savePositions(positionsData);
+
+  console.log(action === "expire" ? "\nBUY ORDER EXPIRED\n" : "\nBUY ORDER CANCELLED\n");
+  printPosition(position);
+  console.log(`Reason: ${reason}`);
+  console.log(`Fee lost: ${formatGp(position.buyOfferFeePaid)} gp`);
+  process.exit(0);
+}
+
 if (action === "receive") {
   const [itemInput, quantity, actualEntryPrice] = args;
   if (!itemInput || !quantity) {
@@ -471,7 +502,7 @@ if (action === "receive") {
   }
 
   const resolvedItem = resolveItem(itemInput);
-  const position = await chooseActivePosition(positionsData, resolvedItem.id);
+  const position = findActivePosition(positionsData, resolvedItem.id);
 
   if (!position) fail("No active position found for this item.");
 
@@ -520,7 +551,7 @@ if (action === "list") {
     fail("LIST_PRICE must be a positive number.");
 
   const resolvedItem = resolveItem(itemInput);
-  const position = await chooseActivePosition(positionsData, resolvedItem.id);
+  const position = findActivePosition(positionsData, resolvedItem.id);
 
   if (!position) fail("No active position found for this item.");
 
@@ -562,14 +593,13 @@ if (action === "list") {
 
 if (action === "sold" || action === "close") {
   const [itemInput, firstNumber, secondNumber] = args;
-
   if (!itemInput || !firstNumber) {
     printUsage();
     process.exit(1);
   }
 
   const resolvedItem = resolveItem(itemInput);
-  const position = await chooseActivePosition(positionsData, resolvedItem.id);
+  const position = findActivePosition(positionsData, resolvedItem.id);
 
   if (!position) fail("No active position found.");
 
@@ -577,84 +607,16 @@ if (action === "sold" || action === "close") {
     action === "close" && !secondNumber
       ? position.quantity
       : Number(firstNumber);
+  const sellPrice =
+    action === "close" && !secondNumber
+      ? Number(firstNumber)
+      : secondNumber
+        ? Number(secondNumber)
+        : Number(position.lastListPrice || 0);
 
-  if (!isPositiveNumber(quantity)) {
-    fail("QUANTITY must be a positive number.");
-  }
-
-  let sellPrice;
-
-  if (action === "sold") {
-    if (secondNumber) {
-      // Custom/manual sell price was provided.
-      sellPrice = Number(secondNumber);
-    } else if (
-      position.lastListPrice &&
-      Number(position.listedQuantity || 0) >= Number(quantity)
-    ) {
-      // Normal flow: listed first, then sold.
-      sellPrice = Number(position.lastListPrice);
-      console.log(`\nUsing last listed price: ${formatGp(sellPrice)} gp`);
-    } else {
-      fail(
-        "SELL_PRICE is required because this item was not listed first. Use: node trade.js sold ITEM QUANTITY SELL_PRICE",
-      );
-    }
-  } else {
-    sellPrice =
-      action === "close" && !secondNumber
-        ? Number(firstNumber)
-        : Number(secondNumber);
-  }
-
-  if (!isPositiveNumber(sellPrice)) {
+  if (!isPositiveNumber(quantity)) fail("QUANTITY must be a positive number.");
+  if (!isPositiveNumber(sellPrice))
     fail("SELL_PRICE must be a positive number.");
-  }
-
-  if (
-    action === "sold" &&
-    Number(position.listedQuantity || 0) < Number(quantity)
-  ) {
-    const instantSell = await askYesNo(
-      "\nThis quantity was not fully listed first. Was this an instant sell to a buy offer? Y/N",
-    );
-
-    if (!instantSell) {
-      console.log(
-        "\nCancelled. Use 'List Items For Sale' first, or provide a custom instant-sell price.\n",
-      );
-      process.exit(0);
-    }
-  }
-
-  const previewTrade = calculateClosedTrade(
-    position,
-    sellPrice,
-    action === "close" ? "MANUAL_CLOSE" : "PARTIAL_OR_FULL_SOLD",
-    quantity,
-  );
-
-  console.log("\nSALE PREVIEW\n");
-  console.log(`Item: ${previewTrade.name}`);
-  console.log(`Quantity: ${previewTrade.quantity}`);
-  console.log(`Entry/cost: ${formatGp(previewTrade.entryPrice)} gp`);
-  console.log(`Sell price: ${formatGp(previewTrade.sellPrice)} gp`);
-  console.log(
-    `Buy offer fee used: ${formatGp(previewTrade.buyOfferFeePaid)} gp`,
-  );
-  console.log(
-    `Sell offer fee used: ${formatGp(previewTrade.sellOfferFeePaid)} gp`,
-  );
-  console.log(`Total fees used: ${formatGp(previewTrade.totalFees)} gp`);
-  console.log(`Expected profit: ${formatGp(previewTrade.netProfit)} gp`);
-  console.log(`Expected ROI: ${previewTrade.roiPercent.toFixed(2)}%`);
-
-  const confirmSale = await askYesNo("\nConfirm and save this sale? Y/N");
-
-  if (!confirmSale) {
-    console.log("\nSale cancelled. Nothing was saved.\n");
-    process.exit(0);
-  }
 
   const state = loadState();
 
@@ -676,13 +638,11 @@ if (action === "sold" || action === "close") {
   );
   console.log(`Item: ${trade.name}`);
   console.log(`Sold quantity: ${trade.quantity}`);
-
   if (position.status === "BUY_ORDER_PLACED") {
     console.log(`Ordered quantity: ${position.orderedQuantity}`);
   } else {
     console.log(`Remaining quantity: ${position.quantity}`);
   }
-
   console.log(`Entry: ${formatGp(trade.entryPrice)} gp`);
   console.log(`Sell: ${formatGp(trade.sellPrice)} gp`);
   console.log(`Buy offer fee used: ${formatGp(trade.buyOfferFeePaid)} gp`);

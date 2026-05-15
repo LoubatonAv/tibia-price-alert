@@ -14,14 +14,17 @@ echo 3. Add Loot / External Items
 echo 4. List Items For Sale
 echo 5. Sold Items
 echo 6. Trade Stats
+echo 7. Open Orders / Positions
+echo 8. Cancel Buy Order
+echo 9. Expire Buy Order
 echo.
 echo ===== Market Advisor =====
-echo 7. Sell Advisor
-echo 8. Buy Price Check
+echo 10. Sell Check
+echo 11. Buy Price Check
 echo.
 echo ===== Tools =====
-echo 9. Git Push
-echo 10. Exit
+echo 12. Git Push
+echo 13. Exit
 echo.
 
 set /p choice=Choose option: 
@@ -32,10 +35,13 @@ if "%choice%"=="3" goto addexternal
 if "%choice%"=="4" goto list
 if "%choice%"=="5" goto sold
 if "%choice%"=="6" goto stats
-if "%choice%"=="7" goto inventory
-if "%choice%"=="8" goto inventorybuy
-if "%choice%"=="9" goto gitpush
-if "%choice%"=="10" exit
+if "%choice%"=="7" goto orders
+if "%choice%"=="8" goto cancel
+if "%choice%"=="9" goto expire
+if "%choice%"=="10" goto inventory
+if "%choice%"=="11" goto inventorybuy
+if "%choice%"=="12" goto gitpush
+if "%choice%"=="13" exit
 
 goto menu
 
@@ -44,13 +50,15 @@ cls
 echo ADD BUY ORDER
 echo.
 echo Use this after placing a buy offer in Tibia Market.
+echo Target sell is optional. Leave empty and the bot calculates a 6%% target.
 echo.
 
 set /p itemInput=Item Name or ID: 
 set /p entryPrice=Buy price: 
 set /p quantity=Quantity ordered: 
+set /p targetSell=Target sell optional: 
 
-call npm run trade -- buy "%itemInput%" %entryPrice% %quantity% 0
+call npm run trade -- buy "%itemInput%" %entryPrice% %quantity% %targetSell%
 
 pause
 goto menu
@@ -75,8 +83,6 @@ echo ADD LOOT / EXTERNAL ITEMS
 echo.
 echo Use this for loot, drops, manual trades, old stash, or items not bought through the market.
 echo.
-echo If this item dropped from a monster, choose Y and cost will be 0 automatically.
-echo.
 
 set /p itemInput=Item Name or ID: 
 set /p quantity=Quantity: 
@@ -85,10 +91,7 @@ set /p isLoot=Is this loot/drop? Y/N:
 if /I "%isLoot%"=="Y" (
   set cost=0
 ) else (
-  echo.
-  echo Enter acquisition cost per item.
-  echo If the item was free, type 0.
-  set /p cost=Cost per item: 
+  set /p cost=Cost per item, type 0 if free: 
 )
 
 call npm run trade -- add "%itemInput%" %quantity% %cost%
@@ -130,9 +133,37 @@ goto menu
 
 :stats
 cls
-
 call npm run trade -- stats
+pause
+goto menu
 
+:orders
+cls
+call npm run trade -- orders
+pause
+goto menu
+
+:cancel
+cls
+echo CANCEL BUY ORDER
+echo.
+echo Use only for a buy order that did not receive items.
+echo This does NOT close a trade. It only marks the order cancelled and records the lost fee.
+echo.
+set /p itemInput=Item Name or ID: 
+set /p reason=Reason optional: 
+call npm run trade -- cancel "%itemInput%" "%reason%"
+pause
+goto menu
+
+:expire
+cls
+echo EXPIRE BUY ORDER
+echo.
+echo Use when a buy order expired after about 30 days without filling.
+echo.
+set /p itemInput=Item Name or ID: 
+call npm run trade -- expire "%itemInput%"
 pause
 goto menu
 
@@ -140,13 +171,12 @@ goto menu
 cls
 echo SELL CHECK
 echo.
-echo The bot will use the TibiaMarket board API for Harmonia.
-echo It compares:
-echo 1. Market listing
-echo 2. Instant sell to buy offers
+echo This compares:
+echo 1. Listing on market
+echo 2. Instant sell to buy offer
 echo 3. NPC sell
 echo.
-echo If the API fails, run the manual command directly with --live-sell / --live-buy.
+echo You can usually enter only item + quantity + 0. The bot tries to fetch the market board automatically.
 echo.
 
 set /p itemInput=Item Name or ID: 
@@ -159,27 +189,52 @@ goto menu
 
 :inventorybuy
 cls
-echo BUY PRICE CHECK
+echo BUY OFFER ADVISOR
 echo.
-echo The bot will use the TibiaMarket board API for Harmonia.
-echo It will read the live buy/sell board and estimate queue pressure automatically.
+echo This helps you decide where to place a BUY offer.
+echo.
+echo Look only at the BUY OFFERS side in Tibia Market.
+echo.
+echo Highest buy offer = the top buy offer.
+echo Lowest relevant buy = the lowest buy offer in the crowded/range area you care about.
+echo Estimated quantity in range = about how many items are competing between those prices.
+echo.
+echo You can leave "Your planned buy price" empty if you want the bot to suggest one.
 echo.
 
-set /p ITEM=Item Name or ID: 
-set /p QTY=Quantity you want to buy: 
-set /p BUY_PRICE=Buy price you are thinking of paying: 
+set "ITEM="
+set "QTY="
+set "BUY_PRICE="
+set "LIVE_BUY="
+set "LOW_BUY_ABOVE="
+set "BUY_AHEAD="
 
-call node inventory.js buy "%ITEM%" %QTY% %BUY_PRICE%
+set /p "ITEM=Item Name or ID: "
+set /p "QTY=Quantity you want to buy: "
+set /p "BUY_PRICE=Your planned buy price optional, press Enter for advisor mode: "
+
+if not defined BUY_PRICE set "BUY_PRICE=0"
+
+echo.
+echo BUY OFFERS side:
+set /p "LIVE_BUY=Highest buy offer: "
+set /p "LOW_BUY_ABOVE=Lowest relevant buy offer in this range: "
+set /p "BUY_AHEAD=Estimated total quantity in this range: "
+
+echo.
+echo Running advisor...
+echo node inventory.js buy "%ITEM%" %QTY% %BUY_PRICE% --live-buy "%LIVE_BUY%" --buy-range-low "%LOW_BUY_ABOVE%" --buy-ahead "%BUY_AHEAD%"
+echo.
+
+call node inventory.js buy "%ITEM%" %QTY% %BUY_PRICE% --live-buy "%LIVE_BUY%" --buy-range-low "%LOW_BUY_ABOVE%" --buy-ahead "%BUY_AHEAD%"
 
 pause
 goto menu
 
 :gitpush
 cls
-
-git add positions.json state.json inventory.json
-git commit -m "update trades"
+git add positions.json state.json inventory.json tracked-items.json data/tracked-items.json
+git commit -m "update tibia trading data"
 git push
-
 pause
 goto menu
