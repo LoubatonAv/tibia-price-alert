@@ -254,13 +254,13 @@ function getNextRunRecommendation(volatility) {
 function isSimpleBuySignal(item) {
   const hasGoodLiquidity = item.monthSold >= 100 && item.daySold >= 3;
 
-  const hasSafeSpread = item.fakeSpreadRisk < 30;
+  const hasSafeSpread = item.fakeSpreadRisk < 40;
 
-  const hasHealthyVolume = item.volumeRatio >= 0.8;
+  const hasHealthyVolume = item.volumeRatio >= 0.5;
 
   const hasGoodProfit = item.profit >= MIN_PROFIT && item.profitPercent >= 5;
 
-  const hasGoodBrain = item.brainScore >= 75;
+  const hasGoodBrain = item.brainScore >= 65;
 
   const notFalling = !item.fallingHard;
 
@@ -769,11 +769,16 @@ function getSnipeData(item) {
   const discountPercent = ((referencePrice - sellOffer) / referencePrice) * 100;
   const isExpensiveEnough = sellOffer >= SNIPE_MIN_SELL_PRICE;
   const isDiscountedEnough = discountPercent >= SNIPE_MIN_DISCOUNT_PERCENT;
-  const hasSomeLiquidity = Number(item.monthSold || 0) >= 3 || Number(item.daySold || 0) > 0;
+  const hasSomeLiquidity =
+    Number(item.monthSold || 0) >= 3 || Number(item.daySold || 0) > 0;
   const notObviousTrap = Number(item.fakeSpreadRisk || 0) < 75;
 
   return {
-    isSnipe: isExpensiveEnough && isDiscountedEnough && hasSomeLiquidity && notObviousTrap,
+    isSnipe:
+      isExpensiveEnough &&
+      isDiscountedEnough &&
+      hasSomeLiquidity &&
+      notObviousTrap,
     discountPercent,
     referencePrice,
     reason: isExpensiveEnough
@@ -1038,7 +1043,11 @@ async function main() {
 
     const withPersonalMemory = {
       ...withConviction,
-      brainScore: clamp(withConviction.brainScore + personalConfidence.scoreAdjust, 0, 100),
+      brainScore: clamp(
+        withConviction.brainScore + personalConfidence.scoreAdjust,
+        0,
+        100,
+      ),
       personalTradeConfidence: personalConfidence.label,
       personalTradeSummary: personalConfidence.summary,
     };

@@ -108,19 +108,23 @@ function isSimpleBuySignal(item) {
 
   const hasGoodLiquidity = item.monthSold >= 100 && item.daySold >= 3;
 
-  const hasSafeSpread = item.fakeSpreadRisk < 30;
+  const hasSafeSpread = item.fakeSpreadRisk < 40;
 
-  const hasHealthyVolume = item.volumeRatio >= 0.8;
+  const hasHealthyVolume = item.volumeRatio >= 0.5;
 
   const hasGoodProfit = item.profit >= MIN_PROFIT && item.profitPercent >= 5;
 
-  const hasGoodBrain = item.brainScore >= 75;
+  const hasGoodBrain = item.brainScore >= 65;
 
   const hasGoodConviction =
     ["HIGH CONVICTION TRADE", "MEDIUM CONVICTION TRADE"].includes(
       item.conviction,
-    ) && item.tradeabilityScore >= 60;
-
+    ) ||
+    (item.conviction === "LOW CONVICTION" &&
+      item.brainScore >= 80 &&
+      item.tradeabilityScore >= 55 &&
+      item.fakeSpreadRisk < 20 &&
+      item.volumeRatio >= 0.8);
   const notFalling = !item.fallingHard;
 
   if (
@@ -135,6 +139,42 @@ function isSimpleBuySignal(item) {
   ) {
     item.reason =
       "High Brain Score, safe spread, good liquidity, and good tradeability/conviction.";
+  }
+
+  if (
+    !hasGoodLiquidity ||
+    !hasSafeSpread ||
+    !hasHealthyVolume ||
+    !hasGoodProfit ||
+    !hasGoodBrain ||
+    !hasGoodConviction ||
+    !notFalling
+  ) {
+    console.log(`
+REJECTED: ${item.name}
+------------------------
+Decision: ${item.decision}
+Brain: ${item.brainScore}
+Liquidity: day=${item.daySold} month=${item.monthSold}
+Volume ratio: ${item.volumeRatio}
+Fake spread: ${item.fakeSpreadRisk}
+Profit: ${item.profit}
+Profit %: ${item.profitPercent}
+Min profit needed: ${MIN_PROFIT}
+Tradeability: ${item.tradeabilityScore}
+Conviction: ${item.conviction}
+Pressure: ${item.marketPressureLevel}
+Falling: ${item.fallingHard}
+
+Checks:
+hasGoodLiquidity: ${hasGoodLiquidity}
+hasSafeSpread: ${hasSafeSpread}
+hasHealthyVolume: ${hasHealthyVolume}
+hasGoodProfit: ${hasGoodProfit}
+hasGoodBrain: ${hasGoodBrain}
+hasGoodConviction: ${hasGoodConviction}
+notFalling: ${notFalling}
+`);
   }
 
   return (
@@ -390,8 +430,24 @@ function markSellAlertSent(state, item) {
 }
 
 function buildSimpleBuyTitle(item) {
-  if (item.brainScore >= 85) return `🟢 BUY — ${item.name} — VERY STRONG`;
-  if (item.brainScore >= 75) return `🟢 BUY — ${item.name} — STRONG`;
+  const researchOnly = item.conviction === "LOW CONVICTION";
+
+  if (researchOnly) {
+    if (item.brainScore >= 85) {
+      return `🟡 BUY CANDIDATE — ${item.name} — RESEARCH`;
+    }
+
+    return `🟡 WATCH BUY — ${item.name}`;
+  }
+
+  if (item.brainScore >= 85) {
+    return `🟢 BUY — ${item.name} — VERY STRONG`;
+  }
+
+  if (item.brainScore >= 75) {
+    return `🟢 BUY — ${item.name} — STRONG`;
+  }
+
   return `🟡 BUY — ${item.name} — GOOD`;
 }
 
