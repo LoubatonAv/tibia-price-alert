@@ -36,6 +36,17 @@ import {
   MIN_SIMPLE_BUY_VOLUME_RATIO,
   MAX_SIMPLE_BUY_FAKE_SPREAD_RISK,
   SEND_EMPTY_SUMMARY,
+  ENABLE_LOW_CONVICTION_CANDIDATES,
+  LOW_CONVICTION_MIN_BRAIN_SCORE,
+  LOW_CONVICTION_MIN_TRADEABILITY,
+  LOW_CONVICTION_MIN_VOLUME_RATIO,
+  LOW_CONVICTION_MAX_FAKE_SPREAD_RISK,
+  VOLATILITY_HISTORY_WINDOW,
+  VOLATILITY_ITEM_SPIKE_CAP,
+  VOLATILITY_HIGH_THRESHOLD,
+  VOLATILITY_MEDIUM_THRESHOLD,
+  FLIPS_DEBUG_REJECTIONS,
+  EMPTY_SUMMARY_TOP_REJECTIONS,
   SCORE_DROP_WARNING,
   SCORE_DROP_PANIC,
   BATCH_SIZE,
@@ -46,41 +57,146 @@ const DISCORD_WEBHOOK_URL = process.env.TIBIA_FLIPS_WEBHOOK_URL;
 
 const ITEM_IDS = getTrackedItemIds();
 
+function getNumber(value, fallback = 0) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function getExpectedFillSpeed(item) {
+  const daySold = getNumber(item.daySold);
+  const monthSold = getNumber(item.monthSold);
+  const avgDaily = monthSold > 0 ? monthSold / 30 : 0;
+  const pace = Math.max(daySold, avgDaily);
+
+  if (pace >= 60) return { label: "VERY FAST", days: "<1", score: 95 };
+  if (pace >= 25) return { label: "FAST", days: "1–2", score: 82 };
+  if (pace >= 8) return { label: "NORMAL", days: "2–4", score: 65 };
+  if (pace >= 3) return { label: "SLOW", days: "4–8", score: 42 };
+  if (pace > 0) return { label: "VERY SLOW", days: "8+", score: 20 };
+  return { label: "UNKNOWN", days: "?", score: 0 };
+}
+
+function calculateSignalConfidence(item, checks = {}) {
+  let confidence = 50;
+
+  confidence += clamp((getNumber(item.brainScore) - 70) * 0.7, -20, 20);
+  confidence += clamp((getNumber(item.tradeabilityScore) - 55) * 0.6, -18, 18);
+  confidence += clamp((getNumber(item.volumeRatio) - 0.7) * 18, -14, 18);
+  confidence += clamp((getNumber(item.profitPercent) - 4) * 2, -10, 16);
+  confidence -= clamp(getNumber(item.fakeSpreadRisk) * 0.45, 0, 35);
+  confidence -= clamp(getNumber(item.marketPressure) * 0.25, 0, 25);
+
+  if (item.conviction === "HIGH CONVICTION TRADE") confidence += 12;
+  if (item.conviction === "MEDIUM CONVICTION TRADE") confidence += 5;
+  if (item.conviction === "LOW CONVICTION") confidence -= 8;
+  if (item.conviction === "AVOID / TRAP RISK") confidence -= 35;
+  if (item.fallingHard) confidence -= 18;
+  if (checks.isResearchCandidate) confidence = Math.min(confidence, 74);
+  if (checks.isCleanBuy) confidence = Math.max(confidence, 76);
+
+  return Math.round(clamp(confidence, 0, 100));
+}
+
+function getSignalClass(item, checks = {}) {
+  if (checks.isCleanBuy) return "CLEAN_BUY";
+  if (checks.isResearchCandidate) return "BUY_CANDIDATE";
+  if (
+    item.conviction === "AVOID / TRAP RISK" ||
+    getNumber(item.fakeSpreadRisk) >= 55
+  ) {
+    return "AVOID";
+  }
+  return "WATCH";
+}
+
+function getRejectionReasons(item, checks) {
+  const reasons = [];
+
+  if (!checks.hasGoodLiquidity) reasons.push("liquidity too weak");
+  if (!checks.hasSafeSpread) reasons.push("fake/spiky spread risk");
+  if (!checks.hasHealthyVolume) reasons.push("volume below threshold");
+  if (!checks.hasGoodProfit) reasons.push("profit too small");
+  if (!checks.hasGoodBrain) reasons.push("Brain Score too low");
+  if (!checks.hasGoodConviction && !checks.isResearchCandidate) {
+    reasons.push("conviction too low");
+  }
+  if (!checks.notFalling) reasons.push("price is falling");
+  if (!["BUY", "WATCH"].includes(item.decision))
+    reasons.push(`decision is ${item.decision}`);
+  if (["HIGH", "EXTREME"].includes(item.marketPressureLevel)) {
+    reasons.push(`market pressure ${item.marketPressureLevel}`);
+  }
+  if (item.hasOpenPosition) reasons.push("already has open position");
+
+  return reasons;
+}
+
 function calculateMarketVolatility(items, state) {
-  let volatility = 0;
+  const itemScores = [];
 
   items.forEach((item) => {
     const history = state.items[String(item.id)];
-    if (!history || history.length < 2) return;
+    if (!history || history.length < 3) return;
 
-    const last = history[history.length - 1];
-    const prev = history[history.length - 2];
+    const recent = history.slice(-VOLATILITY_HISTORY_WINDOW);
+    const moves = [];
 
-    const priceChange =
-      prev.sellOffer > 0
-        ? Math.abs((last.sellOffer - prev.sellOffer) / prev.sellOffer) * 100
-        : 0;
+    for (let i = 1; i < recent.length; i++) {
+      const previous = recent[i - 1];
+      const current = recent[i];
 
-    const profitChange = Math.abs(
-      (last.profitPercent || 0) - (prev.profitPercent || 0),
-    );
+      const previousSell = getNumber(previous.sellOffer);
+      const currentSell = getNumber(current.sellOffer);
+      const previousBuy = getNumber(previous.buyOffer);
+      const currentBuy = getNumber(current.buyOffer);
+      const previousProfitPercent = getNumber(previous.profitPercent);
+      const currentProfitPercent = getNumber(current.profitPercent);
 
-    volatility += priceChange * 0.7 + profitChange * 0.3;
+      const sellMove =
+        previousSell > 0
+          ? Math.abs((currentSell - previousSell) / previousSell) * 100
+          : 0;
+      const buyMove =
+        previousBuy > 0
+          ? Math.abs((currentBuy - previousBuy) / previousBuy) * 100
+          : 0;
+      const profitMove = Math.abs(currentProfitPercent - previousProfitPercent);
+
+      moves.push(sellMove * 0.45 + buyMove * 0.25 + profitMove * 0.3);
+    }
+
+    if (moves.length === 0) return;
+
+    const averageMove =
+      moves.reduce((sum, value) => sum + value, 0) / moves.length;
+    const cappedMove = Math.min(averageMove, VOLATILITY_ITEM_SPIKE_CAP);
+    const liquidityWeight =
+      getNumber(item.monthSold) >= 500
+        ? 1.15
+        : getNumber(item.monthSold) >= 100
+          ? 1
+          : 0.75;
+
+    itemScores.push(cappedMove * liquidityWeight);
   });
 
-  return Math.round(volatility);
+  if (itemScores.length === 0) return 0;
+
+  const average =
+    itemScores.reduce((sum, value) => sum + value, 0) / itemScores.length;
+  return Math.round(average);
 }
 
 function getNextRunRecommendation(volatility) {
-  if (volatility >= 25) {
+  if (volatility >= VOLATILITY_HIGH_THRESHOLD) {
     return {
       level: "HIGH",
       nextRunHours: 1,
-      message: "Market is very active. Check frequently.",
+      message: "Market is active. Check frequently, but avoid chasing spikes.",
     };
   }
 
-  if (volatility >= 10) {
+  if (volatility >= VOLATILITY_MEDIUM_THRESHOLD) {
     return {
       level: "MEDIUM",
       nextRunHours: 3,
@@ -96,60 +212,75 @@ function getNextRunRecommendation(volatility) {
 }
 
 function isSimpleBuySignal(item) {
-  if (item.hasOpenPosition) {
-    item.reason = "Skipped BUY because there is already an OPEN position.";
-    return false;
-  }
-
-  if (["HIGH", "EXTREME"].includes(item.marketPressureLevel)) {
-    item.reason = `Skipped BUY because market pressure is ${item.marketPressureLevel}.`;
-    return false;
-  }
-
   const hasGoodLiquidity = item.monthSold >= 100 && item.daySold >= 3;
-
-  const hasSafeSpread = item.fakeSpreadRisk < 40;
-
-  const hasHealthyVolume = item.volumeRatio >= 0.5;
-
-  const hasGoodProfit = item.profit >= MIN_PROFIT && item.profitPercent >= 5;
-
-  const hasGoodBrain = item.brainScore >= 65;
-
+  const hasSafeSpread = item.fakeSpreadRisk < MAX_SIMPLE_BUY_FAKE_SPREAD_RISK;
+  const hasHealthyVolume = item.volumeRatio >= MIN_SIMPLE_BUY_VOLUME_RATIO;
+  const hasGoodProfit =
+    item.profit >= MIN_PROFIT &&
+    item.profitPercent >= MIN_SIMPLE_BUY_PROFIT_PERCENT;
+  const hasGoodBrain = item.brainScore >= MIN_SIMPLE_BUY_BRAIN_SCORE;
   const hasGoodConviction =
     ["HIGH CONVICTION TRADE", "MEDIUM CONVICTION TRADE"].includes(
       item.conviction,
-    ) ||
-    (item.conviction === "LOW CONVICTION" &&
-      item.brainScore >= 80 &&
-      item.tradeabilityScore >= 55 &&
-      item.fakeSpreadRisk < 20 &&
-      item.volumeRatio >= 0.8);
+    ) && item.tradeabilityScore >= 60;
+  const isResearchCandidate =
+    ENABLE_LOW_CONVICTION_CANDIDATES &&
+    item.conviction === "LOW CONVICTION" &&
+    item.brainScore >= LOW_CONVICTION_MIN_BRAIN_SCORE &&
+    item.tradeabilityScore >= LOW_CONVICTION_MIN_TRADEABILITY &&
+    item.fakeSpreadRisk <= LOW_CONVICTION_MAX_FAKE_SPREAD_RISK &&
+    item.volumeRatio >= LOW_CONVICTION_MIN_VOLUME_RATIO;
   const notFalling = !item.fallingHard;
 
-  if (
-    item.decision === "WATCH" &&
+  const checks = {
+    hasGoodLiquidity,
+    hasSafeSpread,
+    hasHealthyVolume,
+    hasGoodProfit,
+    hasGoodBrain,
+    hasGoodConviction,
+    isResearchCandidate,
+    notFalling,
+  };
+
+  const basePass =
+    ["BUY", "WATCH"].includes(item.decision) &&
     hasGoodLiquidity &&
     hasSafeSpread &&
     hasHealthyVolume &&
     hasGoodProfit &&
     hasGoodBrain &&
-    hasGoodConviction &&
-    notFalling
-  ) {
+    notFalling &&
+    !item.hasOpenPosition &&
+    !["HIGH", "EXTREME"].includes(item.marketPressureLevel);
+
+  const isCleanBuy = basePass && hasGoodConviction;
+  const isCandidate = basePass && isResearchCandidate;
+
+  item.signalClass = getSignalClass(item, {
+    isCleanBuy,
+    isResearchCandidate: isCandidate,
+  });
+  item.signalConfidence = calculateSignalConfidence(item, {
+    isCleanBuy,
+    isResearchCandidate: isCandidate,
+  });
+  item.fillSpeed = getExpectedFillSpeed(item);
+  item.rejectionReasons = getRejectionReasons(item, checks);
+
+  if (isCleanBuy) {
     item.reason =
-      "High Brain Score, safe spread, good liquidity, and good tradeability/conviction.";
+      "Clean BUY: strong conviction, healthy liquidity, safe spread, and acceptable profit.";
+  } else if (isCandidate) {
+    item.reason =
+      "Numbers look good, but this is not safe enough for an automatic BUY.";
+  } else if (!item.reason) {
+    item.reason = item.rejectionReasons.length
+      ? `Rejected: ${item.rejectionReasons.join(", ")}.`
+      : "Rejected by conservative BUY filter.";
   }
 
-  if (
-    !hasGoodLiquidity ||
-    !hasSafeSpread ||
-    !hasHealthyVolume ||
-    !hasGoodProfit ||
-    !hasGoodBrain ||
-    !hasGoodConviction ||
-    !notFalling
-  ) {
+  if (FLIPS_DEBUG_REJECTIONS && !isCleanBuy && !isCandidate) {
     console.log(`
 REJECTED: ${item.name}
 ------------------------
@@ -165,28 +296,11 @@ Tradeability: ${item.tradeabilityScore}
 Conviction: ${item.conviction}
 Pressure: ${item.marketPressureLevel}
 Falling: ${item.fallingHard}
-
-Checks:
-hasGoodLiquidity: ${hasGoodLiquidity}
-hasSafeSpread: ${hasSafeSpread}
-hasHealthyVolume: ${hasHealthyVolume}
-hasGoodProfit: ${hasGoodProfit}
-hasGoodBrain: ${hasGoodBrain}
-hasGoodConviction: ${hasGoodConviction}
-notFalling: ${notFalling}
+Reasons: ${item.rejectionReasons.join(" | ") || "unknown"}
 `);
   }
 
-  return (
-    ["BUY", "WATCH"].includes(item.decision) &&
-    hasGoodLiquidity &&
-    hasSafeSpread &&
-    hasHealthyVolume &&
-    hasGoodProfit &&
-    hasGoodBrain &&
-    hasGoodConviction &&
-    notFalling
-  );
+  return isCleanBuy || isCandidate;
 }
 
 function getSellDecision(item, state) {
@@ -430,25 +544,39 @@ function markSellAlertSent(state, item) {
 }
 
 function buildSimpleBuyTitle(item) {
-  const researchOnly = item.conviction === "LOW CONVICTION";
-
-  if (researchOnly) {
-    if (item.brainScore >= 85) {
-      return `🟡 BUY CANDIDATE — ${item.name} — RESEARCH`;
-    }
-
-    return `🟡 WATCH BUY — ${item.name}`;
+  if (item.signalClass === "BUY_CANDIDATE") {
+    return `🟡 BUY CANDIDATE — ${item.name} — RESEARCH`;
   }
 
-  if (item.brainScore >= 85) {
+  if (item.signalConfidence >= 88 || item.brainScore >= 90) {
     return `🟢 BUY — ${item.name} — VERY STRONG`;
   }
 
-  if (item.brainScore >= 75) {
+  if (item.signalConfidence >= 76 || item.brainScore >= 75) {
     return `🟢 BUY — ${item.name} — STRONG`;
   }
 
   return `🟡 BUY — ${item.name} — GOOD`;
+}
+
+function getReadableTradeQuality(conviction) {
+  if (conviction === "HIGH CONVICTION TRADE") {
+    return "Very reliable";
+  }
+
+  if (conviction === "MEDIUM CONVICTION TRADE") {
+    return "Reasonable setup";
+  }
+
+  if (conviction === "LOW CONVICTION") {
+    return "Needs caution";
+  }
+
+  if (conviction === "AVOID / TRAP RISK") {
+    return "Likely dangerous";
+  }
+
+  return conviction || "Unknown";
 }
 
 function buildSimpleSellTitle(item) {
@@ -459,6 +587,35 @@ function buildSimpleSellTitle(item) {
     return `🟠 SELL — ${item.name} — TAKE PROFIT`;
   }
   return `🟠 SELL — ${item.name} — WARNING`;
+}
+
+function buildRejectionSummary(items) {
+  const rejected = items
+    .filter(
+      (item) => !["CLEAN_BUY", "BUY_CANDIDATE"].includes(item.signalClass),
+    )
+    .map((item) => ({
+      item,
+      sortScore:
+        getNumber(item.brainScore) * 2 +
+        getNumber(item.tradeabilityScore) * 2 +
+        getNumber(item.profitPercent) * 3 +
+        getNumber(item.profit) / 1000 -
+        getNumber(item.fakeSpreadRisk) * 2,
+    }))
+    .sort((a, b) => b.sortScore - a.sortScore)
+    .slice(0, EMPTY_SUMMARY_TOP_REJECTIONS);
+
+  if (rejected.length === 0) return "No near-misses found.";
+
+  return rejected
+    .map(({ item }, index) => {
+      const reasons = (item.rejectionReasons || ["unknown"])
+        .slice(0, 3)
+        .join(", ");
+      return `${index + 1}. **${item.name}** — Brain ${item.brainScore}, Tradeability ${item.tradeabilityScore}, Profit ${formatGp(item.profit)} gp (${item.profitPercent.toFixed(2)}%) — ${reasons}`;
+    })
+    .join("\n");
 }
 
 async function sendDiscordBuyAlerts(buySignals, state) {
@@ -476,6 +633,43 @@ async function sendDiscordBuyAlerts(buySignals, state) {
   if (alertable.length === 0) {
     console.log("No simple BUY alerts after cooldown.");
     return;
+  }
+
+  function getHumanTradeRead(item) {
+    if (
+      item.tradeLabels?.includes("OVEREXTENDED") &&
+      item.tradeLabels?.includes("EASY EXIT")
+    ) {
+      return "Easy to resell, but current price already looks high.";
+    }
+
+    if (
+      item.tradeLabels?.includes("UNDERCUT WAR") ||
+      item.marketPressureLevel === "HIGH"
+    ) {
+      return "Too much seller pressure right now.";
+    }
+
+    if (
+      item.tradeLabels?.includes("TRUSTWORTHY SPREAD") &&
+      item.volumeRatio >= 1
+    ) {
+      return "Market looks healthy and active.";
+    }
+
+    if (item.fakeSpreadRisk >= 40) {
+      return "Spread may be misleading or unstable.";
+    }
+
+    if (item.volumeRatio < 0.6) {
+      return "Could be hard to resell quickly.";
+    }
+
+    if (item.brainScore >= 85) {
+      return "Strong setup overall, but still watch the market closely.";
+    }
+
+    return "Mixed signals. Worth watching carefully.";
   }
 
   const embeds = alertable.slice(0, 5).map((item) => ({
@@ -501,12 +695,9 @@ async function sendDiscordBuyAlerts(buySignals, state) {
         inline: true,
       },
       {
-        name: "🧭 CONVICTION",
-        value:
-          `**${item.conviction}**\n` +
-          `Tradeability: **${item.tradeabilityScore}/100**\n` +
-          `${item.tradeLabels?.join(" • ") || "No labels"}`,
-        inline: true,
+        name: "📈 TRADE READ",
+        value: getHumanTradeRead(item),
+        inline: false,
       },
       {
         name: "💰 REALISTIC PROFIT",
@@ -545,7 +736,7 @@ async function sendDiscordBuyAlerts(buySignals, state) {
   }));
 
   await axios.post(DISCORD_WEBHOOK_URL, {
-    content: `🟢 Tibia Flipper BUY signals on **${SERVER}**`,
+    content: `🟢 Tibia Flipper BUY signals on **${SERVER}** (${alertable.length} alert${alertable.length === 1 ? "" : "s"})`,
     embeds,
   });
 

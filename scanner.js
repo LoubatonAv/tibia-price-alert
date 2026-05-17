@@ -39,6 +39,10 @@ import {
   SNIPE_MIN_SELL_PRICE,
   SNIPE_MIN_DISCOUNT_PERCENT,
   SNIPE_TOP_LIMIT,
+  VOLATILITY_HISTORY_WINDOW,
+  VOLATILITY_ITEM_SPIKE_CAP,
+  VOLATILITY_HIGH_THRESHOLD,
+  VOLATILITY_MEDIUM_THRESHOLD,
 } from "./lib/constants.js";
 import { loadState, saveState, updateItemHistory } from "./lib/state.js";
 import {
@@ -202,41 +206,64 @@ function calculateProfit(buyPrice, sellPrice) {
   };
 }
 
+function getNumber(value, fallback = 0) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
 function calculateMarketVolatility(items, state) {
-  let volatility = 0;
+  const itemScores = [];
 
   items.forEach((item) => {
     const history = state.items[String(item.id)];
-    if (!history || history.length < 2) return;
+    if (!history || history.length < 3) return;
 
-    const last = history[history.length - 1];
-    const prev = history[history.length - 2];
+    const recent = history.slice(-VOLATILITY_HISTORY_WINDOW);
+    const moves = [];
 
-    const priceChange =
-      prev.sellOffer > 0
-        ? Math.abs((last.sellOffer - prev.sellOffer) / prev.sellOffer) * 100
-        : 0;
+    for (let i = 1; i < recent.length; i++) {
+      const previous = recent[i - 1];
+      const current = recent[i];
 
-    const profitChange = Math.abs(
-      (last.profitPercent || 0) - (prev.profitPercent || 0),
-    );
+      const previousSell = getNumber(previous.sellOffer);
+      const currentSell = getNumber(current.sellOffer);
+      const previousBuy = getNumber(previous.buyOffer);
+      const currentBuy = getNumber(current.buyOffer);
+      const previousProfitPercent = getNumber(previous.profitPercent);
+      const currentProfitPercent = getNumber(current.profitPercent);
 
-    volatility += priceChange * 0.7 + profitChange * 0.3;
+      const sellMove = previousSell > 0 ? Math.abs((currentSell - previousSell) / previousSell) * 100 : 0;
+      const buyMove = previousBuy > 0 ? Math.abs((currentBuy - previousBuy) / previousBuy) * 100 : 0;
+      const profitMove = Math.abs(currentProfitPercent - previousProfitPercent);
+
+      moves.push(sellMove * 0.45 + buyMove * 0.25 + profitMove * 0.3);
+    }
+
+    if (moves.length === 0) return;
+
+    const averageMove = moves.reduce((sum, value) => sum + value, 0) / moves.length;
+    const cappedMove = Math.min(averageMove, VOLATILITY_ITEM_SPIKE_CAP);
+    const liquidityWeight = getNumber(item.monthSold) >= 500 ? 1.15 : getNumber(item.monthSold) >= 100 ? 1 : 0.75;
+
+    itemScores.push(cappedMove * liquidityWeight);
   });
 
-  return Math.round(volatility);
+  if (itemScores.length === 0) return 0;
+
+  const average = itemScores.reduce((sum, value) => sum + value, 0) / itemScores.length;
+  return Math.round(average);
 }
 
 function getNextRunRecommendation(volatility) {
-  if (volatility >= 25) {
+  if (volatility >= VOLATILITY_HIGH_THRESHOLD) {
     return {
       level: "HIGH",
       nextRunHours: 1,
-      message: "Market is very active. Check frequently.",
+      message: "Market is active. Check frequently, but avoid chasing spikes.",
     };
   }
 
-  if (volatility >= 10) {
+  if (volatility >= VOLATILITY_MEDIUM_THRESHOLD) {
     return {
       level: "MEDIUM",
       nextRunHours: 3,

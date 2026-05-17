@@ -23,8 +23,10 @@ echo 10. Sell Check
 echo 11. Buy Price Check
 echo.
 echo ===== Tools =====
-echo 12. Git Push
-echo 13. Exit
+echo 12. Run Flipper Check
+echo 13. Run Scanner
+echo 14. Git Push
+echo 15. Exit
 echo.
 
 set /p choice=Choose option: 
@@ -40,8 +42,10 @@ if "%choice%"=="8" goto cancel
 if "%choice%"=="9" goto expire
 if "%choice%"=="10" goto inventory
 if "%choice%"=="11" goto inventorybuy
-if "%choice%"=="12" goto gitpush
-if "%choice%"=="13" exit
+if "%choice%"=="12" goto runflips
+if "%choice%"=="13" goto runscanner
+if "%choice%"=="14" goto gitpush
+if "%choice%"=="15" exit
 
 goto menu
 
@@ -228,6 +232,27 @@ echo.
 
 call node inventory.js buy "%ITEM%" %QTY% %BUY_PRICE% --live-buy "%LIVE_BUY%" --buy-range-low "%LOW_BUY_ABOVE%" --buy-ahead "%BUY_AHEAD%"
 
+pause
+goto menu
+
+
+:runflips
+cls
+echo RUN FLIPPER CHECK
+echo.
+echo This runs npm run flips locally, so you can see BUY/SELL candidates and rejection reasons.
+echo.
+call npm run flips
+pause
+goto menu
+
+:runscanner
+cls
+echo RUN SCANNER
+echo.
+echo This runs npm run scanner locally for research-only ranked opportunities.
+echo.
+call npm run scanner
 pause
 goto menu
 
