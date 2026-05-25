@@ -107,12 +107,86 @@ goto menu
 cls
 echo LIST ITEMS FOR SALE
 echo.
+echo This will first check if your planned sell price makes sense.
+echo IMPORTANT:
+echo - Buy/entry price = the price YOU paid per item.
+echo - Planned sell price = the price you want to list your item for.
+echo - Current lowest sell = the cheapest sell offer you see right now in Tibia Market.
+echo - Quantity at current lowest = how many items are listed at that cheapest price.
+echo.
 
-set /p itemInput=Item Name or ID: 
-set /p quantity=Quantity Listed: 
-set /p listPrice=List Price: 
+set "ITEM="
+set "QTY="
+set "LIST_PRICE="
+set "ENTRY_PRICE="
+set "LOWEST_SELL="
+set "LOWEST_SELL_QTY="
+set "CONFIRM_LIST="
 
-call npm run trade -- list "%itemInput%" %quantity% %listPrice%
+set /p "ITEM=Item name or ID, example silver token: "
+set /p "QTY=How many items do you want to list? Example 10: "
+
+echo.
+echo YOUR TRADE:
+set /p "ENTRY_PRICE=How much did YOU pay per item? Example 50010: "
+set /p "LIST_PRICE=What price do you want to list EACH item for? Example 59999: "
+
+if not defined ENTRY_PRICE set "ENTRY_PRICE=0"
+if not defined LIST_PRICE set "LIST_PRICE=0"
+
+echo.
+echo LIVE TIBIA MARKET - SELL OFFERS:
+echo Look at the SELL OFFERS side in Tibia Market right now.
+set /p "LOWEST_SELL=What is the cheapest current sell price? Example 60000: "
+set /p "LOWEST_SELL_QTY=How many items are listed at that cheapest price? Example 150: "
+
+if not defined LOWEST_SELL set "LOWEST_SELL=0"
+if not defined LOWEST_SELL_QTY set "LOWEST_SELL_QTY=0"
+
+echo.
+echo ============================
+echo Running sell advisor first...
+echo ============================
+echo.
+echo Checking:
+echo Item: %ITEM%
+echo Quantity: %QTY%
+echo Your entry price: %ENTRY_PRICE%
+echo Your planned sell price: %LIST_PRICE%
+echo Current lowest sell price: %LOWEST_SELL%
+echo Quantity at current lowest price: %LOWEST_SELL_QTY%
+echo.
+echo node inventory.js sell "%ITEM%" %QTY% %LIST_PRICE% --entry-price "%ENTRY_PRICE%" --lowest-sell "%LOWEST_SELL%" --lowest-sell-qty "%LOWEST_SELL_QTY%"
+echo.
+
+call node inventory.js sell "%ITEM%" %QTY% %LIST_PRICE% --entry-price "%ENTRY_PRICE%" --lowest-sell "%LOWEST_SELL%" --lowest-sell-qty "%LOWEST_SELL_QTY%"
+
+if errorlevel 1 (
+  echo.
+  echo Sell check failed. Position was NOT updated.
+  pause
+  goto menu
+)
+
+echo.
+echo ============================
+echo Confirm listing
+echo ============================
+echo.
+echo Only type Y if you ACTUALLY placed this sell offer inside Tibia Market.
+echo This will update your local position as LISTED_FOR_SALE.
+echo.
+
+set /p "CONFIRM_LIST=Did you place this sell offer in Tibia Market now? Y/N: "
+
+if /I "%CONFIRM_LIST%"=="Y" (
+  echo.
+  echo Updating trade position...
+  call npm run trade -- list "%ITEM%" %QTY% %LIST_PRICE%
+) else (
+  echo.
+  echo Cancelled. Position was NOT updated.
+)
 
 pause
 goto menu
@@ -173,20 +247,62 @@ goto menu
 
 :inventory
 cls
-echo SELL CHECK
+echo SELL CHECK / SELL PRICE ADVISOR
 echo.
-echo This compares:
-echo 1. Listing on market
-echo 2. Instant sell to buy offer
-echo 3. NPC sell
+echo This checks if selling is worth it and suggests a sell price.
+echo IMPORTANT:
+echo - Buy/entry price = the price YOU paid per item.
+echo - Planned sell price = the price you are thinking about listing for.
+echo - Current lowest sell = the cheapest sell offer you see now in Tibia Market.
+echo - Quantity at current lowest = how many items are listed at that cheapest price.
 echo.
-echo You can usually enter only item + quantity + 0. The bot tries to fetch the market board automatically.
+echo This does NOT update your position.
 echo.
 
-set /p itemInput=Item Name or ID: 
-set /p quantity=Quantity you have: 
+set "ITEM="
+set "QTY="
+set "YOUR_LIST_PRICE="
+set "ENTRY_PRICE="
+set "LOWEST_SELL="
+set "LOWEST_SELL_QTY="
 
-call node inventory.js sell "%itemInput%" %quantity% 0
+set /p "ITEM=Item name or ID, example silver token: "
+set /p "QTY=How many items do you have? Example 10: "
+
+echo.
+echo YOUR TRADE:
+set /p "ENTRY_PRICE=How much did YOU pay per item? Example 50010: "
+set /p "YOUR_LIST_PRICE=What price are you thinking to sell EACH item for? Press Enter if you want only a suggestion: "
+
+if not defined ENTRY_PRICE set "ENTRY_PRICE=0"
+if not defined YOUR_LIST_PRICE set "YOUR_LIST_PRICE=0"
+
+echo.
+echo LIVE TIBIA MARKET - SELL OFFERS:
+echo Look at the SELL OFFERS side in Tibia Market right now.
+set /p "LOWEST_SELL=What is the cheapest current sell price? Example 60000: "
+set /p "LOWEST_SELL_QTY=How many items are listed at that cheapest price? Example 150: "
+
+if not defined LOWEST_SELL set "LOWEST_SELL=0"
+if not defined LOWEST_SELL_QTY set "LOWEST_SELL_QTY=0"
+
+echo.
+echo ============================
+echo Running sell advisor...
+echo ============================
+echo.
+echo Checking:
+echo Item: %ITEM%
+echo Quantity: %QTY%
+echo Your entry price: %ENTRY_PRICE%
+echo Your planned sell price: %YOUR_LIST_PRICE%
+echo Current lowest sell price: %LOWEST_SELL%
+echo Quantity at current lowest price: %LOWEST_SELL_QTY%
+echo.
+echo node inventory.js sell "%ITEM%" %QTY% %YOUR_LIST_PRICE% --entry-price "%ENTRY_PRICE%" --lowest-sell "%LOWEST_SELL%" --lowest-sell-qty "%LOWEST_SELL_QTY%"
+echo.
+
+call node inventory.js sell "%ITEM%" %QTY% %YOUR_LIST_PRICE% --entry-price "%ENTRY_PRICE%" --lowest-sell "%LOWEST_SELL%" --lowest-sell-qty "%LOWEST_SELL_QTY%"
 
 pause
 goto menu
