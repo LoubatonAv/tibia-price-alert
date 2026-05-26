@@ -5,6 +5,7 @@
   "scripts": {
     "flips": "node check-flips.js",
     "scanner": "node scanner.js",
+    "discover": "node scanner.js discover",
     "trade": "node trade.js",
     "inventory": "node inventory.js"
   },

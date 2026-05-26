@@ -9,7 +9,11 @@ import {
 } from "./lib/discord.js";
 import { getItemMap, getMarketValues } from "./lib/market.js";
 import { applyMarketIntelligence } from "./lib/marketIntelligence.js";
-import { getTrackedItemIds } from "./lib/trackedItems.js";
+import {
+  getTrackedItemIds,
+  getDiscoveryItemIds,
+  getTrackedCategory,
+} from "./lib/trackedItems.js";
 import {
   analyzeHistory,
   analyzeSellMomentum,
@@ -39,6 +43,13 @@ import {
   SNIPE_MIN_SELL_PRICE,
   SNIPE_MIN_DISCOUNT_PERCENT,
   SNIPE_TOP_LIMIT,
+  DISCOVERY_BATCH_SIZE,
+  DISCOVERY_CACHE_TTL_HOURS,
+  DISCOVERY_TOP_LIMIT,
+  DISCOVERY_MIN_WATCH_PROFIT,
+  DISCOVERY_MIN_WATCH_ROI,
+  DISCOVERY_MIN_EXPERIMENTAL_PROFIT,
+  DISCOVERY_MIN_EXPERIMENTAL_ROI,
   VOLATILITY_HISTORY_WINDOW,
   VOLATILITY_ITEM_SPIKE_CAP,
   VOLATILITY_HIGH_THRESHOLD,
@@ -53,6 +64,9 @@ import {
 
 const DISCORD_WEBHOOK_URL = process.env.TIBIA_SCANNER_WEBHOOK_URL;
 const ITEM_IDS = getTrackedItemIds();
+const IS_DISCOVERY_MODE =
+  process.argv.includes("discover") ||
+  String(process.env.SCANNER_MODE || "").toLowerCase() === "discovery";
 const SCANNER_DEBUG_DETAILS =
   String(process.env.SCANNER_DEBUG_DETAILS || "false").toLowerCase() === "true";
 
@@ -232,8 +246,14 @@ function calculateMarketVolatility(items, state) {
       const previousProfitPercent = getNumber(previous.profitPercent);
       const currentProfitPercent = getNumber(current.profitPercent);
 
-      const sellMove = previousSell > 0 ? Math.abs((currentSell - previousSell) / previousSell) * 100 : 0;
-      const buyMove = previousBuy > 0 ? Math.abs((currentBuy - previousBuy) / previousBuy) * 100 : 0;
+      const sellMove =
+        previousSell > 0
+          ? Math.abs((currentSell - previousSell) / previousSell) * 100
+          : 0;
+      const buyMove =
+        previousBuy > 0
+          ? Math.abs((currentBuy - previousBuy) / previousBuy) * 100
+          : 0;
       const profitMove = Math.abs(currentProfitPercent - previousProfitPercent);
 
       moves.push(sellMove * 0.45 + buyMove * 0.25 + profitMove * 0.3);
@@ -241,16 +261,23 @@ function calculateMarketVolatility(items, state) {
 
     if (moves.length === 0) return;
 
-    const averageMove = moves.reduce((sum, value) => sum + value, 0) / moves.length;
+    const averageMove =
+      moves.reduce((sum, value) => sum + value, 0) / moves.length;
     const cappedMove = Math.min(averageMove, VOLATILITY_ITEM_SPIKE_CAP);
-    const liquidityWeight = getNumber(item.monthSold) >= 500 ? 1.15 : getNumber(item.monthSold) >= 100 ? 1 : 0.75;
+    const liquidityWeight =
+      getNumber(item.monthSold) >= 500
+        ? 1.15
+        : getNumber(item.monthSold) >= 100
+          ? 1
+          : 0.75;
 
     itemScores.push(cappedMove * liquidityWeight);
   });
 
   if (itemScores.length === 0) return 0;
 
-  const average = itemScores.reduce((sum, value) => sum + value, 0) / itemScores.length;
+  const average =
+    itemScores.reduce((sum, value) => sum + value, 0) / itemScores.length;
   return Math.round(average);
 }
 
@@ -1007,7 +1034,411 @@ async function sendDiscordScannerReport(analyzedItems, volatility, runAdvice) {
   console.log("Discord scanner report sent.");
 }
 
+function isFreshDiscoveryCache(entry) {
+  if (!entry?.checkedAt || !entry?.data) return false;
+
+  const ageHours =
+    (Date.now() - new Date(entry.checkedAt).getTime()) / 1000 / 60 / 60;
+
+  return Number.isFinite(ageHours) && ageHours < DISCOVERY_CACHE_TTL_HOURS;
+}
+
+function getDiscoveryRunIds(state, discoveryIds) {
+  const ids = [
+    ...new Set(
+      discoveryIds.map(Number).filter((id) => Number.isFinite(id) && id > 0),
+    ),
+  ];
+  const total = ids.length;
+
+  if (total === 0) {
+    return { ids: [], cursorBefore: 0, cursorAfter: 0, total };
+  }
+
+  const cursorBefore = Number(state.discovery?.cursor || 0) % total;
+  const batchSize = Math.max(1, Math.min(DISCOVERY_BATCH_SIZE, total));
+  const selected = [];
+
+  for (let i = 0; i < batchSize; i++) {
+    selected.push(ids[(cursorBefore + i) % total]);
+  }
+
+  const cursorAfter = (cursorBefore + batchSize) % total;
+
+  return {
+    ids: selected,
+    cursorBefore,
+    cursorAfter,
+    total,
+  };
+}
+
+async function getDiscoveryMarketValues(itemIds, state) {
+  if (!state.discovery) state.discovery = {};
+  if (!state.discovery.cache) state.discovery.cache = {};
+  if (!state.discovery.cache.marketValues)
+    state.discovery.cache.marketValues = {};
+
+  const cache = state.discovery.cache.marketValues;
+  const cached = [];
+  const missing = [];
+
+  for (const id of itemIds) {
+    const entry = cache[String(id)];
+
+    if (isFreshDiscoveryCache(entry)) {
+      cached.push(entry.data);
+    } else {
+      missing.push(id);
+    }
+  }
+
+  const fetched = missing.length > 0 ? await getMarketValues(missing) : [];
+  const checkedAt = new Date().toISOString();
+
+  for (const item of fetched) {
+    cache[String(item.id)] = {
+      checkedAt,
+      data: item,
+    };
+  }
+
+  return {
+    items: [...cached, ...fetched],
+    cacheHits: cached.length,
+    apiCalls:
+      missing.length > 0 ? Math.ceil(missing.length / DISCOVERY_BATCH_SIZE) : 0,
+    fetchedItems: fetched.length,
+  };
+}
+
+function analyzeMarketItems(items, state, itemMap) {
+  return items.map((item) => {
+    const result = calculateProfit(item.buy_offer, item.sell_offer);
+
+    updateItemHistory(state, item, result);
+
+    const history = state.items[String(item.id)];
+    const historyData = analyzeHistory(history);
+    const sellMomentumData = analyzeSellMomentum(history);
+    const fakeRiskData = getFakeSpreadRisk(item);
+
+    const decisionData = getDecision(
+      item,
+      result.profit,
+      result.profitPercent,
+      fakeRiskData.fakeSpreadRisk,
+      historyData,
+    );
+
+    const analyzedItem = {
+      id: item.id,
+      name: itemMap[item.id] || "Unknown",
+      buyOffer: item.buy_offer,
+      sellOffer: item.sell_offer,
+      ...result,
+      ...decisionData,
+      ...historyData,
+      ...sellMomentumData,
+      ...fakeRiskData,
+      daySold: item.day_sold || 0,
+      monthSold: item.month_sold || 0,
+      dayAverageSell: item.day_average_sell || 0,
+      monthAverageSell: item.month_average_sell || 0,
+    };
+
+    const withBrain = {
+      ...analyzedItem,
+      ...calculateBrainScore(analyzedItem),
+    };
+
+    const withPressure = {
+      ...withBrain,
+      ...calculateMarketPressure(withBrain),
+    };
+
+    const withConviction = {
+      ...withPressure,
+      ...calculateTradeabilityConviction(withPressure),
+    };
+
+    const personalConfidence = getPersonalTradeConfidence(state, item.id);
+
+    const withPersonalMemory = {
+      ...withConviction,
+      brainScore: clamp(
+        withConviction.brainScore + personalConfidence.scoreAdjust,
+        0,
+        100,
+      ),
+      personalTradeConfidence: personalConfidence.label,
+      personalTradeSummary: personalConfidence.summary,
+    };
+
+    const sellDecisionData = getSellDecision(withPersonalMemory, state);
+
+    return {
+      ...withPersonalMemory,
+      ...sellDecisionData,
+    };
+  });
+}
+
+function getDiscoverySuggestion(item) {
+  const trackedCategory = getTrackedCategory(item.id);
+
+  if (trackedCategory) {
+    return {
+      action: "already tracked",
+      trackedCategory,
+      suggestedBucket: null,
+    };
+  }
+
+  if (item.scannerTier === "AVOID" || item.conviction === "AVOID / TRAP RISK") {
+    return { action: "ignore", trackedCategory: null, suggestedBucket: null };
+  }
+
+  const hasWatchNumbers =
+    item.profit >= DISCOVERY_MIN_WATCH_PROFIT &&
+    item.profitPercent >= DISCOVERY_MIN_WATCH_ROI &&
+    item.monthSold >= 80 &&
+    item.fakeSpreadRisk <= 45 &&
+    item.tradeabilityScore >= 58;
+
+  const hasExperimentalNumbers =
+    item.profit >= DISCOVERY_MIN_EXPERIMENTAL_PROFIT &&
+    item.profitPercent >= DISCOVERY_MIN_EXPERIMENTAL_ROI &&
+    item.monthSold >= 20 &&
+    item.fakeSpreadRisk <= 65 &&
+    item.tradeabilityScore >= 45;
+
+  if (["SAFE", "WATCH"].includes(item.scannerTier) && hasWatchNumbers) {
+    return { action: "watch", trackedCategory: null, suggestedBucket: "watch" };
+  }
+
+  if (hasExperimentalNumbers) {
+    return {
+      action: "experimental",
+      trackedCategory: null,
+      suggestedBucket: "experimental",
+    };
+  }
+
+  return { action: "ignore", trackedCategory: null, suggestedBucket: null };
+}
+
+function updateDiscoveryHistory(state, rankedItems) {
+  if (!state.discovery) state.discovery = {};
+  if (!state.discovery.history) state.discovery.history = {};
+
+  const now = new Date().toISOString();
+
+  for (const item of rankedItems) {
+    const id = String(item.id);
+    const suggestion = item.discoverySuggestion || getDiscoverySuggestion(item);
+    const isCandidate = ["watch", "experimental"].includes(suggestion.action);
+
+    if (!state.discovery.history[id]) {
+      state.discovery.history[id] = {
+        id: item.id,
+        name: item.name,
+        firstSeenAt: now,
+        lastSeenAt: now,
+        scans: 0,
+        goodSnapshots: 0,
+        badSnapshots: 0,
+        totalNetProfit: 0,
+        totalRoi: 0,
+      };
+    }
+
+    const entry = state.discovery.history[id];
+    entry.name = item.name;
+    entry.lastSeenAt = now;
+    entry.scans += 1;
+
+    if (isCandidate) {
+      entry.goodSnapshots += 1;
+      entry.totalNetProfit += Number(item.profit || 0);
+      entry.totalRoi += Number(item.profitPercent || 0);
+    } else {
+      entry.badSnapshots += 1;
+    }
+
+    entry.avgNetProfit =
+      entry.goodSnapshots > 0 ? entry.totalNetProfit / entry.goodSnapshots : 0;
+    entry.avgRoi =
+      entry.goodSnapshots > 0 ? entry.totalRoi / entry.goodSnapshots : 0;
+    entry.stability = getDiscoveryStability(entry);
+  }
+}
+
+function getDiscoveryStability(entry) {
+  if (!entry || entry.scans < 2) return "NEW";
+
+  const ratio = entry.scans > 0 ? entry.goodSnapshots / entry.scans : 0;
+
+  if (entry.scans >= 5 && ratio >= 0.7) return "STABLE";
+  if (entry.scans >= 4 && ratio <= 0.25) return "DEAD";
+  if (entry.scans >= 3 && ratio < 0.5) return "UNSTABLE";
+  return `BUILDING ${entry.goodSnapshots}/${entry.scans}`;
+}
+
+function formatCompactRange(low, high) {
+  const cleanLow = roundToNiceGp(low);
+  const cleanHigh = roundToNiceGp(high);
+
+  if (cleanLow === cleanHigh) return formatGp(cleanLow);
+  return `${formatGp(cleanLow)}–${formatGp(cleanHigh)}`;
+}
+
+function buildDiscoveryLine(item, index, state) {
+  const actionPlan = buildScannerActionPlan(item);
+  const suggestion = item.discoverySuggestion;
+  const history = state.discovery?.history?.[String(item.id)];
+  const stability = history?.stability || "NEW";
+  const status =
+    suggestion.action === "already tracked"
+      ? `already tracked (${suggestion.trackedCategory})`
+      : suggestion.action;
+
+  return (
+    `#${index + 1} ${item.name} — ${item.scannerTier} / ${item.qualityTier || "WEAK"}\n` +
+    `Buy: ${actionPlan.buyRange.replaceAll(" gp", "")} | Sell: ${actionPlan.sellRange.replaceAll(" gp", "")}\n` +
+    `Net: ~${formatGp(item.profit)} ea | ROI: ~${item.profitPercent.toFixed(2)}% | Suggested: ${status} | Stability: ${stability}`
+  );
+}
+
+function buildDiscoveryReport(rankedItems, state, meta) {
+  const candidates = rankedItems
+    .filter((item) =>
+      ["watch", "experimental", "already tracked"].includes(
+        item.discoverySuggestion.action,
+      ),
+    )
+    .slice(0, DISCOVERY_TOP_LIMIT);
+
+  const rejected =
+    rankedItems.length -
+    rankedItems.filter((item) => item.discoverySuggestion.action !== "ignore")
+      .length;
+
+  const additions = {
+    watch: rankedItems
+      .filter((item) => item.discoverySuggestion.action === "watch")
+      .map((item) => item.id),
+    experimental: rankedItems
+      .filter((item) => item.discoverySuggestion.action === "experimental")
+      .map((item) => item.id),
+    safe: [],
+  };
+
+  const lines = [
+    `🧭 DISCOVERY SCANNER — ${SERVER}`,
+    `Checked: ${meta.checkedThisRun} / ${meta.total} | Candidates: ${candidates.length} | Rejected: ${rejected} | Failed: ${meta.failed}`,
+    `Cursor: ${meta.cursorAfter} | API calls: ${meta.apiCalls} | Cache hits: ${meta.cacheHits}`,
+    "",
+  ];
+
+  if (candidates.length === 0) {
+    lines.push("No useful new candidates in this slice.", "");
+  } else {
+    lines.push(
+      ...candidates
+        .map((item, index) => buildDiscoveryLine(item, index, state))
+        .flatMap((line) => [line, ""]),
+    );
+  }
+
+  lines.push("Suggested config additions:");
+  lines.push(`watch: [${additions.watch.join(", ")}]`);
+  lines.push(`experimental: [${additions.experimental.join(", ")}]`);
+  lines.push(`safe: [${additions.safe.join(", ")}]`);
+
+  return {
+    text: lines.join("\n"),
+    additions,
+    candidates,
+    rejected,
+  };
+}
+
+async function sendDiscordDiscoveryReport(report) {
+  if (!DISCORD_WEBHOOK_URL) return;
+
+  await axios.post(DISCORD_WEBHOOK_URL, {
+    content: report.text.slice(0, 1900),
+  });
+
+  console.log("Discord discovery report sent.");
+}
+
+async function runDiscoveryScanner() {
+  const allDiscoveryIds = getDiscoveryItemIds();
+  const state = loadState();
+  const itemMap = getItemMap();
+
+  if (!state.discovery) state.discovery = {};
+  if (!state.discovery.history) state.discovery.history = {};
+  if (!state.discovery.cache) state.discovery.cache = {};
+  if (!state.discovery.cache.marketValues)
+    state.discovery.cache.marketValues = {};
+
+  const slice = getDiscoveryRunIds(state, allDiscoveryIds);
+
+  if (slice.ids.length === 0) {
+    console.log(
+      "No discovery items found. Add IDs to data/discovery-items.json.",
+    );
+    return;
+  }
+
+  const marketResult = await getDiscoveryMarketValues(slice.ids, state);
+  const failed = Math.max(0, slice.ids.length - marketResult.items.length);
+  const analyzedItems = analyzeMarketItems(marketResult.items, state, itemMap);
+
+  await applyMarketIntelligence(analyzedItems, { state, mode: "discovery" });
+
+  const rankedItems = buildScannerReportItems(analyzedItems).map((item) => ({
+    ...item,
+    discoverySuggestion: getDiscoverySuggestion(item),
+  }));
+
+  updateDiscoveryHistory(state, rankedItems);
+
+  state.discovery.cursor = slice.cursorAfter;
+  state.discovery.lastRun = new Date().toISOString();
+  state.discovery.lastChecked = slice.ids.length;
+  state.discovery.totalPool = slice.total;
+
+  const report = buildDiscoveryReport(rankedItems, state, {
+    checkedThisRun: slice.ids.length,
+    total: slice.total,
+    cursorAfter: slice.cursorAfter,
+    apiCalls: marketResult.apiCalls,
+    cacheHits: marketResult.cacheHits,
+    failed,
+  });
+
+  console.log(`\n${report.text}\n`);
+
+  if (
+    String(process.env.DISCOVERY_SEND_TO_DISCORD || "true").toLowerCase() !==
+    "false"
+  ) {
+    await sendDiscordDiscoveryReport(report);
+  }
+
+  saveState(state);
+}
+
 async function main() {
+  if (IS_DISCOVERY_MODE) {
+    await runDiscoveryScanner();
+    return;
+  }
+
   if (!DISCORD_WEBHOOK_URL) {
     console.error("Missing TIBIA_SCANNER_WEBHOOK_URL");
     process.exit(1);

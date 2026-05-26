@@ -25,8 +25,9 @@ echo.
 echo ===== Tools =====
 echo 12. Run Flipper Check
 echo 13. Run Scanner
-echo 14. Git Push
-echo 15. Exit
+echo 14. Run Discovery Scanner
+echo 15. Git Push
+echo 16. Exit
 echo.
 
 set /p choice=Choose option: 
@@ -44,8 +45,9 @@ if "%choice%"=="10" goto inventory
 if "%choice%"=="11" goto inventorybuy
 if "%choice%"=="12" goto runflips
 if "%choice%"=="13" goto runscanner
-if "%choice%"=="14" goto gitpush
-if "%choice%"=="15" exit
+if "%choice%"=="14" goto rundiscovery
+if "%choice%"=="15" goto gitpush
+if "%choice%"=="16" exit
 
 goto menu
 
@@ -372,9 +374,20 @@ call npm run scanner
 pause
 goto menu
 
+:rundiscovery
+cls
+echo RUN DISCOVERY SCANNER
+echo.
+echo This checks a larger research pool and suggests IDs to add to watch/experimental.
+echo It does NOT send BUY/SELL alerts.
+echo.
+call npm run discover
+pause
+goto menu
+
 :gitpush
 cls
-git add positions.json state.json inventory.json tracked-items.json data/tracked-items.json
+git add positions.json state.json inventory.json tracked-items.json data/tracked-items.json data/discovery-items.json
 git commit -m "update tibia trading data"
 git push
 pause
