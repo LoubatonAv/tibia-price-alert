@@ -7,6 +7,8 @@ import {
   calculateSellOfferFee,
 } from "./lib/trades.js";
 import { getItemMap } from "./lib/market.js";
+import readline from "node:readline/promises";
+import { stdin as input, stdout as output } from "node:process";
 
 const POSITIONS_FILE = "./positions.json";
 
@@ -122,13 +124,17 @@ function addEvent(position, type, details = {}) {
 
 function printPosition(position) {
   const targetSell = Number(position.targetSell || 0);
-  const ordered = Number(position.orderedQuantity || position.originalQuantity || 0);
+  const ordered = Number(
+    position.orderedQuantity || position.originalQuantity || 0,
+  );
   const received = Number(position.receivedQuantity || 0);
   const stillWaiting = Math.max(0, ordered - received);
 
   console.log(`Item: ${position.name}`);
   console.log(`Status: ${position.status}`);
-  console.log(`Order age: ${formatAge(position.openedAt || position.createdAt)}`);
+  console.log(
+    `Order age: ${formatAge(position.openedAt || position.createdAt)}`,
+  );
   console.log(`Ordered quantity: ${ordered}`);
   console.log(`Still waiting: ${stillWaiting}`);
   console.log(`Owned / unsold quantity: ${position.quantity}`);
@@ -137,10 +143,14 @@ function printPosition(position) {
   console.log(`Listed: ${position.listedQuantity}`);
   console.log(`Sold: ${position.soldQuantity}`);
   console.log(`Entry: ${formatGp(position.entryPrice)} gp`);
-  console.log(`Target sell: ${targetSell > 0 ? `${formatGp(targetSell)} gp` : "auto / not set"}`);
+  console.log(
+    `Target sell: ${targetSell > 0 ? `${formatGp(targetSell)} gp` : "auto / not set"}`,
+  );
   console.log(`Buy fee paid: ${formatGp(position.buyOfferFeePaid)} gp`);
   if (["BUY_ORDER_PLACED", "BUY_ORDER_PARTIAL"].includes(position.status)) {
-    console.log(`If cancelled now, buy fee is already lost: ${formatGp(position.buyOfferFeePaid)} gp`);
+    console.log(
+      `If cancelled now, buy fee is already lost: ${formatGp(position.buyOfferFeePaid)} gp`,
+    );
   }
   console.log(`Brain: ${position.entryBrainScore ?? "N/A"}`);
 }
@@ -243,7 +253,10 @@ function printStats() {
 
 function printOrders() {
   const positionsData = loadPositions();
-  const active = positionsData.positions.filter((position) => position.status !== "CLOSED");
+
+  const active = positionsData.positions.filter(
+    (position) => position.status !== "CLOSED",
+  );
 
   console.log("\nOPEN ORDERS / POSITIONS\n");
 
@@ -254,16 +267,24 @@ function printOrders() {
 
   active.forEach((position, index) => {
     normalizePosition(position);
-    const ordered = Number(position.orderedQuantity || position.originalQuantity || 0);
+    const ordered = Number(
+      position.orderedQuantity || position.originalQuantity || 0,
+    );
     const received = Number(position.receivedQuantity || 0);
     const waiting = Math.max(0, ordered - received);
 
     console.log(`#${index + 1} ${position.name} (${position.id})`);
     console.log(`Status: ${position.status}`);
     console.log(`Age: ${formatAge(position.openedAt || position.createdAt)}`);
-    console.log(`Entry: ${formatGp(position.entryPrice)} gp | Target: ${position.targetSell ? `${formatGp(position.targetSell)} gp` : "auto / not set"}`);
-    console.log(`Ordered: ${ordered} | Waiting: ${waiting} | Owned: ${position.quantity} | Listed: ${position.listedQuantity} | Sold: ${position.soldQuantity}`);
-    console.log(`Fees paid: buy ${formatGp(position.buyOfferFeePaid)} gp, sell ${formatGp(position.sellOfferFeePaid)} gp`);
+    console.log(
+      `Entry: ${formatGp(position.entryPrice)} gp | Target: ${position.targetSell ? `${formatGp(position.targetSell)} gp` : "auto / not set"}`,
+    );
+    console.log(
+      `Ordered: ${ordered} | Waiting: ${waiting} | Owned: ${position.quantity} | Listed: ${position.listedQuantity} | Sold: ${position.soldQuantity}`,
+    );
+    console.log(
+      `Market fees paid: buy offer ${formatGp(position.buyOfferFeePaid)} gp, sell offer ${formatGp(position.sellOfferFeePaid)} gp`,
+    );
     console.log("");
   });
 }
@@ -275,11 +296,25 @@ const actionAliases = {
   open: "open",
   close: "close",
   positions: "orders",
+  "buy-fee": "buyfee",
 };
 const action = actionAliases[rawAction] || rawAction;
 
 if (
-  !["buy", "receive", "list", "sold", "open", "close", "add", "orders", "cancel", "expire", "stats"].includes(action)
+  ![
+    "buy",
+    "receive",
+    "list",
+    "sold",
+    "open",
+    "close",
+    "add",
+    "orders",
+    "cancel",
+    "expire",
+    "stats",
+    "buyfee",
+  ].includes(action)
 ) {
   printUsage();
   process.exit(1);
@@ -296,7 +331,75 @@ if (action === "orders") {
 }
 
 const positionsData = loadPositions();
+if (action === "buyfee") {
+  const parsed = parseItemAndOptionalNumberArgs(args);
 
+  if (!parsed || !parsed.itemInput) {
+    console.log(`
+Usage:
+  node trade.js buyfee ITEM_ID_OR_NAME [BUY_OFFER_FEE]
+
+Examples:
+  node trade.js buyfee "stone skin amulet"
+  node trade.js buyfee stone skin amulet
+  node trade.js buyfee stone skin amulet 1639.8
+`);
+    process.exit(1);
+  }
+
+  const { itemInput, manualNumber } = parsed;
+  const resolvedItem = resolveItem(itemInput);
+  const position = findActivePosition(positionsData, resolvedItem.id);
+
+  if (!position) {
+    fail("No active position found for this item.");
+  }
+
+  normalizePosition(position);
+
+  const entryPrice = Number(
+    position.averageEntryPrice || position.entryPrice || 0,
+  );
+  const quantity = Number(
+    position.originalQuantity ||
+      position.orderedQuantity ||
+      position.receivedQuantity ||
+      position.quantity ||
+      0,
+  );
+
+  const calculatedBuyOfferFee = calculateBuyOfferFee(entryPrice, quantity);
+  const newBuyOfferFee =
+    manualNumber !== null ? manualNumber : calculatedBuyOfferFee;
+
+  if (!Number.isFinite(newBuyOfferFee) || newBuyOfferFee < 0) {
+    fail("BUY_OFFER_FEE must be 0 or higher.");
+  }
+
+  const previousBuyOfferFee = Number(position.buyOfferFeePaid || 0);
+
+  position.buyOfferFeePaid = newBuyOfferFee;
+
+  addEvent(position, "BUY_OFFER_FEE_UPDATED", {
+    previousBuyOfferFee,
+    newBuyOfferFee,
+    calculatedBuyOfferFee,
+    entryPrice,
+    quantity,
+    source: manualNumber !== null ? "manual" : "auto_calculated",
+  });
+
+  savePositions(positionsData);
+
+  console.log("\nBUY OFFER FEE UPDATED\n");
+  console.log(`Item: ${position.name}`);
+  console.log(`Entry: ${formatGp(entryPrice)} gp`);
+  console.log(`Quantity used: ${quantity}`);
+  console.log(`Previous buy offer fee: ${formatGp(previousBuyOfferFee)} gp`);
+  console.log(`New buy offer fee: ${formatGp(newBuyOfferFee)} gp`);
+  console.log(`Auto calculated fee: ${formatGp(calculatedBuyOfferFee)} gp`);
+  process.exit(0);
+}
 if (action === "buy" || action === "open") {
   const [itemInput, entryPrice, quantity, targetSell, brainScore] = args;
 
@@ -398,7 +501,8 @@ if (action === "add") {
   }
 
   if (!isPositiveNumber(quantity)) fail("QUANTITY must be a positive number.");
-  if (costPerItem && !Number.isFinite(Number(costPerItem))) fail("COST_PER_ITEM must be a number.");
+  if (costPerItem && !Number.isFinite(Number(costPerItem)))
+    fail("COST_PER_ITEM must be a number.");
 
   const resolvedItem = resolveItem(itemInput);
   const existingOpen = findActivePosition(positionsData, resolvedItem.id);
@@ -427,7 +531,7 @@ if (action === "add") {
     listedQuantity: 0,
     soldQuantity: 0,
     totalListedQuantity: 0,
-    buyOfferFeePaid: 0,
+    buyOfferFeePaid,
     sellOfferFeePaid: 0,
     targetSell: 0,
     desiredMargin: 0.06,
@@ -448,7 +552,9 @@ if (action === "add") {
 
   console.log("\nEXTERNAL ITEMS ADDED\n");
   printPosition(position);
-  console.log("Next step: list items for sale, instant sell, or keep tracking.");
+  console.log(
+    "Next step: list items for sale, instant sell, or keep tracking.",
+  );
   process.exit(0);
 }
 
@@ -466,13 +572,18 @@ if (action === "cancel" || action === "expire") {
   normalizePosition(position);
 
   if (position.quantity > 0 || position.receivedQuantity > 0) {
-    fail("This order already received items. Use list/sold flow for owned items; cancel only untouched buy orders.");
+    fail(
+      "This order already received items. Use list/sold flow for owned items; cancel only untouched buy orders.",
+    );
   }
 
   const now = new Date().toISOString();
-  const reason = reasonParts.join(" ") || (action === "expire" ? "Order expired after 30 days" : "Manual cancel");
+  const reason =
+    reasonParts.join(" ") ||
+    (action === "expire" ? "Order expired after 30 days" : "Manual cancel");
 
-  position.status = action === "expire" ? "BUY_ORDER_EXPIRED" : "BUY_ORDER_CANCELLED";
+  position.status =
+    action === "expire" ? "BUY_ORDER_EXPIRED" : "BUY_ORDER_CANCELLED";
   position.cancelledAt = now;
   position.cancelReason = reason;
   addEvent(position, position.status, {
@@ -482,7 +593,9 @@ if (action === "cancel" || action === "expire") {
 
   savePositions(positionsData);
 
-  console.log(action === "expire" ? "\nBUY ORDER EXPIRED\n" : "\nBUY ORDER CANCELLED\n");
+  console.log(
+    action === "expire" ? "\nBUY ORDER EXPIRED\n" : "\nBUY ORDER CANCELLED\n",
+  );
   printPosition(position);
   console.log(`Reason: ${reason}`);
   console.log(`Fee lost: ${formatGp(position.buyOfferFeePaid)} gp`);
@@ -539,46 +652,294 @@ if (action === "receive") {
   process.exit(0);
 }
 
+async function chooseActivePosition(positionsData, itemId) {
+  const positions = Array.isArray(positionsData.positions)
+    ? positionsData.positions
+    : [];
+
+  const activePositions = positions.filter((position) => {
+    const sameItem = String(position.id) === String(itemId);
+    const status = String(position.status || "").toUpperCase();
+
+    const isClosed =
+      status === "SOLD" ||
+      status === "CLOSED" ||
+      status === "CANCELLED" ||
+      status === "CANCELED" ||
+      status === "BUY_ORDER_CANCELLED" ||
+      status === "BUY_ORDER_EXPIRED";
+
+    const ownedQuantity = Number(position.quantity || 0);
+
+    return sameItem && !isClosed && ownedQuantity > 0;
+  });
+
+  if (activePositions.length === 0) {
+    return null;
+  }
+
+  if (activePositions.length === 1) {
+    return activePositions[0];
+  }
+
+  console.log("\nMultiple active positions found for this item:\n");
+
+  activePositions.forEach((position, index) => {
+    const ownedQuantity = Number(position.quantity || 0);
+    const listedQuantity = Number(position.listedQuantity || 0);
+    const availableToList = Math.max(0, ownedQuantity - listedQuantity);
+
+    console.log(
+      `${index + 1}) ${position.name} | status: ${position.status} | owned: ${ownedQuantity} | listed: ${listedQuantity} | available: ${availableToList} | entry: ${
+        position.entryPrice ?? position.averageEntryPrice ?? "?"
+      } gp`,
+    );
+  });
+
+  const rl = readline.createInterface({ input, output });
+
+  const answer = await rl.question(
+    "\nChoose which position to update by number: ",
+  );
+
+  rl.close();
+
+  const selectedIndex = Number(answer) - 1;
+
+  if (
+    !Number.isInteger(selectedIndex) ||
+    selectedIndex < 0 ||
+    selectedIndex >= activePositions.length
+  ) {
+    fail("Invalid position selection.");
+  }
+
+  return activePositions[selectedIndex];
+}
+
+async function askYesNo(question) {
+  const rl = readline.createInterface({ input, output });
+
+  const answer = await rl.question(`${question}: `);
+
+  rl.close();
+
+  return String(answer).trim().toLowerCase() === "y";
+}
+
+function parseListArgs(args) {
+  if (args.length < 3) {
+    return null;
+  }
+
+  const listPrice = args[args.length - 1];
+  const quantity = args[args.length - 2];
+  const itemInput = args.slice(0, -2).join(" ");
+
+  return {
+    itemInput,
+    quantity,
+    listPrice,
+  };
+}
+
+function parseItemAndOptionalNumberArgs(args) {
+  if (args.length < 1) {
+    return null;
+  }
+
+  const lastArg = args[args.length - 1];
+  const hasManualNumber = Number.isFinite(Number(lastArg));
+
+  return {
+    itemInput: hasManualNumber ? args.slice(0, -1).join(" ") : args.join(" "),
+    manualNumber: hasManualNumber ? Number(lastArg) : null,
+  };
+}
+
 if (action === "list") {
-  const [itemInput, quantity, listPrice] = args;
+  const parsed = parseListArgs(args);
+
+  if (!parsed) {
+    printUsage();
+    process.exit(1);
+  }
+
+  const { itemInput, quantity, listPrice } = parsed;
+
   if (!itemInput || !quantity || !listPrice) {
     printUsage();
     process.exit(1);
   }
 
-  if (!isPositiveNumber(quantity)) fail("QUANTITY must be a positive number.");
-  if (!isPositiveNumber(listPrice))
-    fail("LIST_PRICE must be a positive number.");
-
-  const resolvedItem = resolveItem(itemInput);
-  const position = findActivePosition(positionsData, resolvedItem.id);
-
-  if (!position) fail("No active position found for this item.");
-
-  const listQty = Number(quantity);
-  if (listQty > Number(position.quantity || 0)) {
-    fail(
-      `Cannot list ${listQty}; only ${position.quantity} unsold items are tracked.`,
-    );
+  if (!isPositiveNumber(quantity)) {
+    fail("QUANTITY must be a positive number.");
   }
 
-  const sellOfferFeePaid = calculateSellOfferFee(Number(listPrice), listQty);
+  if (!isPositiveNumber(listPrice)) {
+    fail("LIST_PRICE must be a positive number.");
+  }
 
-  position.listedQuantity = Number(position.listedQuantity || 0) + listQty;
-  position.totalListedQuantity =
-    Number(position.totalListedQuantity || 0) + listQty;
-  position.sellOfferFeePaid =
-    Number(position.sellOfferFeePaid || 0) + sellOfferFeePaid;
-  position.lastListPrice = Number(listPrice);
-  position.lastListedAt = new Date().toISOString();
+  const resolvedItem = resolveItem(itemInput);
+  let position = await chooseActivePosition(positionsData, resolvedItem.id);
+
+  const listQty = Number(quantity);
+  const numericListPrice = Number(listPrice);
+
+  if (!position) {
+    console.log(`\nNo active position found for ${resolvedItem.name}.`);
+    console.log(
+      `You are trying to list ${listQty}x at ${formatGp(numericListPrice)} gp each.`,
+    );
+
+    const createNew = await askYesNo(
+      "\nCreate a new position for this already-listed item? Y/N",
+    );
+
+    if (!createNew) {
+      console.log("\nCancelled. Nothing was saved.\n");
+      process.exit(0);
+    }
+
+    const rl = readline.createInterface({ input, output });
+
+    const entryAnswer = await rl.question(
+      "\nEnter actual entry price / cost per item. Use 0 if this was loot/drop: ",
+    );
+
+    rl.close();
+
+    const entryPrice = Number(entryAnswer);
+
+    if (!Number.isFinite(entryPrice) || entryPrice < 0) {
+      fail("ENTRY_PRICE must be 0 or higher.");
+    }
+    const hadBuyOfferFee = await askYesNo(
+      "\nDid you originally buy this through a Tibia buy offer? Y/N",
+    );
+
+    const buyOfferFeePaid = hadBuyOfferFee
+      ? calculateBuyOfferFee(entryPrice, listQty)
+      : 0;
+
+    const now = new Date().toISOString();
+
+    position = {
+      id: resolvedItem.id,
+      name: resolvedItem.name,
+      createdAt: now,
+      openedAt: now,
+      flow: "MANUAL_LISTING",
+      entryPrice,
+      averageEntryPrice: entryPrice,
+      originalQuantity: listQty,
+      quantity: listQty,
+      orderedQuantity: listQty,
+      receivedQuantity: listQty,
+      listedQuantity: 0,
+      soldQuantity: 0,
+      totalListedQuantity: 0,
+      buyOfferFeePaid: 0,
+      sellOfferFeePaid: 0,
+      targetSell: null,
+      desiredMargin: 0,
+      entryBrainScore: null,
+      status: "EXTERNAL_READY",
+      events: [
+        {
+          type: "MANUAL_POSITION_CREATED_FROM_LISTING",
+          at: now,
+          quantity: listQty,
+          entryPrice,
+          listPrice: numericListPrice,
+          buyOfferFeePaid,
+        },
+      ],
+    };
+
+    positionsData.positions.push(position);
+  }
+
+  normalizePosition(position);
+
+  const ownedQuantity = Number(position.quantity || 0);
+  const alreadyListedQuantity = Number(position.listedQuantity || 0);
+  const availableToList = Math.max(0, ownedQuantity - alreadyListedQuantity);
+
+  const isAlreadyFullyListed =
+    alreadyListedQuantity >= ownedQuantity && ownedQuantity > 0;
+
+  let sellOfferFeePaid = 0;
+
+  if (isAlreadyFullyListed) {
+    console.log(
+      `\nThis item is already listed for sale: ${alreadyListedQuantity}/${ownedQuantity}.`,
+    );
+    console.log(
+      `Current tracked list price: ${formatGp(position.lastListPrice)} gp`,
+    );
+    console.log(`New list price: ${formatGp(numericListPrice)} gp`);
+
+    const updateExisting = await askYesNo(
+      "\nDid you cancel/relist or update this sell offer in Tibia Market? Y/N",
+    );
+
+    if (!updateExisting) {
+      console.log("\nCancelled. Nothing was changed.\n");
+      process.exit(0);
+    }
+
+    if (listQty !== alreadyListedQuantity) {
+      fail(
+        `This position is already fully listed with ${alreadyListedQuantity} items. Use sold when items sell, or cancel manually if you removed the offer.`,
+      );
+    }
+
+    sellOfferFeePaid = calculateSellOfferFee(numericListPrice, listQty);
+
+    position.sellOfferFeePaid =
+      Number(position.sellOfferFeePaid || 0) + sellOfferFeePaid;
+
+    position.lastListPrice = numericListPrice;
+    position.lastListedAt = new Date().toISOString();
+
+    addEvent(position, "SELL_OFFER_RELISTED", {
+      quantity: listQty,
+      listPrice: numericListPrice,
+      offerFeePaid: sellOfferFeePaid,
+      previousListPrice: position.lastListPrice,
+    });
+  } else {
+    if (listQty > availableToList) {
+      fail(
+        `Cannot list ${listQty}; only ${availableToList} unlisted items are available. Owned: ${ownedQuantity}, already listed: ${alreadyListedQuantity}.`,
+      );
+    }
+
+    sellOfferFeePaid = calculateSellOfferFee(numericListPrice, listQty);
+
+    position.listedQuantity = alreadyListedQuantity + listQty;
+    position.totalListedQuantity =
+      Number(position.totalListedQuantity || 0) + listQty;
+    position.sellOfferFeePaid =
+      Number(position.sellOfferFeePaid || 0) + sellOfferFeePaid;
+    position.lastListPrice = numericListPrice;
+    position.lastListedAt = new Date().toISOString();
+
+    position.status =
+      position.listedQuantity >= Number(position.quantity || 0)
+        ? "LISTED_FOR_SALE"
+        : "PARTIALLY_LISTED";
+  }
+
   position.status =
-    position.listedQuantity >= position.quantity
+    position.listedQuantity >= Number(position.quantity || 0)
       ? "LISTED_FOR_SALE"
       : "PARTIALLY_LISTED";
 
   addEvent(position, "LISTED_FOR_SALE", {
     quantity: listQty,
-    listPrice: Number(listPrice),
+    listPrice: numericListPrice,
     offerFeePaid: sellOfferFeePaid,
   });
 
@@ -586,7 +947,7 @@ if (action === "list") {
 
   console.log("\nITEMS LISTED FOR SALE\n");
   printPosition(position);
-  console.log(`List price: ${formatGp(listPrice)} gp`);
+  console.log(`List price: ${formatGp(numericListPrice)} gp`);
   console.log(`Sell offer fee paid: ${formatGp(sellOfferFeePaid)} gp`);
   process.exit(0);
 }
