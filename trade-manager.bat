@@ -408,8 +408,9 @@ goto menu
 cls
 echo RUN SCANNER
 echo.
-echo This runs npm run scanner locally for research-only ranked opportunities.
+echo This runs npm run scanner locally for tracked items / regular flips.
 echo.
+set SCANNER_MODE=tracked
 call npm run scanner
 pause
 goto menu
@@ -421,7 +422,8 @@ echo.
 echo This checks a larger research pool and suggests IDs to add to watch/experimental.
 echo It does NOT send BUY/SELL alerts.
 echo.
-call npm run discover
+set SCANNER_MODE=discovery
+call npm run scanner
 pause
 goto menu
 
