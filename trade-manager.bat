@@ -45,7 +45,7 @@ if "%choice%"=="9" goto expire
 if "%choice%"=="10" goto inventory
 if "%choice%"=="11" goto inventorybuy
 if "%choice%"=="12" goto quickcheck
-if "%choice%"=="13" goto runflips
+if "%choice%"=="13" goto flips
 if "%choice%"=="14" goto runscanner
 if "%choice%"=="15" goto rundiscovery
 if "%choice%"=="16" goto gitpush
@@ -394,14 +394,15 @@ call npm run trade -- check "%ITEM%" %ENTRY_PRICE% %SELL_PRICE% %QTY%
 pause
 goto menu
 
-:runflips
+:flips
 cls
 echo RUN FLIPPER CHECK
 echo.
-echo This runs npm run flips locally, so you can see BUY/SELL candidates and rejection reasons.
-echo.
+set SCANNER_MODE=tracked
 call npm run flips
-pause
+echo.
+echo Finished. Press any key to return to menu.
+pause >nul
 goto menu
 
 :runscanner

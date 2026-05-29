@@ -1382,8 +1382,9 @@ function buildDiscoveryReport(rankedItems, state, meta) {
   const lines = [
     `🧭 DISCOVERY SCANNER — ${SERVER}`,
     `Mode: ${meta.includeTracked ? "including already tracked" : "new items only"}`,
-    `Checked: ${meta.checkedThisRun} / ${meta.total} | New candidates: ${candidates.length} | Rejected: ${rejected} | Failed: ${meta.failed}`,
-    `Cursor: ${meta.cursorAfter} | API calls: ${meta.apiCalls} | Cache hits: ${meta.cacheHits}`,
+    `Checked this run: ${meta.checkedThisRun}`,
+    `Progress: ${meta.cursorAfter} / ${meta.total} | New candidates: ${candidates.length} | Rejected: ${rejected} | Failed: ${meta.failed}`,
+    `API calls: ${meta.apiCalls} | Cache hits: ${meta.cacheHits}`,
     "",
   ];
 
