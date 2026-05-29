@@ -55,6 +55,8 @@ import {
   VOLATILITY_HIGH_THRESHOLD,
   VOLATILITY_MEDIUM_THRESHOLD,
 } from "./lib/constants.js";
+import { buildBuyPricingPlan } from "./lib/pricing.js";
+import { buildMoneyPlan } from "./lib/edge.js";
 import { loadState, saveState, updateItemHistory } from "./lib/state.js";
 import {
   updateMarketMemory,
@@ -89,14 +91,17 @@ function roundToNiceGp(value) {
 }
 
 function formatGpRange(low, high) {
-  const cleanLow = roundToNiceGp(low);
-  const cleanHigh = roundToNiceGp(high);
+  const first = roundToNiceGp(low);
+  const second = roundToNiceGp(high);
+  const cleanLow = Math.min(first, second);
+  const cleanHigh = Math.max(first, second);
 
   if (cleanLow === cleanHigh) return `${formatGp(cleanLow)} gp`;
   return `${formatGp(cleanLow)}–${formatGp(cleanHigh)} gp`;
 }
 
 function buildScannerActionPlan(item) {
+  const moneyPlan = buildMoneyPlan(item);
   const hasHardTrap =
     item.scannerTier === "AVOID" ||
     item.conviction === "AVOID / TRAP RISK" ||
@@ -124,10 +129,14 @@ function buildScannerActionPlan(item) {
     item.profit >= 300;
 
   const buyAroundLow = item.buyOffer * (isStrongCandidate ? 0.992 : 0.985);
-  const buyAroundHigh = item.buyOffer * (isStrongCandidate ? 1.004 : 0.998);
-  const maxChase = item.buyOffer * (isStrongCandidate ? 1.018 : 1.008);
+  const naturalBuyHigh = item.buyOffer * (isStrongCandidate ? 1.004 : 0.998);
+  const buyAroundHigh = moneyPlan.hardMaxBuy
+    ? Math.min(naturalBuyHigh, moneyPlan.hardMaxBuy)
+    : naturalBuyHigh;
+  const maxChase =
+    moneyPlan.hardMaxBuy || item.buyOffer * (isStrongCandidate ? 1.018 : 1.008);
 
-  const sellLow = item.sellOffer * 0.995;
+  const sellLow = (moneyPlan.realisticExit || item.sellOffer) * 0.995;
   const sellHigh = item.sellOffer * 1.005;
 
   let headline = "🔎 Research only — not an automatic BUY.";
@@ -137,6 +146,10 @@ function buildScannerActionPlan(item) {
   if (hasHardTrap) {
     headline = "❌ AVOID FOR NOW";
     instruction = "Exit quality or spread structure looks too dangerous.";
+  } else if (moneyPlan.directAction === "DO NOT CHASE") {
+    headline = "🟠 GOOD ITEM / BAD ENTRY";
+    instruction =
+      "Do not chase this buy offer right now. Wait for a cheaper entry.";
   } else if (isStrongCandidate) {
     headline = "✅ WORTH BUY OFFER";
     instruction =
@@ -204,6 +217,7 @@ function buildScannerActionPlan(item) {
     sellRange: formatGpRange(sellLow, sellHigh),
     exitNote,
     why,
+    moneyPlan,
   };
 }
 
@@ -791,6 +805,7 @@ function scannerSortValue(item) {
   ].filter((label) => item.tradeLabels?.includes(label)).length;
 
   return (
+    (item.moneyPlan?.edgeScore || item.edgeScore || 0) * 1800000 +
     item.tradeabilityScore * 1400000 +
     item.scannerScore * 700000 +
     (qualityRank[item.qualityTier] || 0) * 350000 +
@@ -809,7 +824,10 @@ function getSnipeData(item) {
   const sellOffer = Number(item.sellOffer || 0);
   const monthAverageSell = Number(item.monthAverageSell || 0);
   const dayAverageSell = Number(item.dayAverageSell || 0);
-  const referencePrice = monthAverageSell || dayAverageSell || 0;
+  const references = [monthAverageSell, dayAverageSell].filter(
+    (value) => value > 0,
+  );
+  const referencePrice = references.length ? Math.min(...references) : 0;
 
   if (!sellOffer || !referencePrice) {
     return {
@@ -902,9 +920,13 @@ function buildScannerReportItems(analyzedItems) {
         ...scannerData,
       };
 
+      const moneyPlan = buildMoneyPlan(withScanner);
+
       return {
         ...withScanner,
-        scannerTier: getScannerTier(withScanner),
+        ...moneyPlan,
+        moneyPlan,
+        scannerTier: getScannerTier({ ...withScanner, ...moneyPlan }),
       };
     })
     .sort((a, b) => scannerSortValue(b) - scannerSortValue(a));
@@ -930,9 +952,12 @@ async function sendDiscordScannerReport(analyzedItems, volatility, runAdvice) {
         value:
           `**${actionPlan.actionHeadline}**\n` +
           `${actionPlan.actionInstruction}\n\n` +
-          `Place a Buy Offer between **${actionPlan.buyRange}**. ` +
-          `Do not put anything above **${actionPlan.maxChase}**. ` +
-          `Expect to sell around **${actionPlan.sellRange}**.\n\n` +
+          `Action: **${actionPlan.moneyPlan.directAction}** — ${actionPlan.moneyPlan.directReason}\n` +
+          `Buy range: **${actionPlan.buyRange}**\n` +
+          `Hard max buy: **${actionPlan.maxChase}**\n` +
+          `Suggested qty: **${actionPlan.moneyPlan.recommendedQty}** (${actionPlan.moneyPlan.quantityLabel})\n` +
+          `Expected sell: **${actionPlan.sellRange}**\n` +
+          `Style: **${actionPlan.moneyPlan.tradeStyle}** — ${actionPlan.moneyPlan.tradeStyleNote}\n\n` +
           `⚠️ ${actionPlan.exitNote}`,
         inline: false,
       },
@@ -940,6 +965,7 @@ async function sendDiscordScannerReport(analyzedItems, volatility, runAdvice) {
         name: "🧠 Quick Read",
         value:
           `${actionPlan.why}\n\n` +
+          `Money edge: **${actionPlan.moneyPlan.edgeLabel}** (${actionPlan.moneyPlan.edgeScore}/100)\n` +
           `Read: **${item.conviction}** / **${item.qualityTier || "WEAK"}**\n` +
           `Exit: **${
             item.tradeLabels?.find((label) => label.includes("EXIT")) ||
@@ -1131,6 +1157,17 @@ function analyzeMarketItems(items, state, itemMap) {
       historyData,
     );
 
+    const buyPricingPlan = buildBuyPricingPlan({
+      ...item,
+      ...decisionData,
+      ...fakeRiskData,
+      buyOffer: item.buy_offer,
+      sellOffer: item.sell_offer,
+      dayAverageSell: item.day_average_sell || 0,
+      monthAverageSell: item.month_average_sell || 0,
+      monthSold: item.month_sold || 0,
+    });
+
     const analyzedItem = {
       id: item.id,
       name: itemMap[item.id] || "Unknown",
@@ -1145,6 +1182,7 @@ function analyzeMarketItems(items, state, itemMap) {
       monthSold: item.month_sold || 0,
       dayAverageSell: item.day_average_sell || 0,
       monthAverageSell: item.month_average_sell || 0,
+      ...buyPricingPlan,
     };
 
     const withBrain = {
@@ -1162,12 +1200,17 @@ function analyzeMarketItems(items, state, itemMap) {
       ...calculateTradeabilityConviction(withPressure),
     };
 
+    const withMoneyPlan = {
+      ...withConviction,
+      ...buildMoneyPlan(withConviction),
+    };
+
     const personalConfidence = getPersonalTradeConfidence(state, item.id);
 
     const withPersonalMemory = {
-      ...withConviction,
+      ...withMoneyPlan,
       brainScore: clamp(
-        withConviction.brainScore + personalConfidence.scoreAdjust,
+        withMoneyPlan.brainScore + personalConfidence.scoreAdjust,
         0,
         100,
       ),
@@ -1286,8 +1329,10 @@ function getDiscoveryStability(entry) {
 }
 
 function formatCompactRange(low, high) {
-  const cleanLow = roundToNiceGp(low);
-  const cleanHigh = roundToNiceGp(high);
+  const first = roundToNiceGp(low);
+  const second = roundToNiceGp(high);
+  const cleanLow = Math.min(first, second);
+  const cleanHigh = Math.max(first, second);
 
   if (cleanLow === cleanHigh) return formatGp(cleanLow);
   return `${formatGp(cleanLow)}–${formatGp(cleanHigh)}`;
@@ -1311,12 +1356,12 @@ function buildDiscoveryLine(item, index, state) {
 }
 
 function buildDiscoveryReport(rankedItems, state, meta) {
+  const allowedActions = meta.includeTracked
+    ? ["watch", "experimental", "already tracked"]
+    : ["watch", "experimental"];
+
   const candidates = rankedItems
-    .filter((item) =>
-      ["watch", "experimental", "already tracked"].includes(
-        item.discoverySuggestion.action,
-      ),
-    )
+    .filter((item) => allowedActions.includes(item.discoverySuggestion.action))
     .slice(0, DISCOVERY_TOP_LIMIT);
 
   const rejected =
@@ -1336,13 +1381,18 @@ function buildDiscoveryReport(rankedItems, state, meta) {
 
   const lines = [
     `🧭 DISCOVERY SCANNER — ${SERVER}`,
-    `Checked: ${meta.checkedThisRun} / ${meta.total} | Candidates: ${candidates.length} | Rejected: ${rejected} | Failed: ${meta.failed}`,
+    `Mode: ${meta.includeTracked ? "including already tracked" : "new items only"}`,
+    `Checked: ${meta.checkedThisRun} / ${meta.total} | New candidates: ${candidates.length} | Rejected: ${rejected} | Failed: ${meta.failed}`,
     `Cursor: ${meta.cursorAfter} | API calls: ${meta.apiCalls} | Cache hits: ${meta.cacheHits}`,
     "",
   ];
 
   if (candidates.length === 0) {
-    lines.push("No useful new candidates in this slice.", "");
+    lines.push("No useful NEW candidates in this slice.", "");
+    lines.push(
+      "This is normal if the scanned slice contains weak items or items you already track.",
+      "",
+    );
   } else {
     lines.push(
       ...candidates
@@ -1375,7 +1425,13 @@ async function sendDiscordDiscoveryReport(report) {
 }
 
 async function runDiscoveryScanner() {
-  const allDiscoveryIds = getDiscoveryItemIds();
+  const includeTrackedDiscovery =
+    String(process.env.DISCOVERY_INCLUDE_TRACKED || "false").toLowerCase() ===
+    "true";
+
+  const allDiscoveryIds = getDiscoveryItemIds({
+    includeTracked: includeTrackedDiscovery,
+  });
   const state = loadState();
   const itemMap = getItemMap();
 
@@ -1389,7 +1445,7 @@ async function runDiscoveryScanner() {
 
   if (slice.ids.length === 0) {
     console.log(
-      "No discovery items found. Add IDs to data/discovery-items.json.",
+      "No new discovery items found. Add more IDs to data/discovery-items.json, or set DISCOVERY_INCLUDE_TRACKED=true to include tracked items.",
     );
     return;
   }
@@ -1419,6 +1475,7 @@ async function runDiscoveryScanner() {
     apiCalls: marketResult.apiCalls,
     cacheHits: marketResult.cacheHits,
     failed,
+    includeTracked: includeTrackedDiscovery,
   });
 
   console.log(`\n${report.text}\n`);
@@ -1466,6 +1523,17 @@ async function main() {
       historyData,
     );
 
+    const buyPricingPlan = buildBuyPricingPlan({
+      ...item,
+      ...decisionData,
+      ...fakeRiskData,
+      buyOffer: item.buy_offer,
+      sellOffer: item.sell_offer,
+      dayAverageSell: item.day_average_sell || 0,
+      monthAverageSell: item.month_average_sell || 0,
+      monthSold: item.month_sold || 0,
+    });
+
     const analyzedItem = {
       id: item.id,
       name: itemMap[item.id] || "Unknown",
@@ -1480,6 +1548,7 @@ async function main() {
       monthSold: item.month_sold || 0,
       dayAverageSell: item.day_average_sell || 0,
       monthAverageSell: item.month_average_sell || 0,
+      ...buyPricingPlan,
     };
 
     const withBrain = {
@@ -1497,12 +1566,17 @@ async function main() {
       ...calculateTradeabilityConviction(withPressure),
     };
 
+    const withMoneyPlan = {
+      ...withConviction,
+      ...buildMoneyPlan(withConviction),
+    };
+
     const personalConfidence = getPersonalTradeConfidence(state, item.id);
 
     const withPersonalMemory = {
-      ...withConviction,
+      ...withMoneyPlan,
       brainScore: clamp(
-        withConviction.brainScore + personalConfidence.scoreAdjust,
+        withMoneyPlan.brainScore + personalConfidence.scoreAdjust,
         0,
         100,
       ),

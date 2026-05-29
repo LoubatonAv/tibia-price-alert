@@ -21,13 +21,14 @@ echo.
 echo ===== Market Advisor =====
 echo 10. Sell Check
 echo 11. Buy Price Check
+echo 12. Quick Profit Check
 echo.
 echo ===== Tools =====
-echo 12. Run Flipper Check
-echo 13. Run Scanner
-echo 14. Run Discovery Scanner
-echo 15. Git Push
-echo 16. Exit
+echo 13. Run Flipper Check
+echo 14. Run Scanner
+echo 15. Run Discovery Scanner
+echo 16. Git Push
+echo 17. Exit
 echo.
 
 set /p choice=Choose option: 
@@ -43,11 +44,12 @@ if "%choice%"=="8" goto cancel
 if "%choice%"=="9" goto expire
 if "%choice%"=="10" goto inventory
 if "%choice%"=="11" goto inventorybuy
-if "%choice%"=="12" goto runflips
-if "%choice%"=="13" goto runscanner
-if "%choice%"=="14" goto rundiscovery
-if "%choice%"=="15" goto gitpush
-if "%choice%"=="16" exit
+if "%choice%"=="12" goto quickcheck
+if "%choice%"=="13" goto runflips
+if "%choice%"=="14" goto runscanner
+if "%choice%"=="15" goto rundiscovery
+if "%choice%"=="16" goto gitpush
+if "%choice%"=="17" exit
 
 goto menu
 
@@ -353,6 +355,44 @@ call node inventory.js buy "%ITEM%" %QTY% %BUY_PRICE% --live-buy "%LIVE_BUY%" --
 pause
 goto menu
 
+:quickcheck
+cls
+echo QUICK PROFIT CHECK
+echo.
+echo Use this BEFORE buying or listing when you want a simple yes/no profit check.
+echo This does NOT update your position. It only checks profit after fees.
+echo.
+echo Example:
+echo Item: stone skin amulet
+echo Buy price: 8199
+echo Sell price: 9500
+echo Quantity: 10
+echo.
+
+set "ITEM="
+set "ENTRY_PRICE="
+set "SELL_PRICE="
+set "QTY="
+
+set /p "ITEM=Item name or ID: "
+set /p "ENTRY_PRICE=Buy / entry price per item: "
+set /p "SELL_PRICE=Expected sell price per item: "
+set /p "QTY=Quantity, press Enter for 1: "
+
+if not defined QTY set "QTY=1"
+
+echo.
+echo ============================
+echo Running quick profit check...
+echo ============================
+echo.
+echo node trade.js check "%ITEM%" %ENTRY_PRICE% %SELL_PRICE% %QTY%
+echo.
+
+call npm run trade -- check "%ITEM%" %ENTRY_PRICE% %SELL_PRICE% %QTY%
+
+pause
+goto menu
 
 :runflips
 cls

@@ -10,6 +10,7 @@ import {
 } from "./lib/discord.js";
 import { calculateProfit } from "./lib/profit.js";
 import { buildBuyPricingPlan } from "./lib/pricing.js";
+import { buildMoneyPlan } from "./lib/edge.js";
 
 import { loadState, saveState, updateItemHistory } from "./lib/state.js";
 import { getTrackedItemIds } from "./lib/trackedItems.js";
@@ -866,6 +867,7 @@ function scannerSortValue(item) {
     "NO MARKET": 0,
   };
   return (
+    (item.edgeScore || 0) * 1200000 +
     item.scannerScore * 1000000 +
     (confidenceRank[item.exitConfidence] || 0) * 100000 +
     (classRank[item.marketClass] || 0) * 10000 +
@@ -884,9 +886,12 @@ function buildScannerReportItems(analyzedItems) {
         ...scannerData,
       };
 
+      const moneyPlan = buildMoneyPlan(withScanner);
+
       return {
         ...withScanner,
-        scannerTier: getScannerTier(withScanner),
+        ...moneyPlan,
+        scannerTier: getScannerTier({ ...withScanner, ...moneyPlan }),
       };
     })
     .sort((a, b) => scannerSortValue(b) - scannerSortValue(a));
@@ -1044,11 +1049,16 @@ async function main() {
       ...calculateTradeabilityConviction(withPressure),
     };
 
+    const withMoneyPlan = {
+      ...withConviction,
+      ...buildMoneyPlan(withConviction),
+    };
+
     const openPosition = getOpenPositionForItem(item.id);
 
     const withPosition = openPosition
       ? {
-          ...withConviction,
+          ...withMoneyPlan,
           position: {
             ...openPosition,
 
@@ -1067,7 +1077,7 @@ async function main() {
                 : 0,
           },
         }
-      : withConviction;
+      : withMoneyPlan;
 
     const sellDecisionData = getSellDecision(withPosition, state);
 
@@ -1116,7 +1126,8 @@ async function main() {
     console.log(
       `BUY ${item.name} (ID: ${item.id})\n` +
         `Brain: ${item.brainScore}/100 (${item.strength}) | Risk: ${item.riskLevel}\n` +
-        `Buy around: ${item.maxRealisticBuy} | Sell target: ${item.realisticExit}\n` +
+        `Action: ${item.directAction || "CHECK"} | Qty: ${item.recommendedQty || 1}\n` +
+        `Hard max buy: ${item.maxRealisticBuy} | Sell target: ${item.realisticExit}\n` +
         `Realistic profit: ${item.realisticProfit.toFixed(0)} (${item.realisticProfitPercent.toFixed(2)}%)\n`,
       `Reason: ${item.reason}\n`,
     );

@@ -54,11 +54,39 @@ function loadPositions() {
 }
 
 function savePositions(data) {
-  fs.writeFileSync(POSITIONS_FILE, JSON.stringify(data, null, 2));
+  const tempFile = `${POSITIONS_FILE}.tmp`;
+  fs.writeFileSync(tempFile, JSON.stringify(data, null, 2));
+  fs.renameSync(tempFile, POSITIONS_FILE);
 }
 
 function isPositiveNumber(value) {
   return Number.isFinite(Number(value)) && Number(value) > 0;
+}
+
+function isNumericArg(value) {
+  return value !== undefined && value !== "" && Number.isFinite(Number(value));
+}
+
+function parseItemWithTrailingNumbers(args, minNumbers, maxNumbers = minNumbers) {
+  if (!Array.isArray(args) || args.length < minNumbers + 1) {
+    return null;
+  }
+
+  const numbers = [];
+  let index = args.length - 1;
+
+  while (index >= 0 && isNumericArg(args[index]) && numbers.length < maxNumbers) {
+    numbers.unshift(args[index]);
+    index -= 1;
+  }
+
+  const itemInput = args.slice(0, index + 1).join(" ").trim();
+
+  if (!itemInput || numbers.length < minNumbers) {
+    return null;
+  }
+
+  return { itemInput, numbers };
 }
 
 function fail(message) {
@@ -94,6 +122,7 @@ New safer flow:
   node trade.js receive ITEM_ID_OR_NAME QUANTITY [ACTUAL_ENTRY_PRICE]
   node trade.js list ITEM_ID_OR_NAME QUANTITY LIST_PRICE
   node trade.js sold ITEM_ID_OR_NAME QUANTITY SELL_PRICE
+  node trade.js check ITEM_ID_OR_NAME ENTRY_PRICE SELL_PRICE [QUANTITY]
 
 Backward compatible old flow:
   node trade.js open ITEM_ID_OR_NAME ENTRY_PRICE QUANTITY TARGET_SELL [BRAIN_SCORE]
@@ -314,6 +343,7 @@ if (
     "expire",
     "stats",
     "buyfee",
+    "check",
   ].includes(action)
 ) {
   printUsage();
@@ -331,6 +361,64 @@ if (action === "orders") {
 }
 
 const positionsData = loadPositions();
+
+if (action === "check") {
+  const parsed = parseItemWithTrailingNumbers(args, 2, 3);
+
+  if (!parsed) {
+    console.log(`
+Usage:
+  node trade.js check ITEM_ID_OR_NAME ENTRY_PRICE SELL_PRICE [QUANTITY]
+
+Examples:
+  node trade.js check stone skin amulet 8199 9500 10
+  node trade.js check "stone skin amulet" 8199 9500 10
+`);
+    process.exit(1);
+  }
+
+  const { itemInput, numbers } = parsed;
+  const [entryPriceRaw, sellPriceRaw, quantityRaw = "1"] = numbers;
+  const entryPrice = Number(entryPriceRaw);
+  const sellPrice = Number(sellPriceRaw);
+  const quantity = Number(quantityRaw);
+
+  if (!isPositiveNumber(entryPrice)) fail("ENTRY_PRICE must be a positive number.");
+  if (!isPositiveNumber(sellPrice)) fail("SELL_PRICE must be a positive number.");
+  if (!isPositiveNumber(quantity)) fail("QUANTITY must be a positive number.");
+
+  const resolvedItem = resolveItem(itemInput);
+  const buyFee = calculateBuyOfferFee(entryPrice, quantity);
+  const sellFee = calculateSellOfferFee(sellPrice, quantity);
+  const grossBuy = entryPrice * quantity;
+  const grossSell = sellPrice * quantity;
+  const netProfit = grossSell - grossBuy - buyFee - sellFee;
+  const realCost = grossBuy + buyFee + sellFee;
+  const roiPercent = realCost > 0 ? (netProfit / realCost) * 100 : 0;
+  const breakEvenSell = Math.ceil((entryPrice + buyFee / quantity + sellFee / quantity) / (1 - 0));
+  const minimumGoodProfit = Math.max(300 * quantity, grossBuy * 0.04);
+
+  console.log("\nTRADE CHECK\n");
+  console.log(`Item: ${resolvedItem.name} (${resolvedItem.id})`);
+  console.log(`Quantity: ${quantity}`);
+  console.log(`Buy: ${formatGp(entryPrice)} gp each`);
+  console.log(`Sell: ${formatGp(sellPrice)} gp each`);
+  console.log(`Fees: buy ${formatGp(buyFee)} gp + sell ${formatGp(sellFee)} gp`);
+  console.log(`Net profit: ${formatGp(netProfit)} gp total (${formatGp(netProfit / quantity)} gp each)`);
+  console.log(`ROI after fees: ${roiPercent.toFixed(2)}%`);
+
+  if (netProfit <= 0) {
+    console.log("\nDirect read: ❌ Do not buy — this loses money after fees.");
+  } else if (netProfit < minimumGoodProfit || roiPercent < 4) {
+    console.log("\nDirect read: 🟡 Very thin — only worth it if it sells fast and you are sure.");
+  } else {
+    console.log("\nDirect read: ✅ Looks profitable after fees.");
+  }
+
+  console.log("Next step: if you buy it, record it with `node trade.js buy ...` or `node trade.js add ...`.");
+  process.exit(0);
+}
+
 if (action === "buyfee") {
   const parsed = parseItemAndOptionalNumberArgs(args);
 
@@ -401,12 +489,15 @@ Examples:
   process.exit(0);
 }
 if (action === "buy" || action === "open") {
-  const [itemInput, entryPrice, quantity, targetSell, brainScore] = args;
+  const parsed = parseItemWithTrailingNumbers(args, 2, 4);
 
-  if (!itemInput || !entryPrice || !quantity) {
+  if (!parsed) {
     printUsage();
     process.exit(1);
   }
+
+  const { itemInput, numbers } = parsed;
+  const [entryPrice, quantity, targetSell, brainScore] = numbers;
 
   if (!isPositiveNumber(entryPrice))
     fail("ENTRY_PRICE must be a positive number.");
@@ -460,7 +551,7 @@ if (action === "buy" || action === "open") {
 
     totalListedQuantity: 0,
 
-    buyOfferFeePaid,
+    buyOfferFeePaid: 0,
     sellOfferFeePaid: 0,
 
     targetSell: finalTargetSell,
@@ -494,11 +585,15 @@ if (action === "buy" || action === "open") {
 }
 
 if (action === "add") {
-  const [itemInput, quantity, costPerItem = 0] = args;
-  if (!itemInput || !quantity) {
+  const parsed = parseItemWithTrailingNumbers(args, 1, 2);
+
+  if (!parsed) {
     printUsage();
     process.exit(1);
   }
+
+  const { itemInput, numbers } = parsed;
+  const [quantity, costPerItem = 0] = numbers;
 
   if (!isPositiveNumber(quantity)) fail("QUANTITY must be a positive number.");
   if (costPerItem && !Number.isFinite(Number(costPerItem)))
@@ -531,7 +626,7 @@ if (action === "add") {
     listedQuantity: 0,
     soldQuantity: 0,
     totalListedQuantity: 0,
-    buyOfferFeePaid,
+    buyOfferFeePaid: 0,
     sellOfferFeePaid: 0,
     targetSell: 0,
     desiredMargin: 0.06,
@@ -603,11 +698,15 @@ if (action === "cancel" || action === "expire") {
 }
 
 if (action === "receive") {
-  const [itemInput, quantity, actualEntryPrice] = args;
-  if (!itemInput || !quantity) {
+  const parsed = parseItemWithTrailingNumbers(args, 1, 2);
+
+  if (!parsed) {
     printUsage();
     process.exit(1);
   }
+
+  const { itemInput, numbers } = parsed;
+  const [quantity, actualEntryPrice] = numbers;
 
   if (!isPositiveNumber(quantity)) fail("QUANTITY must be a positive number.");
   if (actualEntryPrice && !isPositiveNumber(actualEntryPrice)) {
@@ -619,11 +718,21 @@ if (action === "receive") {
 
   if (!position) fail("No active position found for this item.");
 
+  normalizePosition(position);
+
   const receiveQty = Number(quantity);
+  const orderedQty = Number(position.orderedQuantity || position.originalQuantity || 0);
+  const previousReceived = Number(position.receivedQuantity || 0);
+
+  if (orderedQty > 0 && previousReceived + receiveQty > orderedQty) {
+    fail(
+      `Cannot receive ${receiveQty}; order was for ${orderedQty}, already received ${previousReceived}.`,
+    );
+  }
+
   const newEntry = actualEntryPrice
     ? Number(actualEntryPrice)
     : position.entryPrice;
-  const previousReceived = Number(position.receivedQuantity || 0);
   const previousCost =
     previousReceived *
     Number(position.averageEntryPrice || position.entryPrice || 0);
@@ -839,7 +948,7 @@ if (action === "list") {
       listedQuantity: 0,
       soldQuantity: 0,
       totalListedQuantity: 0,
-      buyOfferFeePaid: 0,
+      buyOfferFeePaid,
       sellOfferFeePaid: 0,
       targetSell: null,
       desiredMargin: 0,
@@ -895,6 +1004,8 @@ if (action === "list") {
       );
     }
 
+    const previousListPrice = position.lastListPrice || null;
+
     sellOfferFeePaid = calculateSellOfferFee(numericListPrice, listQty);
 
     position.sellOfferFeePaid =
@@ -907,7 +1018,7 @@ if (action === "list") {
       quantity: listQty,
       listPrice: numericListPrice,
       offerFeePaid: sellOfferFeePaid,
-      previousListPrice: position.lastListPrice,
+      previousListPrice,
     });
   } else {
     if (listQty > availableToList) {
@@ -953,27 +1064,33 @@ if (action === "list") {
 }
 
 if (action === "sold" || action === "close") {
-  const [itemInput, firstNumber, secondNumber] = args;
-  if (!itemInput || !firstNumber) {
+  const parsed = parseItemWithTrailingNumbers(args, 1, 2);
+
+  if (!parsed) {
     printUsage();
     process.exit(1);
   }
 
+  const { itemInput, numbers } = parsed;
+  const [firstNumber, secondNumber] = numbers;
+
   const resolvedItem = resolveItem(itemInput);
-  const position = findActivePosition(positionsData, resolvedItem.id);
+  const position = await chooseActivePosition(positionsData, resolvedItem.id);
 
   if (!position) fail("No active position found.");
 
-  const quantity =
-    action === "close" && !secondNumber
-      ? position.quantity
-      : Number(firstNumber);
-  const sellPrice =
-    action === "close" && !secondNumber
-      ? Number(firstNumber)
-      : secondNumber
-        ? Number(secondNumber)
-        : Number(position.lastListPrice || 0);
+  normalizePosition(position);
+
+  let quantity;
+  let sellPrice;
+
+  if (action === "close") {
+    sellPrice = Number(firstNumber);
+    quantity = secondNumber ? Number(secondNumber) : Number(position.quantity || 0);
+  } else {
+    quantity = Number(firstNumber);
+    sellPrice = secondNumber ? Number(secondNumber) : Number(position.lastListPrice || 0);
+  }
 
   if (!isPositiveNumber(quantity)) fail("QUANTITY must be a positive number.");
   if (!isPositiveNumber(sellPrice))
@@ -981,13 +1098,19 @@ if (action === "sold" || action === "close") {
 
   const state = loadState();
 
-  const trade = closeTrade({
-    state,
-    position,
-    sellPrice,
-    quantity,
-    exitReason: action === "close" ? "MANUAL_CLOSE" : "PARTIAL_OR_FULL_SOLD",
-  });
+  let trade;
+
+  try {
+    trade = closeTrade({
+      state,
+      position,
+      sellPrice,
+      quantity,
+      exitReason: action === "close" ? "MANUAL_CLOSE" : "PARTIAL_OR_FULL_SOLD",
+    });
+  } catch (error) {
+    fail(error.message);
+  }
 
   savePositions(positionsData);
   saveState(state);
