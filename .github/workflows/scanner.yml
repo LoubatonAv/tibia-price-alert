@@ -36,7 +36,7 @@ jobs:
       - name: Run Tibia scanner
         run: npm run scanner
         env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          TIBIA_SCANNER_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           TIBIA_WORLD: Harmonia
           SCANNER_MODE: tracked
 
