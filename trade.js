@@ -288,16 +288,7 @@ function printStats() {
 function printOrders() {
   const positionsData = loadPositions();
 
-if (action === "list-menu") {
-  runListMenu(positionsData)
-    .then(() => process.exit(0))
-    .catch((error) => {
-      console.error("List menu failed:", error);
-      process.exit(1);
-    });
-}
-
-  const active = positionsData.positions.filter(
+const active = positionsData.positions.filter(
     (position) => position.status !== "CLOSED",
   );
 
@@ -1130,6 +1121,12 @@ if (action === "dashboard") {
 }
 
 const positionsData = loadPositions();
+
+if (action === "list-menu") {
+  await runListMenu(positionsData);
+  process.exit(0);
+}
+
 
 if (action === "sold-menu") {
   await runSoldMenu(positionsData);
