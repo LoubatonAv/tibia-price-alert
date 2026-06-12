@@ -29,7 +29,8 @@ echo 14. Run Scanner
 echo 15. Run Discovery Scanner
 echo 16. Git Push
 echo 17. Action Dashboard
-echo 18. Exit
+echo 18. Relist / Update Listing
+echo 19. Exit
 echo.
 
 set /p choice=Choose option: 
@@ -51,7 +52,9 @@ if "%choice%"=="14" goto runscanner
 if "%choice%"=="15" goto rundiscovery
 if "%choice%"=="16" goto gitpush
 if "%choice%"=="17" goto dashboard
-if "%choice%"=="18" exit
+if "%choice%"=="18" goto relist
+if "%choice%"=="19" goto relist
+if "%choice%"=="19" goto exitif "%choice%"=="18" exit
 
 goto menu
 
@@ -352,6 +355,41 @@ echo.
 set SCANNER_MODE=discovery
 call npm run scanner
 pause
+goto menu
+
+
+:relist
+cls
+echo RELIST / UPDATE EXISTING LISTING
+echo.
+echo Use this only after you actually changed the listing in Tibia Market.
+echo.
+call npm run trade -- relist-menu
+pause
+goto menu
+
+
+:relist
+cls
+echo RELIST / UPDATE EXISTING LISTING
+echo.
+echo Use this only after you actually changed the listing in Tibia Market.
+echo.
+call npm run trade -- relist-menu
+pause
+goto menu
+
+
+:relist
+cls
+echo RELIST / UPDATE EXISTING LISTING
+echo.
+echo Use this only after you actually changed the listing in Tibia Market.
+echo.
+call npm run trade -- relist-menu
+echo.
+echo Finished. Press any key to return to menu.
+pause >nul
 goto menu
 
 :dashboard
