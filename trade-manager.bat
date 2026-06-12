@@ -30,7 +30,8 @@ echo 15. Run Discovery Scanner
 echo 16. Git Push
 echo 17. Action Dashboard
 echo 18. Relist / Update Listing
-echo 19. Exit
+echo 19. Discovery Promotion
+echo 20. Exit
 echo.
 
 set /p choice=Choose option: 
@@ -53,8 +54,8 @@ if "%choice%"=="15" goto rundiscovery
 if "%choice%"=="16" goto gitpush
 if "%choice%"=="17" goto dashboard
 if "%choice%"=="18" goto relist
-if "%choice%"=="19" goto relist
-if "%choice%"=="19" goto exitif "%choice%"=="18" exit
+if "%choice%"=="19" goto promotion
+if "%choice%"=="20" goto relistif "%choice%"=="18" exit
 
 goto menu
 
@@ -357,6 +358,19 @@ call npm run scanner
 pause
 goto menu
 
+
+
+:promotion
+cls
+echo DISCOVERY PROMOTION
+echo.
+echo Promote stable Discovery candidates into tracked-items.json.
+echo.
+call npm run promote-discovery
+echo.
+echo Finished. Press any key to return to menu.
+pause >nul
+goto menu
 
 :relist
 cls

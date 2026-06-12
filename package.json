@@ -7,7 +7,8 @@
     "scanner": "node scanner.js",
     "discover": "node scanner.js discover",
     "trade": "node trade.js",
-    "inventory": "node inventory.js"
+    "inventory": "node inventory.js",
+    "promote-discovery": "node promote-discovery.mjs"
   },
   "keywords": [],
   "author": "",
