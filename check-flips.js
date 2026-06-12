@@ -1,3 +1,21 @@
+
+// Quiet normal output: rejected item dumps are shown only in debug mode.
+const FLIPPER_DEBUG_REJECTIONS = ["1", "true", "yes", "y"].includes(
+  String(process.env.FLIPPER_DEBUG_REJECTIONS || "").toLowerCase(),
+);
+
+const originalFlipperConsoleLog = console.log.bind(console);
+
+console.log = (...args) => {
+  const message = args.map((arg) => String(arg)).join(" ");
+
+  if (!FLIPPER_DEBUG_REJECTIONS && /^\s*REJECTED:/m.test(message)) {
+    return;
+  }
+
+  originalFlipperConsoleLog(...args);
+};
+
 import axios from "axios";
 import fs from "fs";
 import "dotenv/config";
