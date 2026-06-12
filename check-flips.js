@@ -1266,6 +1266,223 @@ async function sendDiscordManualSnipeAlerts(analyzedItems, buySignals, state) {
   console.log("Discord manual snipe alert sent.");
 }
 
+
+
+function quotePowerShellArg(value) {
+  const text = String(value ?? "");
+  return '"' + text.replace(/"/g, '\\"') + '"';
+}
+
+function getAcceptBuyCommand(item) {
+  const plan =
+    typeof buildQualityActionPlan === "function"
+      ? buildQualityActionPlan(item)
+      : null;
+
+  const qty = Number(plan?.capital?.qty || item.recommendedQty || 1);
+  const buyPrice = Number(
+    plan?.capital?.maxBuy ||
+      item.maxRealisticBuy ||
+      item.maxBuy ||
+      item.buyOffer ||
+      0,
+  );
+  const targetSell = Number(
+    plan?.capital?.sellTarget ||
+      item.realisticExit ||
+      item.targetSell ||
+      item.sellOffer ||
+      0,
+  );
+
+  const expectedProfitEach = Number(item.realisticProfit || item.profit || 0);
+  const expectedProfitTotal = Number(
+    plan?.capital?.expectedProfitTotal || expectedProfitEach * qty || 0,
+  );
+  const roi = Number(item.realisticProfitPercent || item.profitPercent || 0);
+
+  return (
+    "npm run accept-buy -- " +
+    "--item-id " + Number(item.id) + " " +
+    "--name " + quotePowerShellArg(item.name) + " " +
+    "--qty " + qty + " " +
+    "--buy " + Math.round(buyPrice) + " " +
+    "--target " + Math.round(targetSell) + " " +
+    "--profit-total " + Math.round(expectedProfitTotal) + " " +
+    "--roi " + roi.toFixed(2) + " " +
+    "--quality " + quotePowerShellArg(plan?.quality || "UNKNOWN") + " " +
+    "--quality-score " + Number(plan?.score || 0) + " " +
+    "--confidence " + Number(item.signalConfidence || 0) + " " +
+    "--brain " + Number(item.brainScore || 0)
+  );
+}
+
+function getAcceptBuyDiscordValue(item) {
+  const command = getAcceptBuyCommand(item);
+  const projectPath =
+    process.env.ACCEPT_BUY_PROJECT_PATH ||
+    "C:\\Users\\Avner\\Desktop\\Projects\\tibia-price-alert";
+
+  return (
+    "After you actually place this Buy Offer in Tibia Market, paste this in PowerShell/CMD:\n" +
+    "```powershell\n" +
+    "cd " + quotePowerShellArg(projectPath) + "\n" +
+    command +
+    "\n```\n" +
+    "**Do not run it before placing the offer in Tibia.**"
+  );
+}
+
+function readPendingBuySignals() {
+  if (!fs.existsSync("pending-buy-signals.json")) {
+    return {
+      version: 1,
+      signals: [],
+    };
+  }
+
+  try {
+    const data = JSON.parse(fs.readFileSync("pending-buy-signals.json", "utf8"));
+
+    if (Array.isArray(data)) {
+      return {
+        version: 1,
+        signals: data,
+      };
+    }
+
+    return {
+      version: 1,
+      signals: Array.isArray(data.signals) ? data.signals : [],
+    };
+  } catch {
+    return {
+      version: 1,
+      signals: [],
+    };
+  }
+}
+
+function writePendingBuySignals(data) {
+  fs.writeFileSync("pending-buy-signals.json", JSON.stringify(data, null, 2) + "\n");
+}
+
+function makePendingBuySignal(item) {
+  const plan =
+    typeof buildQualityActionPlan === "function"
+      ? buildQualityActionPlan(item)
+      : null;
+
+  const qty = Number(plan?.capital?.qty || item.recommendedQty || 1);
+  const buyPrice = Number(
+    plan?.capital?.maxBuy ||
+      item.maxRealisticBuy ||
+      item.maxBuy ||
+      item.buyOffer ||
+      0,
+  );
+  const targetSell = Number(
+    plan?.capital?.sellTarget ||
+      item.realisticExit ||
+      item.targetSell ||
+      item.sellOffer ||
+      0,
+  );
+  const expectedProfitEach = Number(item.realisticProfit || item.profit || 0);
+  const expectedProfitTotal =
+    Number(plan?.capital?.expectedProfitTotal || expectedProfitEach * qty || 0);
+
+  return {
+    id: String(item.id),
+    itemId: Number(item.id),
+    name: item.name,
+    source: "FLIPPER",
+    status: "PENDING",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
+
+    qty,
+    buyPrice,
+    hardMaxBuy: buyPrice,
+    targetSell,
+
+    expectedProfitEach,
+    expectedProfitTotal,
+    expectedRoiPercent: Number(item.realisticProfitPercent || item.profitPercent || 0),
+
+    quality: plan?.quality || null,
+    qualityScore: plan?.score || null,
+    confidence: Number(item.signalConfidence || 0),
+    brainScore: Number(item.brainScore || 0),
+    tradeabilityScore: Number(item.tradeabilityScore || 0),
+    fakeSpreadRisk: Number(item.fakeSpreadRisk || 0),
+    marketPressureLevel: item.marketPressureLevel || null,
+    reason: item.reason || null,
+
+    commandHint:
+      "After placing this in Tibia Market: BAT -> Accept BUY Signal",
+    acceptBuyCommand: getAcceptBuyCommand(item),
+  };
+}
+
+function savePendingBuySignals(buySignals) {
+  if (!Array.isArray(buySignals) || buySignals.length === 0) return;
+
+  const data = readPendingBuySignals();
+  data.version = 1;
+  data.signals = Array.isArray(data.signals) ? data.signals : [];
+
+  let added = 0;
+  let updated = 0;
+
+  for (const item of buySignals) {
+    const next = makePendingBuySignal(item);
+
+    if (!next.itemId || !next.name || !next.buyPrice || !next.qty) {
+      continue;
+    }
+
+    const existing = data.signals.find((signal) => {
+      return (
+        String(signal.itemId || signal.id) === String(next.itemId) &&
+        String(signal.status || "PENDING").toUpperCase() === "PENDING"
+      );
+    });
+
+    if (existing) {
+      Object.assign(existing, {
+        ...existing,
+        ...next,
+        createdAt: existing.createdAt || next.createdAt,
+        updatedAt: new Date().toISOString(),
+      });
+      updated++;
+    } else {
+      data.signals.push(next);
+      added++;
+    }
+  }
+
+  data.signals.sort((a, b) => {
+    const aTime = new Date(a.updatedAt || a.createdAt || 0).getTime();
+    const bTime = new Date(b.updatedAt || b.createdAt || 0).getTime();
+    return bTime - aTime;
+  });
+
+  writePendingBuySignals(data);
+
+  if (added || updated) {
+    console.log(
+      "Saved pending BUY signals: " +
+        added +
+        " added, " +
+        updated +
+        " updated. Use BAT -> Accept BUY Signal after placing the offer in Tibia.",
+    );
+  }
+}
+
 async function sendDiscordBuyAlerts(buySignals, state) {
   const alertable = buySignals.filter((item) => {
     const alertCheck = shouldSendBuyAlert(state, item);
@@ -1366,6 +1583,11 @@ async function sendDiscordBuyAlerts(buySignals, state) {
           const plan = buildQualityActionPlan(item);
           return getExposureDiscordText(item, plan);
         })(),
+        inline: false,
+      },
+      {
+        name: "📋 COPY-PASTE ACCEPT COMMAND",
+        value: getAcceptBuyDiscordValue(item),
         inline: false,
       },
       {
@@ -1837,6 +2059,7 @@ async function main() {
     });
   }
 
+  savePendingBuySignals(buySignals);
   await sendDiscordManualSnipeAlerts(analyzedItems, buySignals, state);
   await sendDiscordBuyAlerts(buySignals, state);
   await sendDiscordSellAlerts(sellSignals, state);
