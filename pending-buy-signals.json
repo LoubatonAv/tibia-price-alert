@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "signals": [
+    {
+      "id": "10385",
+      "itemId": 10385,
+      "name": "Zaoan helmet",
+      "source": "FLIPPER",
+      "status": "PENDING",
+      "createdAt": "2026-06-12T23:23:32.475Z",
+      "updatedAt": "2026-06-12T23:28:55.951Z",
+      "expiresAt": "2026-06-14T23:28:55.951Z",
+      "qty": 2,
+      "buyPrice": 41127,
+      "hardMaxBuy": 41127,
+      "targetSell": 48949,
+      "expectedProfitEach": 2468.2999999999956,
+      "expectedProfitTotal": 4936.599999999991,
+      "expectedRoiPercent": 6.001653415031477,
+      "quality": "WATCH ONLY",
+      "qualityScore": 60,
+      "confidence": 67,
+      "brainScore": 80,
+      "tradeabilityScore": 61,
+      "fakeSpreadRisk": 15,
+      "marketPressureLevel": "LOW",
+      "reason": "Numbers look good, but this is not safe enough for an automatic BUY.",
+      "commandHint": "After placing this in Tibia Market: BAT -> Accept BUY Signal",
+      "acceptBuyCommand": "npm run accept-buy -- --item-id 10385 --name \"Zaoan helmet\" --qty 2 --buy 41127 --target 48949 --profit-total 4937 --roi 6.00 --quality \"WATCH ONLY\" --quality-score 60 --confidence 67 --brain 80"
+    }
+  ]
+}
