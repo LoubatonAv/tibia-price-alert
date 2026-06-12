@@ -113,87 +113,9 @@ goto menu
 cls
 echo LIST ITEMS FOR SALE
 echo.
-echo This will first check if your planned sell price makes sense.
-echo IMPORTANT:
-echo - Buy/entry price = the price YOU paid per item.
-echo - Planned sell price = the price you want to list your item for.
-echo - Current lowest sell = the cheapest sell offer you see right now in Tibia Market.
-echo - Quantity at current lowest = how many items are listed at that cheapest price.
+echo This lists items from existing positions, so you do not create duplicate manual listings.
 echo.
-
-set "ITEM="
-set "QTY="
-set "LIST_PRICE="
-set "ENTRY_PRICE="
-set "LOWEST_SELL="
-set "LOWEST_SELL_QTY="
-set "CONFIRM_LIST="
-
-set /p "ITEM=Item name or ID, example silver token: "
-set /p "QTY=How many items do you want to list? Example 10: "
-
-echo.
-echo YOUR TRADE:
-set /p "ENTRY_PRICE=How much did YOU pay per item? Example 50010: "
-set /p "LIST_PRICE=What price do you want to list EACH item for? Example 59999: "
-
-if not defined ENTRY_PRICE set "ENTRY_PRICE=0"
-if not defined LIST_PRICE set "LIST_PRICE=0"
-
-echo.
-echo LIVE TIBIA MARKET - SELL OFFERS:
-echo Look at the SELL OFFERS side in Tibia Market right now.
-set /p "LOWEST_SELL=What is the cheapest current sell price? Example 60000: "
-set /p "LOWEST_SELL_QTY=How many items are listed at that cheapest price? Example 150: "
-
-if not defined LOWEST_SELL set "LOWEST_SELL=0"
-if not defined LOWEST_SELL_QTY set "LOWEST_SELL_QTY=0"
-
-echo.
-echo ============================
-echo Running sell advisor first...
-echo ============================
-echo.
-echo Checking:
-echo Item: %ITEM%
-echo Quantity: %QTY%
-echo Your entry price: %ENTRY_PRICE%
-echo Your planned sell price: %LIST_PRICE%
-echo Current lowest sell price: %LOWEST_SELL%
-echo Quantity at current lowest price: %LOWEST_SELL_QTY%
-echo.
-echo node inventory.js sell "%ITEM%" %QTY% %LIST_PRICE% --entry-price "%ENTRY_PRICE%" --lowest-sell "%LOWEST_SELL%" --lowest-sell-qty "%LOWEST_SELL_QTY%"
-echo.
-
-call node inventory.js sell "%ITEM%" %QTY% %LIST_PRICE% --entry-price "%ENTRY_PRICE%" --lowest-sell "%LOWEST_SELL%" --lowest-sell-qty "%LOWEST_SELL_QTY%"
-
-if errorlevel 1 (
-  echo.
-  echo Sell check failed. Position was NOT updated.
-  pause
-  goto menu
-)
-
-echo.
-echo ============================
-echo Confirm listing
-echo ============================
-echo.
-echo Only type Y if you ACTUALLY placed this sell offer inside Tibia Market.
-echo This will update your local position as LISTED_FOR_SALE.
-echo.
-
-set /p "CONFIRM_LIST=Did you place this sell offer in Tibia Market now? Y/N: "
-
-if /I "%CONFIRM_LIST%"=="Y" (
-  echo.
-  echo Updating trade position...
-  call npm run trade -- list "%ITEM%" %QTY% %LIST_PRICE%
-) else (
-  echo.
-  echo Cancelled. Position was NOT updated.
-)
-
+call npm run trade -- list-menu
 pause
 goto menu
 
@@ -216,7 +138,7 @@ goto menu
 
 :stats
 cls
-call npm run trade -- stats
+call npm run trade -- stats-split
 pause
 goto menu
 
@@ -411,8 +333,11 @@ cls
 echo RUN SCANNER
 echo.
 echo This runs npm run scanner locally for tracked items / regular flips.
+echo It also enables manual Snipe Watch for expensive underpriced listings.
 echo.
 set SCANNER_MODE=tracked
+set SNIPE_MIN_SELL_PRICE=100000
+set SNIPE_MIN_DISCOUNT_PERCENT=18
 call npm run scanner
 pause
 goto menu
