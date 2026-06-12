@@ -122,6 +122,7 @@ New safer flow:
   node trade.js receive ITEM_ID_OR_NAME QUANTITY [ACTUAL_ENTRY_PRICE]
   node trade.js list ITEM_ID_OR_NAME QUANTITY LIST_PRICE
   node trade.js sold ITEM_ID_OR_NAME QUANTITY SELL_PRICE
+  node trade.js sold-menu
   node trade.js check ITEM_ID_OR_NAME ENTRY_PRICE SELL_PRICE [QUANTITY]
 
 Backward compatible old flow:
@@ -133,6 +134,8 @@ Stats:
   node trade.js cancel ITEM_ID_OR_NAME [REASON]
   node trade.js expire ITEM_ID_OR_NAME
   node trade.js stats
+  node trade.js dashboard
+  node trade.js dashboard
 `);
 }
 
@@ -318,8 +321,400 @@ function printOrders() {
   });
 }
 
+
+function isClosedLikePosition(position) {
+  const status = String(position.status || "").toUpperCase();
+
+  return [
+    "CLOSED",
+    "SOLD",
+    "CANCELLED",
+    "CANCELED",
+    "BUY_ORDER_CANCELLED",
+    "BUY_ORDER_EXPIRED",
+  ].includes(status);
+}
+
+function isLootOrExternalPosition(position) {
+  const flow = String(position.flow || "").toUpperCase();
+  const entryPrice = Number(position.entryPrice || position.averageEntryPrice || 0);
+  const buyOfferFeePaid = Number(position.buyOfferFeePaid || 0);
+
+  // Pure external/loot inventory.
+  if (flow.includes("EXTERNAL")) return true;
+  if (flow.includes("LOOT")) return true;
+
+  // Manual listing can be either:
+  // - loot/external if entry cost is 0
+  // - flip if it has a real entry price / buy fee
+  if (flow.includes("MANUAL_LISTING")) {
+    return entryPrice <= 0 && buyOfferFeePaid <= 0;
+  }
+
+  return false;
+}
+
+function getSellablePositions(positionsData, kind) {
+  return (positionsData.positions || [])
+    .filter((position) => {
+      normalizePosition(position);
+
+      if (isClosedLikePosition(position)) return false;
+      if (Number(position.quantity || 0) <= 0) return false;
+
+      const isExternal = isLootOrExternalPosition(position);
+
+      if (kind === "loot") return isExternal;
+      return !isExternal;
+    })
+    .sort((a, b) => {
+      const aListed = Number(a.listedQuantity || 0) > 0 ? 1 : 0;
+      const bListed = Number(b.listedQuantity || 0) > 0 ? 1 : 0;
+
+      if (bListed !== aListed) return bListed - aListed;
+      return String(a.name || "").localeCompare(String(b.name || ""));
+    });
+}
+
+function printSellablePositions(positions) {
+  positions.forEach((position, index) => {
+    normalizePosition(position);
+
+    console.log(
+      String(index + 1) + ") " + position.name + " (" + position.id + ")"
+    );
+    console.log("   Status: " + position.status + " | Flow: " + position.flow);
+    console.log(
+      "   Owned: " + Number(position.quantity || 0) +
+        " | Listed: " + Number(position.listedQuantity || 0) +
+        " | Sold: " + Number(position.soldQuantity || 0)
+    );
+    console.log(
+      "   Entry: " + formatGp(position.entryPrice) + " gp" +
+        " | Last list: " +
+        (Number(position.lastListPrice || 0) > 0
+          ? formatGp(position.lastListPrice) + " gp"
+          : "N/A")
+    );
+    console.log("");
+  });
+}
+
+async function runSoldMenu(positionsData) {
+  const rl = readline.createInterface({ input, output });
+  const ask = (question) => rl.question(question);
+
+  try {
+    console.log("\nSOLD ITEMS\n");
+    console.log("1) Flip / bought position");
+    console.log("2) Loot / external item");
+
+    const typeAnswer = await ask("\nChoose type [1/2]: ");
+    const kind = String(typeAnswer).trim() === "2" ? "loot" : "flip";
+    const positions = getSellablePositions(positionsData, kind);
+
+    if (positions.length === 0) {
+      console.log(
+        kind === "loot"
+          ? "\nNo loot/external sellable positions found."
+          : "\nNo flip sellable positions found."
+      );
+      return;
+    }
+
+    console.log(
+      kind === "loot"
+        ? "\nLOOT / EXTERNAL POSITIONS\n"
+        : "\nFLIP POSITIONS\n"
+    );
+    printSellablePositions(positions);
+
+    const indexAnswer = await ask("Choose position number: ");
+    const selectedIndex = Number(indexAnswer) - 1;
+
+    if (
+      !Number.isInteger(selectedIndex) ||
+      selectedIndex < 0 ||
+      selectedIndex >= positions.length
+    ) {
+      fail("Invalid position selection.");
+    }
+
+    const position = positions[selectedIndex];
+    normalizePosition(position);
+
+    const ownedQty = Number(position.quantity || 0);
+    const listedQty = Number(position.listedQuantity || 0);
+    const defaultQty = Math.max(1, Math.min(ownedQty, listedQty || ownedQty));
+
+    const qtyAnswer = await ask(
+      "Quantity sold [Enter = " + defaultQty + "]: "
+    );
+    const quantity = String(qtyAnswer).trim()
+      ? Number(qtyAnswer)
+      : defaultQty;
+
+    if (!isPositiveNumber(quantity)) fail("QUANTITY must be a positive number.");
+    if (quantity > ownedQty) {
+      fail("Cannot sell " + quantity + "; only " + ownedQty + " owned/unsold.");
+    }
+
+    const defaultSellPrice = Number(position.lastListPrice || 0);
+    const pricePrompt =
+      "Sell price each" +
+      (defaultSellPrice > 0
+        ? " [Enter = " + formatGp(defaultSellPrice) + " gp]"
+        : "") +
+      ": ";
+    const priceAnswer = await ask(pricePrompt);
+    const sellPrice = String(priceAnswer).trim()
+      ? Number(priceAnswer)
+      : defaultSellPrice;
+
+    if (!isPositiveNumber(sellPrice)) {
+      fail("SELL_PRICE must be a positive number.");
+    }
+
+    console.log("\nCONFIRM SOLD\n");
+    console.log("Item: " + position.name + " (" + position.id + ")");
+    console.log("Type: " + (kind === "loot" ? "Loot / external" : "Flip"));
+    console.log("Quantity: " + quantity);
+    console.log("Sell price: " + formatGp(sellPrice) + " gp each");
+
+    const confirm = await ask("\nConfirm this sale? Y/N: ");
+
+    if (String(confirm).trim().toLowerCase() !== "y") {
+      console.log("\nCancelled. Nothing was saved.\n");
+      return;
+    }
+
+    const state = loadState();
+    const trade = closeTrade({
+      state,
+      position,
+      sellPrice,
+      quantity,
+      exitReason: kind === "loot" ? "LOOT_OR_EXTERNAL_SOLD" : "FLIP_SOLD_FROM_MENU",
+    });
+
+    savePositions(positionsData);
+    saveState(state);
+
+    console.log(
+      position.status === "CLOSED"
+        ? "\nTRADE CLOSED\n"
+        : "\nPARTIAL SALE RECORDED\n"
+    );
+    console.log("Item: " + trade.name);
+    console.log("Sold quantity: " + trade.quantity);
+    console.log("Remaining quantity: " + position.quantity);
+    console.log("Entry: " + formatGp(trade.entryPrice) + " gp");
+    console.log("Sell: " + formatGp(trade.sellPrice) + " gp");
+    console.log("Total fees used: " + formatGp(trade.totalFees) + " gp");
+    console.log("Profit: " + formatGp(trade.netProfit) + " gp");
+    console.log("ROI: " + trade.roiPercent.toFixed(2) + "%");
+  } finally {
+    rl.close();
+  }
+}
+
+
+function getDashboardAgeHours(value) {
+  if (!value) return 0;
+  const time = new Date(value).getTime();
+  if (!Number.isFinite(time)) return 0;
+  return Math.max(0, (Date.now() - time) / 1000 / 60 / 60);
+}
+
+function getDashboardStatus(position) {
+  return String(position.status || "").toUpperCase();
+}
+
+function getDashboardFlow(position) {
+  return String(position.flow || "").toUpperCase();
+}
+
+function getDashboardWaitingQuantity(position) {
+  const ordered = Number(position.orderedQuantity || position.originalQuantity || 0);
+  const received = Number(position.receivedQuantity || 0);
+  return Math.max(0, ordered - received);
+}
+
+function getDashboardKind(position) {
+  const flow = getDashboardFlow(position);
+  const entryPrice = Number(position.entryPrice || position.averageEntryPrice || 0);
+  const buyFee = Number(position.buyOfferFeePaid || 0);
+
+  if (flow.includes("EXTERNAL") || flow.includes("LOOT")) return "Loot / external";
+  if (flow.includes("MANUAL_LISTING") && entryPrice <= 0 && buyFee <= 0) return "Loot / external";
+  return "Flip";
+}
+
+function getOpenDashboardPositions() {
+  const positionsData = loadPositions();
+
+  return (positionsData.positions || [])
+    .map((position) => {
+      normalizePosition(position);
+      return position;
+    })
+    .filter((position) => getDashboardStatus(position) !== "CLOSED");
+}
+
+function printDashboardPosition(position, index, extraLines = []) {
+  normalizePosition(position);
+
+  const status = position.status || "UNKNOWN";
+  const kind = getDashboardKind(position);
+  const waiting = getDashboardWaitingQuantity(position);
+  const lastListPrice = Number(position.lastListPrice || 0);
+
+  console.log(String(index + 1) + ") " + position.name + " (" + position.id + ")");
+  console.log("   " + kind + " | " + status + " | age " + formatAge(position.openedAt || position.createdAt));
+  console.log(
+    "   Entry: " + formatGp(position.entryPrice) + " gp" +
+      " | Owned: " + Number(position.quantity || 0) +
+      " | Listed: " + Number(position.listedQuantity || 0) +
+      " | Waiting: " + waiting
+  );
+
+  if (lastListPrice > 0) {
+    console.log(
+      "   Last list: " + formatGp(lastListPrice) + " gp" +
+        " | listed age " + formatAge(position.lastListedAt)
+    );
+  }
+
+  for (const line of extraLines) {
+    console.log("   " + line);
+  }
+
+  console.log("");
+}
+
+function getDashboardSuspiciousNotes(position) {
+  const notes = [];
+  const status = getDashboardStatus(position);
+  const quantity = Number(position.quantity || 0);
+  const listed = Number(position.listedQuantity || 0);
+  const waiting = getDashboardWaitingQuantity(position);
+  const entryPrice = Number(position.entryPrice || position.averageEntryPrice || 0);
+  const targetSell = Number(position.targetSell || 0);
+  const ageHours = getDashboardAgeHours(position.openedAt || position.createdAt);
+
+  if (listed > quantity) notes.push("Listed quantity is higher than owned quantity.");
+  if (quantity <= 0 && waiting <= 0 && status !== "CLOSED") notes.push("No quantity left, but position is still open.");
+  if (status.includes("BUY_ORDER") && waiting > 0 && ageHours >= 24 * 30) notes.push("Buy order is older than 30 days; consider expire/cancel.");
+  if (entryPrice > 0 && targetSell > 0 && targetSell < entryPrice) notes.push("Target sell is lower than entry price.");
+
+  return notes;
+}
+
+function printDashboardSection(title, items, emptyText, printer) {
+  console.log("\n" + title);
+  console.log("-".repeat(title.length));
+
+  if (items.length === 0) {
+    console.log(emptyText + "\n");
+    return;
+  }
+
+  items.forEach((item, index) => printer(item, index));
+}
+
+function printDashboard() {
+  const openPositions = getOpenDashboardPositions();
+  const listed = openPositions
+    .filter((position) => Number(position.quantity || 0) > 0 && Number(position.listedQuantity || 0) > 0)
+    .sort((a, b) => getDashboardAgeHours(b.lastListedAt) - getDashboardAgeHours(a.lastListedAt));
+
+  const needToList = openPositions
+    .filter((position) => Number(position.quantity || 0) > 0 && Number(position.listedQuantity || 0) <= 0)
+    .sort((a, b) => getDashboardAgeHours(b.openedAt || b.createdAt) - getDashboardAgeHours(a.openedAt || a.createdAt));
+
+  const buyOrders = openPositions
+    .filter((position) => getDashboardWaitingQuantity(position) > 0)
+    .sort((a, b) => getDashboardAgeHours(b.openedAt || b.createdAt) - getDashboardAgeHours(a.openedAt || a.createdAt));
+
+  const staleDays = Number(process.env.TIBIA_STALE_LISTING_DAYS || 7);
+  const staleListed = listed.filter((position) => getDashboardAgeHours(position.lastListedAt) >= staleDays * 24);
+
+  const suspicious = openPositions
+    .map((position) => ({ position, notes: getDashboardSuspiciousNotes(position) }))
+    .filter((entry) => entry.notes.length > 0);
+
+  const listedValue = listed.reduce(
+    (sum, position) => sum + Number(position.listedQuantity || 0) * Number(position.lastListPrice || 0),
+    0,
+  );
+
+  const openCost = openPositions.reduce(
+    (sum, position) => sum + Number(position.quantity || 0) * Number(position.entryPrice || position.averageEntryPrice || 0),
+    0,
+  );
+
+  console.log("\nTIBIA ACTION DASHBOARD\n");
+  console.log("Open positions: " + openPositions.length);
+  console.log("Need to list: " + needToList.length);
+  console.log("Listed / waiting to sell: " + listed.length);
+  console.log("Open buy orders: " + buyOrders.length);
+  console.log("Stale listings (" + staleDays + "d+): " + staleListed.length);
+  console.log("Suspicious positions: " + suspicious.length);
+  console.log("Estimated open item cost: " + formatGp(openCost) + " gp");
+  console.log("Estimated listed value: " + formatGp(listedValue) + " gp");
+
+  console.log("\nNEXT ACTIONS");
+  console.log("------------");
+  if (needToList.length > 0) console.log("1) List received items for sale: use BAT option 4.");
+  if (listed.length > 0) console.log("2) Check Tibia market sold items: use BAT option 5.");
+  if (staleListed.length > 0) console.log("3) Review stale listings: run Sell Check or relist manually.");
+  if (buyOrders.length > 0) console.log("4) Check whether buy orders filled: use BAT option 2 when received.");
+  if (suspicious.length > 0) console.log("5) Fix suspicious positions before trusting stats.");
+  if (needToList.length + listed.length + staleListed.length + buyOrders.length + suspicious.length === 0) {
+    console.log("Nothing urgent. You can run scanner/flips or discovery.");
+  }
+
+  printDashboardSection(
+    "NEED TO LIST",
+    needToList,
+    "No received unlisted items.",
+    (position, index) => printDashboardPosition(position, index),
+  );
+
+  printDashboardSection(
+    "LISTED / WAITING TO SELL",
+    listed,
+    "No active listed positions.",
+    (position, index) => printDashboardPosition(position, index),
+  );
+
+  printDashboardSection(
+    "OPEN BUY ORDERS",
+    buyOrders,
+    "No buy orders waiting.",
+    (position, index) => printDashboardPosition(position, index),
+  );
+
+  printDashboardSection(
+    "STALE LISTINGS",
+    staleListed,
+    "No stale listings.",
+    (position, index) => printDashboardPosition(position, index, ["Action: check live market price; consider relist/update."]),
+  );
+
+  console.log("\nSUSPICIOUS POSITIONS");
+  console.log("--------------------");
+  if (suspicious.length === 0) {
+    console.log("No obvious data issues found.\n");
+  } else {
+    suspicious.forEach((entry, index) => printDashboardPosition(entry.position, index, entry.notes.map((note) => "Warning: " + note)));
+  }
+}
+
 const [, , rawAction, ...args] = process.argv;
 const actionAliases = {
+  dash: "dashboard",
+  "action-dashboard": "dashboard",
   "buy-order": "buy",
   add: "add",
   open: "open",
@@ -335,10 +730,12 @@ if (
     "receive",
     "list",
     "sold",
+    "sold-menu",
     "open",
     "close",
     "add",
     "orders",
+    "dashboard",
     "cancel",
     "expire",
     "stats",
@@ -360,7 +757,17 @@ if (action === "orders") {
   process.exit(0);
 }
 
+if (action === "dashboard") {
+  printDashboard();
+  process.exit(0);
+}
+
 const positionsData = loadPositions();
+
+if (action === "sold-menu") {
+  await runSoldMenu(positionsData);
+  process.exit(0);
+}
 
 if (action === "check") {
   const parsed = parseItemWithTrailingNumbers(args, 2, 3);

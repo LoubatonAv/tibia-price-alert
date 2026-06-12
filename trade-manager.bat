@@ -28,7 +28,8 @@ echo 13. Run Flipper Check
 echo 14. Run Scanner
 echo 15. Run Discovery Scanner
 echo 16. Git Push
-echo 17. Exit
+echo 17. Action Dashboard
+echo 18. Exit
 echo.
 
 set /p choice=Choose option: 
@@ -49,7 +50,8 @@ if "%choice%"=="13" goto flips
 if "%choice%"=="14" goto runscanner
 if "%choice%"=="15" goto rundiscovery
 if "%choice%"=="16" goto gitpush
-if "%choice%"=="17" exit
+if "%choice%"=="17" goto dashboard
+if "%choice%"=="18" exit
 
 goto menu
 
@@ -199,16 +201,15 @@ goto menu
 cls
 echo SOLD ITEMS
 echo.
-
-set /p itemInput=Item Name or ID: 
-set /p quantity=Quantity Sold: 
-echo If you listed this item first, leave sell price empty to use the last listed price.
-echo If this was an instant sell or custom price, enter the actual sell price.
+echo Choose Flip for bought positions, or Loot / External for items added manually.
 echo.
+call npm run trade -- sold-menu
 
-set /p sellPrice=Sell Price optional: 
+echo.
+set "SELL_MORE="
+set /p "SELL_MORE=Record another sold item? Y/N: "
 
-call npm run trade -- sold "%itemInput%" %quantity% %sellPrice%
+if /I "%SELL_MORE%"=="Y" goto sold
 
 pause
 goto menu
@@ -425,6 +426,14 @@ echo It does NOT send BUY/SELL alerts.
 echo.
 set SCANNER_MODE=discovery
 call npm run scanner
+pause
+goto menu
+
+:dashboard
+cls
+echo ACTION DASHBOARD
+echo.
+call npm run trade -- dashboard
 pause
 goto menu
 
