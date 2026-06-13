@@ -1,21 +1,3 @@
-
-// Quiet normal output: rejected item dumps are shown only in debug mode.
-const FLIPPER_DEBUG_REJECTIONS = ["1", "true", "yes", "y"].includes(
-  String(process.env.FLIPPER_DEBUG_REJECTIONS || "").toLowerCase(),
-);
-
-const originalFlipperConsoleLog = console.log.bind(console);
-
-console.log = (...args) => {
-  const message = args.map((arg) => String(arg)).join(" ");
-
-  if (!FLIPPER_DEBUG_REJECTIONS && /^\s*REJECTED:/m.test(message)) {
-    return;
-  }
-
-  originalFlipperConsoleLog(...args);
-};
-
 import axios from "axios";
 import fs from "fs";
 import "dotenv/config";
@@ -69,6 +51,7 @@ import {
   SCORE_DROP_WARNING,
   SCORE_DROP_PANIC,
   BATCH_SIZE,
+  FLIPPER_MAX_ITEM_CAPITAL,
 } from "./lib/constants.js";
 import { loadPositions, getOpenPositionForItem } from "./lib/positions.js";
 
@@ -80,6 +63,235 @@ function getNumber(value, fallback = 0) {
   const number = Number(value);
   return Number.isFinite(number) ? number : fallback;
 }
+
+
+const PENDING_BUY_SIGNALS_FILE = "./pending-buy-signals.json";
+
+function quotePowerShellArg(value) {
+  const text = String(value ?? "");
+  return `"${text.replace(/`/g, "``").replace(/"/g, '`"')}"`;
+}
+
+function getSignalQuantity(item) {
+  return Math.max(1, Math.round(getNumber(item.recommendedQty, 1)));
+}
+
+function getSignalBuyPrice(item) {
+  return Math.max(1, Math.round(getNumber(item.maxRealisticBuy || item.maxBuy || item.buyOffer, 0)));
+}
+
+function getSignalTargetSell(item) {
+  return Math.max(0, Math.round(getNumber(item.realisticExit || item.targetSell || item.sellOffer, 0)));
+}
+
+function getQualityLabel(item) {
+  if (item.signalClass === "BUY_CANDIDATE") return "WATCH ONLY";
+  if (getNumber(item.signalConfidence) >= 88 || getNumber(item.brainScore) >= 90) return "STRONG BUY";
+  if (getNumber(item.signalConfidence) >= 76 || getNumber(item.brainScore) >= 75) return "BUY";
+  return "CAREFUL BUY";
+}
+
+function getAcceptBuyCommand(item) {
+  const qty = getSignalQuantity(item);
+  const buy = getSignalBuyPrice(item);
+  const target = getSignalTargetSell(item);
+  const profitTotal = Math.round(getNumber(item.realisticProfit, item.profit) * qty);
+  const roi = getNumber(item.realisticProfitPercent, item.profitPercent).toFixed(2);
+  const quality = getQualityLabel(item);
+  const qualityScore = getNumber(item.signalConfidence, item.brainScore);
+
+  return [
+    "npm run accept-buy --",
+    "--item-id", String(item.id),
+    "--name", quotePowerShellArg(item.name),
+    "--qty", String(qty),
+    "--buy", String(buy),
+    "--target", String(target),
+    "--profit-total", String(profitTotal),
+    "--roi", String(roi),
+    "--quality", quotePowerShellArg(quality),
+    "--quality-score", String(qualityScore),
+    "--confidence", String(getNumber(item.signalConfidence, 0)),
+    "--brain", String(getNumber(item.brainScore, 0)),
+  ].join(" ");
+}
+
+function getAcceptBuyDiscordValue(item) {
+  const projectPath =
+    process.env.ACCEPT_BUY_PROJECT_PATH ||
+    "C:\\Users\\Avner\\Desktop\\Projects\\tibia-price-alert";
+
+  return (
+    "After you actually place this Buy Offer in Tibia Market, paste this in PowerShell/CMD:\n" +
+    "```powershell\n" +
+    "cd " + quotePowerShellArg(projectPath) + "\n" +
+    getAcceptBuyCommand(item) +
+    "\n```\n" +
+    "**Do not run it before placing the offer in Tibia.**"
+  );
+}
+
+function loadPendingBuySignals() {
+  if (!fs.existsSync(PENDING_BUY_SIGNALS_FILE)) return { signals: [] };
+
+  try {
+    const raw = JSON.parse(fs.readFileSync(PENDING_BUY_SIGNALS_FILE, "utf8"));
+    if (Array.isArray(raw)) return { signals: raw };
+    if (!Array.isArray(raw.signals)) raw.signals = [];
+    return raw;
+  } catch {
+    return { signals: [] };
+  }
+}
+
+function savePendingBuySignals(buySignals) {
+  const data = loadPendingBuySignals();
+  const now = new Date().toISOString();
+  const cutoff = Date.now() - 14 * 24 * 60 * 60 * 1000;
+
+  data.signals = data.signals.filter((signal) => {
+    const status = String(signal.status || "PENDING").toUpperCase();
+    if (status !== "PENDING") return true;
+    const seen = new Date(signal.seenAt || signal.createdAt || 0).getTime();
+    return !Number.isFinite(seen) || seen <= 0 || seen >= cutoff;
+  });
+
+  for (const item of buySignals) {
+    const qty = getSignalQuantity(item);
+    const buyPrice = getSignalBuyPrice(item);
+    const targetSell = getSignalTargetSell(item);
+    const signature = `${item.id}:${qty}:${buyPrice}:${targetSell}`;
+    const existing = data.signals.find((signal) => signal.signature === signature);
+
+    if (existing) {
+      existing.lastSeenAt = now;
+      existing.acceptBuyCommand = getAcceptBuyCommand(item);
+      if (!existing.status) existing.status = "PENDING";
+      continue;
+    }
+
+    data.signals.push({
+      signature,
+      status: "PENDING",
+      seenAt: now,
+      lastSeenAt: now,
+      itemId: item.id,
+      name: item.name,
+      qty,
+      buyPrice,
+      targetSell,
+      profitTotal: Math.round(getNumber(item.realisticProfit, item.profit) * qty),
+      roi: Number(getNumber(item.realisticProfitPercent, item.profitPercent).toFixed(2)),
+      quality: getQualityLabel(item),
+      qualityScore: getNumber(item.signalConfidence, item.brainScore),
+      confidence: getNumber(item.signalConfidence, 0),
+      brain: getNumber(item.brainScore, 0),
+      signalClass: item.signalClass,
+      acceptBuyCommand: getAcceptBuyCommand(item),
+    });
+  }
+
+  const tempFile = `${PENDING_BUY_SIGNALS_FILE}.tmp`;
+  fs.writeFileSync(tempFile, JSON.stringify(data, null, 2));
+  fs.renameSync(tempFile, PENDING_BUY_SIGNALS_FILE);
+}
+
+function getOpenExposureSummary(item) {
+  const positionsData = loadPositions();
+  const active = positionsData.positions.filter((position) => {
+    const status = String(position.status || "OPEN").toUpperCase();
+    const isClosed = [
+      "CLOSED",
+      "CANCELED",
+      "CANCELLED",
+      "BUY_ORDER_CANCELLED",
+      "BUY_ORDER_CANCELED",
+      "BUY_ORDER_EXPIRED",
+      "EXPIRED",
+    ].includes(status);
+    return String(position.id) === String(item.id) && !isClosed;
+  });
+
+  const newCapital = getSignalBuyPrice(item) * getSignalQuantity(item) * 1.02;
+
+  if (active.length === 0) {
+    return {
+      hasExposure: false,
+      text: `No open exposure found. New capital: ~${formatGp(newCapital)} gp.`,
+    };
+  }
+
+  const waiting = active.reduce((sum, position) => {
+    return sum + Math.max(0, getNumber(position.orderedQuantity) - getNumber(position.receivedQuantity));
+  }, 0);
+  const owned = active.reduce((sum, position) => sum + getNumber(position.quantity), 0);
+  const listed = active.reduce((sum, position) => sum + getNumber(position.listedQuantity), 0);
+  const existingCapital = active.reduce((sum, position) => {
+    const qty = Math.max(
+      getNumber(position.orderedQuantity),
+      getNumber(position.originalQuantity),
+      getNumber(position.quantity),
+      0,
+    );
+    return sum + getNumber(position.entryPrice) * qty;
+  }, 0);
+  const combined = existingCapital + newCapital;
+  const capWarning = combined > FLIPPER_MAX_ITEM_CAPITAL
+    ? `\n⚠️ Combined item capital is above cap (${formatGp(FLIPPER_MAX_ITEM_CAPITAL)} gp).`
+    : "";
+
+  return {
+    hasExposure: true,
+    text:
+      `Open exposure already exists. Waiting: ${waiting}, owned: ${owned}, listed: ${listed}.\n` +
+      `Existing capital: ~${formatGp(existingCapital)} gp | New: ~${formatGp(newCapital)} gp | Combined: ~${formatGp(combined)} gp.${capWarning}`,
+  };
+}
+
+function buildBuyActionText(item) {
+  const buy = getSignalBuyPrice(item);
+  const topBuy = getNumber(item.maxBuy || item.buyOffer, 0);
+  const lower = Math.max(1, Math.round(buy * 0.985));
+
+  if (item.signalClass === "BUY_CANDIDATE") {
+    return (
+      "**RESEARCH / SMALL TEST ONLY**\n" +
+      `Entry range: **${formatGp(lower)}–${formatGp(buy)} gp**\n` +
+      `Hard max: **${formatGp(buy)} gp**\n` +
+      "Do not chase. Use tiny quantity only after manual market check."
+    );
+  }
+
+  return (
+    "**WORTH BUY OFFER**\n" +
+    `Entry range: **${formatGp(lower)}–${formatGp(buy)} gp**\n` +
+    `Hard max: **${formatGp(buy)} gp**\n` +
+    `Current top buy/reference: ${formatGp(topBuy)} gp.`
+  );
+}
+
+function buildQualityPlanText(item) {
+  const fill = item.fillSpeed || getExpectedFillSpeed(item);
+  return (
+    `Quality: **${getQualityLabel(item)} (${getNumber(item.signalConfidence, item.brainScore)}/100)**\n` +
+    `Exit speed: **${fill.label} / ${fill.days} days**\n` +
+    "Manual check: Check that the lowest sell offer is real and not only 1 overpriced item."
+  );
+}
+
+function buildCapitalText(item) {
+  const qty = getSignalQuantity(item);
+  const buy = getSignalBuyPrice(item);
+  const locked = buy * qty * 1.02;
+  const profitTotal = Math.round(getNumber(item.realisticProfit, item.profit) * qty);
+
+  return (
+    `Qty: **${qty}**\n` +
+    `Locked: ~**${formatGp(locked)} gp**\n` +
+    `Expected total profit: ~**${formatGp(profitTotal)} gp**`
+  );
+}
+
 
 function getExpectedFillSpeed(item) {
   const daySold = getNumber(item.daySold);
@@ -638,850 +850,134 @@ function buildRejectionSummary(items) {
 }
 
 
+function printTrackedButNotActionableSummary(analyzedItems, buySignals, sellSignals) {
+  const buyIds = new Set(buySignals.map((item) => Number(item.id)));
+  const sellIds = new Set(sellSignals.map((item) => Number(item.id)));
 
-let positionExposureCache = null;
+  const showAvoided = ["1", "true", "yes", "y", "on"].includes(
+    String(process.env.FLIPPER_SHOW_AVOIDED || "").toLowerCase(),
+  );
 
-function getPositionExposureMap() {
-  if (positionExposureCache) return positionExposureCache;
+  const limit = Number(process.env.FLIPPER_NOT_ACTIONABLE_LIMIT || 10);
+  const avoidedLimit = Number(process.env.FLIPPER_AVOIDED_LIMIT || 10);
 
-  const map = new Map();
+  function isAvoided(item) {
+    const decision = String(item.decision || "").toUpperCase();
+    const signalClass = String(item.signalClass || "").toUpperCase();
 
-  if (!fs.existsSync("positions.json")) {
-    positionExposureCache = map;
-    return map;
-  }
+    if (decision === "AVOID" || signalClass === "AVOID") return true;
 
-  let data;
-
-  try {
-    data = JSON.parse(fs.readFileSync("positions.json", "utf8"));
-  } catch {
-    positionExposureCache = map;
-    return map;
-  }
-
-  for (const position of data.positions || []) {
-    const status = String(position.status || "").toUpperCase();
-
-    if (
-      status === "CLOSED" ||
-      status === "SOLD" ||
-      status === "CANCELLED" ||
-      status === "CANCELED" ||
-      status === "BUY_ORDER_CANCELLED" ||
-      status === "BUY_ORDER_EXPIRED"
-    ) {
-      continue;
-    }
-
-    const id = String(position.id || "");
-    if (!id) continue;
-
-    const entryPrice = getNumber(position.entryPrice || position.averageEntryPrice);
-    const ordered = getNumber(position.orderedQuantity || position.originalQuantity);
-    const received = getNumber(position.receivedQuantity);
-    const owned = getNumber(position.quantity);
-    const listed = getNumber(position.listedQuantity);
-    const buyFee = getNumber(position.buyOfferFeePaid);
-    const sellFee = getNumber(position.sellOfferFeePaid);
-    const lastListPrice = getNumber(position.lastListPrice || position.targetSell);
-
-    let waiting = getNumber(position.waitingQuantity || position.waiting);
-
-    if (!waiting && status.includes("BUY_ORDER")) {
-      waiting = Math.max(0, ordered - received);
-    }
-
-    const capitalLocked =
-      waiting * entryPrice +
-      owned * entryPrice +
-      buyFee +
-      sellFee;
-
-    const listedValue = listed * lastListPrice;
-
-    if (!map.has(id)) {
-      map.set(id, {
-        id,
-        name: position.name,
-        positions: 0,
-        waiting: 0,
-        owned: 0,
-        listed: 0,
-        capitalLocked: 0,
-        listedValue: 0,
-        hasOpenBuyOrder: false,
-        statuses: new Set(),
-      });
-    }
-
-    const exposure = map.get(id);
-
-    exposure.positions += 1;
-    exposure.waiting += waiting;
-    exposure.owned += owned;
-    exposure.listed += listed;
-    exposure.capitalLocked += capitalLocked;
-    exposure.listedValue += listedValue;
-    exposure.hasOpenBuyOrder = exposure.hasOpenBuyOrder || status.includes("BUY_ORDER");
-    exposure.statuses.add(status);
-  }
-
-  positionExposureCache = map;
-  return map;
-}
-
-function getItemExposure(itemId) {
-  return getPositionExposureMap().get(String(itemId)) || {
-    positions: 0,
-    waiting: 0,
-    owned: 0,
-    listed: 0,
-    capitalLocked: 0,
-    listedValue: 0,
-    hasOpenBuyOrder: false,
-    statuses: new Set(),
-  };
-}
-
-function getExposureGuard(item, plan) {
-  const exposure = getItemExposure(item.id);
-  const maxItemCapital = Number(process.env.FLIPPER_MAX_ITEM_CAPITAL || 300000);
-  const newCapital = getNumber(plan?.capital?.capitalLocked);
-  const combinedCapital = exposure.capitalLocked + newCapital;
-  const totalQty = exposure.waiting + exposure.owned + exposure.listed;
-
-  const warnings = [];
-
-  if (totalQty > 0 || exposure.positions > 0 || exposure.capitalLocked > 0) {
-    warnings.push(
-      "Already exposed: waiting " +
-        exposure.waiting +
-        ", owned " +
-        exposure.owned +
-        ", listed " +
-        exposure.listed +
-        "."
-    );
-  }
-
-  if (exposure.hasOpenBuyOrder) {
-    warnings.push("You already have an open buy order for this item.");
-  }
-
-  if (totalQty >= getNumber(plan?.capital?.qty)) {
-    warnings.push("Do not add more unless intentional.");
-  }
-
-  if (combinedCapital >= maxItemCapital) {
-    warnings.push(
-      "Combined capital would be ~" +
-        formatGp(combinedCapital) +
-        " gp, above item cap " +
-        formatGp(maxItemCapital) +
-        " gp."
-    );
-  }
-
-  return {
-    exposure,
-    maxItemCapital,
-    newCapital,
-    combinedCapital,
-    totalQty,
-    warnings,
-    hasWarning: warnings.length > 0,
-  };
-}
-
-function getExposureConsoleText(item, plan) {
-  const guard = getExposureGuard(item, plan);
-
-  if (!guard.hasWarning) {
     return (
-      "Exposure guard: no open exposure found for this item. New capital: ~" +
-      formatGp(guard.newCapital) +
-      " gp.\n"
+      getNumber(item.brainScore) <= 0 &&
+      getNumber(item.tradeabilityScore) <= 0 &&
+      getNumber(item.fakeSpreadRisk) >= 80
     );
   }
 
-  return (
-    "Exposure guard: ⚠️ CHECK BEFORE ADDING MORE\n" +
-    "- " +
-    guard.warnings.join("\n- ") +
-    "\nCapital already locked: ~" +
-    formatGp(guard.exposure.capitalLocked) +
-    " gp | New capital: ~" +
-    formatGp(guard.newCapital) +
-    " gp | Combined: ~" +
-    formatGp(guard.combinedCapital) +
-    " gp\n"
-  );
-}
+  function getNoBuyReasons(item) {
+    if (Array.isArray(item.rejectionReasons) && item.rejectionReasons.length) {
+      return item.rejectionReasons.slice(0, 3).join(", ");
+    }
 
-function getExposureDiscordText(item, plan) {
-  const guard = getExposureGuard(item, plan);
+    if (Array.isArray(item.tradeWarnings) && item.tradeWarnings.length) {
+      return item.tradeWarnings.slice(0, 3).join(", ");
+    }
 
-  if (!guard.hasWarning) {
+    if (item.reason) return item.reason;
+
+    const decision = String(item.decision || "").toUpperCase();
+    if (decision === "WAIT") return "Waiting for a better entry price.";
+    if (decision === "WATCH") return "Interesting, but not strong enough for BUY.";
+    if (decision === "RESEARCH") return "Research only; needs manual confirmation.";
+
+    return "No BUY signal right now.";
+  }
+
+  function usefulScore(item) {
+    const decision = String(item.decision || "").toUpperCase();
+    const signalClass = String(item.signalClass || "").toUpperCase();
+
+    let bonus = 0;
+    if (["BUY_CANDIDATE", "WATCH", "WAIT", "RESEARCH"].includes(signalClass)) bonus += 40;
+    if (["BUY_CANDIDATE", "WATCH", "WAIT", "RESEARCH"].includes(decision)) bonus += 30;
+
     return (
-      "No open exposure found. New capital: **~" +
-      formatGp(guard.newCapital) +
-      " gp**."
+      bonus +
+      getNumber(item.brainScore) * 3 +
+      getNumber(item.tradeabilityScore) * 2 +
+      Math.min(getNumber(item.profitPercent), 30) * 2 +
+      Math.min(getNumber(item.profit) / 1000, 20) -
+      getNumber(item.fakeSpreadRisk) * 1.5 -
+      getNumber(item.marketPressure || item.pressureScore || 0) * 0.5
     );
   }
 
-  return (
-    "⚠️ **CHECK BEFORE ADDING MORE**\n" +
-    guard.warnings.map((warning) => "• " + warning).join("\n") +
-    "\nCapital already locked: **~" +
-    formatGp(guard.exposure.capitalLocked) +
-    " gp**\nNew capital: **~" +
-    formatGp(guard.newCapital) +
-    " gp**\nCombined: **~" +
-    formatGp(guard.combinedCapital) +
-    " gp**"
-  );
-}
-
-function getBuyFee(price, qty) {
-  return Math.ceil(Number(price || 0) * Number(qty || 0) * TAX_RATE);
-}
-
-function getFlipperQualityScore(item) {
-  return Math.round(
-    clamp(
-      getNumber(item.brainScore) * 0.32 +
-        getNumber(item.tradeabilityScore) * 0.28 +
-        getNumber(item.volumeRatio) * 10 +
-        getNumber(item.realisticProfitPercent || item.profitPercent) * 2.2 -
-        getNumber(item.fakeSpreadRisk) * 0.35 -
-        getNumber(item.marketPressure) * 0.18,
-      0,
-      100,
-    ),
-  );
-}
-
-function getFlipperQualityLabel(item) {
-  const score = getFlipperQualityScore(item);
-
-  if (score >= 85 && item.signalConfidence >= 85) return "ELITE";
-  if (score >= 74) return "STRONG";
-  if (score >= 62) return "DECENT";
-  if (score >= 48) return "WATCH ONLY";
-  return "WEAK";
-}
-
-function getCapitalPlan(item) {
-  const qty = Number(item.recommendedQty || 1);
-  const maxBuy = Number(item.maxRealisticBuy || item.maxBuy || item.buyOffer || 0);
-  const sellTarget = Number(item.realisticExit || item.targetSell || item.sellOffer || 0);
-  const buyFee = getBuyFee(maxBuy, qty);
-  const capitalLocked = maxBuy * qty + buyFee;
-  const expectedProfitTotal = Number(item.realisticProfit || item.profit || 0) * qty;
-
-  return {
-    qty,
-    maxBuy,
-    sellTarget,
-    buyFee,
-    capitalLocked,
-    expectedProfitTotal,
-  };
-}
-
-function getEntryRange(item) {
-  const maxBuy = Number(item.maxRealisticBuy || item.maxBuy || item.buyOffer || 0);
-
-  if (!maxBuy) {
-    return {
-      low: 0,
-      high: 0,
-      text: "unknown",
-    };
-  }
-
-  const low = Math.max(1, Math.floor(maxBuy * 0.985));
-  const high = maxBuy;
-
-  return {
-    low,
-    high,
-    text: low === high ? formatGp(high) + " gp" : formatGp(low) + "–" + formatGp(high) + " gp",
-  };
-}
-
-function getManualChecks(item) {
-  const checks = [];
-
-  checks.push("Check that the lowest sell offer is real and not only 1 overpriced item.");
-  checks.push("Check how many items are ahead of your buy offer.");
-
-  if (getNumber(item.fakeSpreadRisk) >= 25) {
-    checks.push("Fake spread risk is not tiny — verify manually before buying.");
-  }
-
-  if (getNumber(item.volumeRatio) < 1) {
-    checks.push("Volume is below ideal — do not buy too much.");
-  }
-
-  if (["HIGH", "EXTREME"].includes(item.marketPressureLevel)) {
-    checks.push("Seller pressure is high — be extra patient.");
-  }
-
-  if (item.fillSpeed?.label && !["VERY FAST", "FAST"].includes(item.fillSpeed.label)) {
-    checks.push("Exit may not be fast — avoid overstock.");
-  }
-
-  return checks;
-}
-
-function buildQualityActionPlan(item) {
-  const capital = getCapitalPlan(item);
-  const entry = getEntryRange(item);
-  const quality = getFlipperQualityLabel(item);
-  const score = getFlipperQualityScore(item);
-  const checks = getManualChecks(item);
-
-  let action = "BUY OFFER OK";
-
-  if (quality === "ELITE") action = "BUY OFFER OK — HIGH PRIORITY";
-  else if (quality === "STRONG") action = "BUY OFFER OK — PATIENT";
-  else if (quality === "DECENT") action = "SMALL TEST ONLY";
-  else action = "WATCH ONLY";
-
-  if (item.signalClass === "BUY_CANDIDATE") {
-    action = "RESEARCH / SMALL TEST ONLY";
-  }
-
-  return {
-    quality,
-    score,
-    action,
-    entry,
-    capital,
-    checks,
-  };
-}
-
-function getNearMissScore(item) {
-  return (
-    getNumber(item.brainScore) * 2 +
-    getNumber(item.tradeabilityScore) * 1.8 +
-    getNumber(item.realisticProfitPercent || item.profitPercent) * 3 +
-    getNumber(item.realisticProfit || item.profit) / 600 -
-    getNumber(item.fakeSpreadRisk) * 1.8 -
-    getNumber(item.marketPressure) * 0.8
-  );
-}
-
-function getNearMisses(analyzedItems, buySignals) {
-  const buyIds = new Set(buySignals.map((item) => String(item.id)));
-
-  return analyzedItems
-    .filter((item) => !buyIds.has(String(item.id)))
-    .filter((item) => Number(item.profit || 0) > 0)
-    .filter((item) => Number(item.sellOffer || 0) > 0)
+  const baseRows = analyzedItems
+    .filter((item) => !buyIds.has(Number(item.id)))
+    .filter((item) => !sellIds.has(Number(item.id)))
     .map((item) => ({
       item,
-      score: getNearMissScore(item),
-    }))
+      avoided: isAvoided(item),
+      score: usefulScore(item),
+      reasons: getNoBuyReasons(item),
+    }));
+
+  const usefulRows = baseRows
+    .filter((row) => !row.avoided)
     .sort((a, b) => b.score - a.score)
-    .slice(0, 5)
-    .map(({ item }) => item);
-}
+    .slice(0, limit);
 
-function printQualityBuySignal(item) {
-  const plan = buildQualityActionPlan(item);
-  const exposureText = getExposureConsoleText(item, plan);
+  const avoidedRows = baseRows
+    .filter((row) => row.avoided)
+    .sort((a, b) => b.score - a.score);
 
-  console.log(
-    "BUY " + item.name + " (ID: " + item.id + ")\n" +
-      "Quality: " + plan.quality + " / " + plan.score + "/100 | Confidence: " + item.signalConfidence + "/100\n" +
-      "Action: " + plan.action + "\n" +
-      "Entry range: " + plan.entry.text + " | Hard max: " + formatGp(plan.capital.maxBuy) + " gp\n" +
-      "Sell target: " + formatGp(plan.capital.sellTarget) + " gp | Qty: " + plan.capital.qty + "\n" +
-      "Capital locked: ~" + formatGp(plan.capital.capitalLocked) + " gp including buy fee\n" +
-      "Expected profit total: ~" + formatGp(plan.capital.expectedProfitTotal) + " gp\n" +
-      "Profit each: " + formatGp(item.realisticProfit || item.profit) + " gp (" +
-        Number(item.realisticProfitPercent || item.profitPercent || 0).toFixed(2) + "%)\n" +
-      "Exit speed: " + (item.fillSpeed?.label || "UNKNOWN") + " | expected days: " + (item.fillSpeed?.days || "?") + "\n" +
-      "Brain: " + item.brainScore + "/100 | Tradeability: " + item.tradeabilityScore + "/100 | Fake spread: " + item.fakeSpreadRisk + "/100\n" +
-      "Reason: " + item.reason + "\n" +
-      "Manual checks:\n- " + plan.checks.slice(0, 4).join("\n- ") + "\n" +
-      exposureText,
-  );
-}
+  if (usefulRows.length === 0 && avoidedRows.length === 0) return;
 
-
-function getManualSnipeChecks(analyzedItems, buySignals) {
-  const buyIds = new Set(buySignals.map((item) => String(item.id)));
-
-  const minProfit = Number(process.env.FLIPPER_SNIPE_MIN_PROFIT || 50000);
-  const minSellPrice = Number(
-    process.env.FLIPPER_SNIPE_MIN_SELL ||
-      process.env.SNIPE_MIN_SELL_PRICE ||
-      100000,
-  );
-
-  return analyzedItems
-    .filter((item) => !buyIds.has(String(item.id)))
-    .filter((item) => {
-      const profit = getNumber(item.realisticProfit || item.profit);
-      const sellPrice = getNumber(item.sellOffer || item.realisticExit || item.targetSell);
-      const risk = getNumber(item.fakeSpreadRisk);
-      const volume = getNumber(item.volumeRatio);
-      const pressure = String(item.marketPressureLevel || "").toUpperCase();
-
-      const expensiveEnough = sellPrice >= minSellPrice || profit >= minProfit;
-      const meaningfulProfit = profit >= minProfit;
-      const needsManualReview =
-        risk >= 60 ||
-        volume <= 0.25 ||
-        pressure === "HIGH" ||
-        pressure === "EXTREME" ||
-        getNumber(item.brainScore) <= 25;
-
-      return expensiveEnough && meaningfulProfit && needsManualReview;
-    })
-    .sort((a, b) => {
-      const aProfit = getNumber(a.realisticProfit || a.profit);
-      const bProfit = getNumber(b.realisticProfit || b.profit);
-      return bProfit - aProfit;
-    })
-    .slice(0, 5);
-}
-
-function printManualSnipeChecks(analyzedItems, buySignals) {
-  const items = getManualSnipeChecks(analyzedItems, buySignals);
-
-  if (items.length === 0) return;
-
-  console.log("\nMANUAL SNIPE CHECK / HIGH VALUE BUT RISKY");
+  console.log("\nTRACKED BUT NOT ACTIONABLE / NEAR MISSES");
   console.log("----------------------------------------");
-  console.log("These are NOT automatic BUY signals. Open Tibia Market and verify manually.\n");
 
-  items.forEach((item, index) => {
-    const profit = getNumber(item.realisticProfit || item.profit);
-    const profitPercent = getNumber(item.realisticProfitPercent || item.profitPercent);
-    const sellPrice = getNumber(item.sellOffer || item.realisticExit || item.targetSell);
+  if (usefulRows.length === 0) {
+    console.log("No non-AVOID tracked items were close to BUY right now.");
+  } else {
+    usefulRows.forEach(({ item, reasons }, index) => {
+      const decision = item.decision || "UNKNOWN";
+      const signalClass = item.signalClass || "REJECTED";
+      const profit = formatGp(item.profit || 0);
+      const roi = Number(item.profitPercent || 0).toFixed(2);
 
-    const reasons = (item.rejectionReasons || ["manual verification required"])
-      .slice(0, 4)
-      .join(" | ");
-
-    console.log(
-      "#" + (index + 1) + " " + item.name + " (ID: " + item.id + ")\n" +
-        "Possible profit: ~" + formatGp(profit) + " gp (" + profitPercent.toFixed(2) + "%)\n" +
-        "Observed sell/reference: " + formatGp(sellPrice) + " gp\n" +
-        "Risk: " + item.fakeSpreadRisk + "/100 | Volume: " + Number(item.volumeRatio || 0).toFixed(2) + "x" +
-        " | Pressure: " + item.marketPressureLevel + "\n" +
-        "Why manual only: " + reasons + "\n" +
-        "Manual action: check real lowest sell, quantity, recent market history, and whether you can actually exit.\n",
-    );
-  });
-}
-
-function printNearMisses(analyzedItems, buySignals) {
-  const manualSnipeIds = new Set(
-    getManualSnipeChecks(analyzedItems, buySignals).map((item) => String(item.id)),
-  );
-
-  const nearMisses = getNearMisses(analyzedItems, buySignals)
-    .filter((item) => !manualSnipeIds.has(String(item.id)));
-
-  if (nearMisses.length === 0) return;
-
-  console.log("\nNEAR MISSES / WATCHLIST");
-  console.log("-----------------------");
-
-  nearMisses.forEach((item, index) => {
-    const reasons = (item.rejectionReasons || ["unknown"])
-      .slice(0, 3)
-      .join(" | ");
-
-    console.log(
-      "#" + (index + 1) + " " + item.name + " (ID: " + item.id + ")\n" +
-        "Brain: " + item.brainScore + " | Tradeability: " + item.tradeabilityScore +
-        " | Profit: " + formatGp(item.realisticProfit || item.profit) + " gp (" +
-        Number(item.realisticProfitPercent || item.profitPercent || 0).toFixed(2) + "%)\n" +
-        "Risk: " + item.fakeSpreadRisk + " | Volume: " + Number(item.volumeRatio || 0).toFixed(2) + "x" +
-        " | Pressure: " + item.marketPressureLevel + "\n" +
-        "Why not BUY: " + reasons + "\n",
-    );
-  });
-}
-
-
-function shouldSendManualSnipeAlert(state, item) {
-  if (!state.manualSnipeAlerts) state.manualSnipeAlerts = {};
-
-  const id = String(item.id);
-  const lastAlert = state.manualSnipeAlerts[id];
-  const cooldownHours = Number(process.env.MANUAL_SNIPE_ALERT_COOLDOWN_HOURS || 12);
-
-  if (!lastAlert) {
-    return {
-      shouldSend: true,
-      reason: "New manual snipe candidate.",
-    };
-  }
-
-  const hoursSinceLastAlert =
-    (Date.now() - new Date(lastAlert.time).getTime()) / 1000 / 60 / 60;
-
-  const currentProfit = getNumber(item.realisticProfit || item.profit);
-  const previousProfit = getNumber(lastAlert.profit);
-  const profitImprovedEnough =
-    previousProfit > 0 && currentProfit >= previousProfit * 1.25;
-
-  if (profitImprovedEnough) {
-    return {
-      shouldSend: true,
-      reason: "Manual snipe profit improved meaningfully.",
-    };
-  }
-
-  if (hoursSinceLastAlert >= cooldownHours) {
-    return {
-      shouldSend: true,
-      reason: "Manual snipe cooldown passed.",
-    };
-  }
-
-  return {
-    shouldSend: false,
-    reason: "Skipped duplicate manual snipe alert.",
-  };
-}
-
-function markManualSnipeAlertSent(state, item) {
-  if (!state.manualSnipeAlerts) state.manualSnipeAlerts = {};
-
-  const id = String(item.id);
-
-  state.manualSnipeAlerts[id] = {
-    type: "MANUAL_SNIPE",
-    time: new Date().toISOString(),
-    name: item.name,
-    profit: getNumber(item.realisticProfit || item.profit),
-    profitPercent: getNumber(item.realisticProfitPercent || item.profitPercent),
-    sellOffer: getNumber(item.sellOffer || item.realisticExit || item.targetSell),
-    fakeSpreadRisk: getNumber(item.fakeSpreadRisk),
-    volumeRatio: getNumber(item.volumeRatio),
-    marketPressureLevel: item.marketPressureLevel,
-  };
-}
-
-async function sendDiscordManualSnipeAlerts(analyzedItems, buySignals, state) {
-  const candidates = getManualSnipeChecks(analyzedItems, buySignals);
-
-  if (candidates.length === 0) {
-    return;
-  }
-
-  const alertable = candidates.filter((item) => {
-    const check = shouldSendManualSnipeAlert(state, item);
-
-    if (!check.shouldSend) {
-      console.log(item.name + ": " + check.reason);
-    }
-
-    item.manualSnipeAlertReason = check.reason;
-    return check.shouldSend;
-  });
-
-  if (alertable.length === 0) {
-    console.log("No manual snipe alerts after cooldown.");
-    return;
-  }
-
-  const embeds = alertable.slice(0, 5).map((item) => {
-    const profit = getNumber(item.realisticProfit || item.profit);
-    const profitPercent = getNumber(item.realisticProfitPercent || item.profitPercent);
-    const sellPrice = getNumber(item.sellOffer || item.realisticExit || item.targetSell);
-    const reasons = (item.rejectionReasons || ["manual verification required"])
-      .slice(0, 4)
-      .join("\n");
-
-    return {
-      title: "🟣 MANUAL SNIPE CHECK — " + item.name,
-      color: 0x9b59b6,
-      fields: [
-        {
-          name: "⚠️ NOT AUTO BUY",
-          value:
-            "**Manual check only.** Do not buy before checking Tibia Market yourself.",
-          inline: false,
-        },
-        {
-          name: "💰 POSSIBLE UPSIDE",
-          value:
-            "Possible profit: **~" + formatGp(profit) + " gp**\n" +
-            "Percent: **" + profitPercent.toFixed(2) + "%**\n" +
-            "Observed/reference sell: **" + formatGp(sellPrice) + " gp**",
-          inline: false,
-        },
-        {
-          name: "☠️ WHY RISKY",
-          value:
-            "Risk: **" + item.fakeSpreadRisk + "/100**\n" +
-            "Volume: **" + Number(item.volumeRatio || 0).toFixed(2) + "x**\n" +
-            "Pressure: **" + item.marketPressureLevel + "**",
-          inline: true,
-        },
-        {
-          name: "🔎 REJECTION REASONS",
-          value: reasons || "No reasons recorded.",
-          inline: false,
-        },
-        {
-          name: "✅ MANUAL CHECKLIST",
-          value:
-            "1. Check real lowest sell offer quantity\n" +
-            "2. Check recent market history\n" +
-            "3. Check if there are buyers or only fake spread\n" +
-            "4. Buy only if you can survive a slow exit",
-          inline: false,
-        },
-      ],
-      footer: {
-        text: "Item ID: " + item.id + " | Manual snipe only | Tax included",
-      },
-    };
-  });
-
-  await axios.post(DISCORD_WEBHOOK_URL, {
-    content:
-      "🟣 Tibia Manual Snipe checks on **" +
-      SERVER +
-      "** — high value but risky (" +
-      alertable.length +
-      ")",
-    embeds,
-  });
-
-  alertable.forEach((item) => markManualSnipeAlertSent(state, item));
-
-  console.log("Discord manual snipe alert sent.");
-}
-
-
-
-function quotePowerShellArg(value) {
-  const text = String(value ?? "");
-  return '"' + text.replace(/"/g, '\\"') + '"';
-}
-
-function getAcceptBuyCommand(item) {
-  const plan =
-    typeof buildQualityActionPlan === "function"
-      ? buildQualityActionPlan(item)
-      : null;
-
-  const qty = Number(plan?.capital?.qty || item.recommendedQty || 1);
-  const buyPrice = Number(
-    plan?.capital?.maxBuy ||
-      item.maxRealisticBuy ||
-      item.maxBuy ||
-      item.buyOffer ||
-      0,
-  );
-  const targetSell = Number(
-    plan?.capital?.sellTarget ||
-      item.realisticExit ||
-      item.targetSell ||
-      item.sellOffer ||
-      0,
-  );
-
-  const expectedProfitEach = Number(item.realisticProfit || item.profit || 0);
-  const expectedProfitTotal = Number(
-    plan?.capital?.expectedProfitTotal || expectedProfitEach * qty || 0,
-  );
-  const roi = Number(item.realisticProfitPercent || item.profitPercent || 0);
-
-  return (
-    "npm run accept-buy -- " +
-    "--item-id " + Number(item.id) + " " +
-    "--name " + quotePowerShellArg(item.name) + " " +
-    "--qty " + qty + " " +
-    "--buy " + Math.round(buyPrice) + " " +
-    "--target " + Math.round(targetSell) + " " +
-    "--profit-total " + Math.round(expectedProfitTotal) + " " +
-    "--roi " + roi.toFixed(2) + " " +
-    "--quality " + quotePowerShellArg(plan?.quality || "UNKNOWN") + " " +
-    "--quality-score " + Number(plan?.score || 0) + " " +
-    "--confidence " + Number(item.signalConfidence || 0) + " " +
-    "--brain " + Number(item.brainScore || 0)
-  );
-}
-
-function getAcceptBuyDiscordValue(item) {
-  const command = getAcceptBuyCommand(item);
-  const projectPath =
-    process.env.ACCEPT_BUY_PROJECT_PATH ||
-    "C:\\Users\\Avner\\Desktop\\Projects\\tibia-price-alert";
-
-  return (
-    "After you actually place this Buy Offer in Tibia Market, paste this in PowerShell/CMD:\n" +
-    "```powershell\n" +
-    "cd " + quotePowerShellArg(projectPath) + "\n" +
-    command +
-    "\n```\n" +
-    "**Do not run it before placing the offer in Tibia.**"
-  );
-}
-
-function readPendingBuySignals() {
-  if (!fs.existsSync("pending-buy-signals.json")) {
-    return {
-      version: 1,
-      signals: [],
-    };
-  }
-
-  try {
-    const data = JSON.parse(fs.readFileSync("pending-buy-signals.json", "utf8"));
-
-    if (Array.isArray(data)) {
-      return {
-        version: 1,
-        signals: data,
-      };
-    }
-
-    return {
-      version: 1,
-      signals: Array.isArray(data.signals) ? data.signals : [],
-    };
-  } catch {
-    return {
-      version: 1,
-      signals: [],
-    };
-  }
-}
-
-function writePendingBuySignals(data) {
-  fs.writeFileSync("pending-buy-signals.json", JSON.stringify(data, null, 2) + "\n");
-}
-
-function makePendingBuySignal(item) {
-  const plan =
-    typeof buildQualityActionPlan === "function"
-      ? buildQualityActionPlan(item)
-      : null;
-
-  const qty = Number(plan?.capital?.qty || item.recommendedQty || 1);
-  const buyPrice = Number(
-    plan?.capital?.maxBuy ||
-      item.maxRealisticBuy ||
-      item.maxBuy ||
-      item.buyOffer ||
-      0,
-  );
-  const targetSell = Number(
-    plan?.capital?.sellTarget ||
-      item.realisticExit ||
-      item.targetSell ||
-      item.sellOffer ||
-      0,
-  );
-  const expectedProfitEach = Number(item.realisticProfit || item.profit || 0);
-  const expectedProfitTotal =
-    Number(plan?.capital?.expectedProfitTotal || expectedProfitEach * qty || 0);
-
-  return {
-    id: String(item.id),
-    itemId: Number(item.id),
-    name: item.name,
-    source: "FLIPPER",
-    status: "PENDING",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
-
-    qty,
-    buyPrice,
-    hardMaxBuy: buyPrice,
-    targetSell,
-
-    expectedProfitEach,
-    expectedProfitTotal,
-    expectedRoiPercent: Number(item.realisticProfitPercent || item.profitPercent || 0),
-
-    quality: plan?.quality || null,
-    qualityScore: plan?.score || null,
-    confidence: Number(item.signalConfidence || 0),
-    brainScore: Number(item.brainScore || 0),
-    tradeabilityScore: Number(item.tradeabilityScore || 0),
-    fakeSpreadRisk: Number(item.fakeSpreadRisk || 0),
-    marketPressureLevel: item.marketPressureLevel || null,
-    reason: item.reason || null,
-
-    commandHint:
-      "After placing this in Tibia Market: BAT -> Accept BUY Signal",
-    acceptBuyCommand: getAcceptBuyCommand(item),
-  };
-}
-
-function savePendingBuySignals(buySignals) {
-  if (!Array.isArray(buySignals) || buySignals.length === 0) return;
-
-  const data = readPendingBuySignals();
-  data.version = 1;
-  data.signals = Array.isArray(data.signals) ? data.signals : [];
-
-  let added = 0;
-  let updated = 0;
-
-  for (const item of buySignals) {
-    const next = makePendingBuySignal(item);
-
-    if (!next.itemId || !next.name || !next.buyPrice || !next.qty) {
-      continue;
-    }
-
-    const existing = data.signals.find((signal) => {
-      return (
-        String(signal.itemId || signal.id) === String(next.itemId) &&
-        String(signal.status || "PENDING").toUpperCase() === "PENDING"
+      console.log(
+        index + 1 + ") " + item.name + " (" + item.id + ")\n" +
+          "   Decision: " + decision + " | Signal: " + signalClass + "\n" +
+          "   Brain: " + (item.brainScore ?? "?") + "/100 | Tradeability: " + (item.tradeabilityScore ?? "?") + "/100\n" +
+          "   Profit: ~" + profit + " gp ea | ROI: " + roi + "%\n" +
+          "   Why no BUY: " + reasons + "\n",
       );
     });
-
-    if (existing) {
-      Object.assign(existing, {
-        ...existing,
-        ...next,
-        createdAt: existing.createdAt || next.createdAt,
-        updatedAt: new Date().toISOString(),
-      });
-      updated++;
-    } else {
-      data.signals.push(next);
-      added++;
-    }
   }
 
-  data.signals.sort((a, b) => {
-    const aTime = new Date(a.updatedAt || a.createdAt || 0).getTime();
-    const bTime = new Date(b.updatedAt || b.createdAt || 0).getTime();
-    return bTime - aTime;
-  });
-
-  writePendingBuySignals(data);
-
-  if (added || updated) {
+  if (avoidedRows.length > 0 && !showAvoided) {
     console.log(
-      "Saved pending BUY signals: " +
-        added +
-        " added, " +
-        updated +
-        " updated. Use BAT -> Accept BUY Signal after placing the offer in Tibia.",
+      "Hidden " +
+        avoidedRows.length +
+        " AVOID tracked items. To show them: $env:FLIPPER_SHOW_AVOIDED=\"1\"",
     );
   }
+
+  if (showAvoided && avoidedRows.length > 0) {
+    console.log("\nTRACKED AVOIDED ITEMS");
+    console.log("---------------------");
+
+    avoidedRows.slice(0, avoidedLimit).forEach(({ item, reasons }, index) => {
+      console.log(
+        index + 1 + ") " + item.name + " (" + item.id + ")\n" +
+          "   Decision: " + (item.decision || "AVOID") + " | Signal: " + (item.signalClass || "AVOID") + "\n" +
+          "   Brain: " + (item.brainScore ?? "?") + "/100 | Tradeability: " + (item.tradeabilityScore ?? "?") + "/100\n" +
+          "   Why avoided: " + reasons + "\n",
+      );
+    });
+  }
 }
+
 
 async function sendDiscordBuyAlerts(buySignals, state) {
   const alertable = buySignals.filter((item) => {
@@ -1537,112 +1033,92 @@ async function sendDiscordBuyAlerts(buySignals, state) {
     return "Mixed signals. Worth watching carefully.";
   }
 
-  const embeds = alertable.slice(0, 5).map((item) => ({
-    title: buildSimpleBuyTitle(item),
-    color: getColor(item.brainScore),
-    fields: [
-      {
-        name: "👉 ACTION",
-        value: (() => {
-          const plan = buildQualityActionPlan(item);
-          return (
-            "**" + plan.action + "**\n" +
-            "Entry range: **" + plan.entry.text + "**\n" +
-            "Hard max: **" + formatGp(plan.capital.maxBuy) + " gp**"
-          );
-        })(),
-        inline: false,
+  const embeds = alertable.slice(0, 5).map((item) => {
+    const exposure = getOpenExposureSummary(item);
+
+    return {
+      title: buildSimpleBuyTitle(item),
+      color: getColor(item.brainScore),
+      fields: [
+        {
+          name: "👉 ACTION",
+          value: buildBuyActionText(item),
+          inline: false,
+        },
+        {
+          name: "🎚️ QUALITY PLAN",
+          value: buildQualityPlanText(item),
+          inline: false,
+        },
+        {
+          name: "💼 CAPITAL",
+          value: buildCapitalText(item),
+          inline: true,
+        },
+        {
+          name: "🧯 EXPOSURE GUARD",
+          value: exposure.text,
+          inline: false,
+        },
+        {
+          name: "📋 COPY-PASTE ACCEPT COMMAND",
+          value: getAcceptBuyDiscordValue(item),
+          inline: false,
+        },
+        {
+          name: "🎯 SELL TARGET",
+          value: `Realistic exit around **${formatGp(item.realisticExit || item.targetSell)} gp**. Desired margin: ${item.desiredMarginPercent?.toFixed?.(1) || "?"}%.`,
+          inline: false,
+        },
+        {
+          name: "🧠 BRAIN",
+          value:
+            `Score: **${item.brainScore}/100**\n` +
+            `Strength: **${item.strength}**\n` +
+            `Risk: **${item.riskLevel}**`,
+          inline: true,
+        },
+        {
+          name: "📈 TRADE READ",
+          value: getHumanTradeRead(item),
+          inline: false,
+        },
+        {
+          name: "💰 REALISTIC PROFIT",
+          value:
+            `Expected: **${formatGp(item.realisticProfit)} gp** each\n` +
+            `Percent: **${item.realisticProfitPercent.toFixed(2)}%**`,
+          inline: true,
+        },
+        {
+          name: "📊 WHY",
+          value:
+            `${item.reason}\n` +
+            `${item.recommendation}\n` +
+            `Trend: ${item.dayVsMonthSell.toFixed(2)}% | Volume: ${item.volumeRatio.toFixed(2)}x\n` +
+            `Fake spread risk: ${item.fakeSpreadRisk}/100`,
+          inline: false,
+        },
+        {
+          name: "🌊 MARKET PRESSURE",
+          value:
+            `Level: **${item.marketPressureLevel}**\n` +
+            `Score: **${item.marketPressure}/100**\n` +
+            `${item.marketPressureReasons.slice(0, 2).join("\n") || "No major pressure detected."}\n` +
+            `${(item.tradeWarnings || []).slice(0, 2).join("\n")}`,
+          inline: false,
+        },
+        {
+          name: "🛑 SAFETY",
+          value: `If price drops hard, consider exiting around **${formatGp(item.stopLoss)} gp**.`,
+          inline: false,
+        },
+      ],
+      footer: {
+        text: `Item ID: ${item.id} | Tax included | Simple BUY/SELL mode`,
       },
-      {
-        name: "🎚️ QUALITY PLAN",
-        value: (() => {
-          const plan = buildQualityActionPlan(item);
-          return (
-            "Quality: **" + plan.quality + "** (" + plan.score + "/100)\n" +
-            "Exit speed: **" + (item.fillSpeed?.label || "UNKNOWN") + "** / " + (item.fillSpeed?.days || "?") + " days\n" +
-            "Manual check: " + plan.checks[0]
-          );
-        })(),
-        inline: false,
-      },
-      {
-        name: "💼 CAPITAL",
-        value: (() => {
-          const plan = buildQualityActionPlan(item);
-          return (
-            "Qty: **" + plan.capital.qty + "**\n" +
-            "Locked: **~" + formatGp(plan.capital.capitalLocked) + " gp**\n" +
-            "Expected total profit: **~" + formatGp(plan.capital.expectedProfitTotal) + " gp**"
-          );
-        })(),
-        inline: true,
-      },
-      {
-        name: "🧯 EXPOSURE GUARD",
-        value: (() => {
-          const plan = buildQualityActionPlan(item);
-          return getExposureDiscordText(item, plan);
-        })(),
-        inline: false,
-      },
-      {
-        name: "📋 COPY-PASTE ACCEPT COMMAND",
-        value: getAcceptBuyDiscordValue(item),
-        inline: false,
-      },
-      {
-        name: "🎯 SELL TARGET",
-        value: `Realistic exit around **${formatGp(item.realisticExit || item.targetSell)} gp**. Desired margin: ${item.desiredMarginPercent?.toFixed?.(1) || "?"}%.`,
-        inline: false,
-      },
-      {
-        name: "🧠 BRAIN",
-        value:
-          `Score: **${item.brainScore}/100**\n` +
-          `Strength: **${item.strength}**\n` +
-          `Risk: **${item.riskLevel}**`,
-        inline: true,
-      },
-      {
-        name: "📈 TRADE READ",
-        value: getHumanTradeRead(item),
-        inline: false,
-      },
-      {
-        name: "💰 REALISTIC PROFIT",
-        value:
-          `Expected: **${formatGp(item.realisticProfit)} gp**\n` +
-          `Percent: **${item.realisticProfitPercent.toFixed(2)}%**`,
-        inline: true,
-      },
-      {
-        name: "📊 WHY",
-        value:
-          `${item.reason}\n` +
-          `${item.recommendation}\n` +
-          `Trend: ${item.dayVsMonthSell.toFixed(2)}% | Volume: ${item.volumeRatio.toFixed(2)}x\n` +
-          `Fake spread risk: ${item.fakeSpreadRisk}/100`,
-        inline: false,
-      },
-      {
-        name: "🌊 MARKET PRESSURE",
-        value:
-          `Level: **${item.marketPressureLevel}**\n` +
-          `Score: **${item.marketPressure}/100**\n` +
-          `${item.marketPressureReasons.slice(0, 2).join("\n") || "No major pressure detected."}\n` +
-          `${(item.tradeWarnings || []).slice(0, 2).join("\n")}`,
-        inline: false,
-      },
-      {
-        name: "🛑 SAFETY",
-        value: `If price drops hard, consider exiting around **${formatGp(item.stopLoss)} gp**.`,
-        inline: false,
-      },
-    ],
-    footer: {
-      text: `Item ID: ${item.id} | Tax included | Simple BUY/SELL mode`,
-    },
-  }));
+    };
+  });
 
   await axios.post(DISCORD_WEBHOOK_URL, {
     content: `🟢 Tibia Flipper BUY signals on **${SERVER}** (${alertable.length} alert${alertable.length === 1 ? "" : "s"})`,
@@ -2023,6 +1499,8 @@ async function main() {
         b.scoreDrop - a.scoreDrop,
     );
 
+  savePendingBuySignals(buySignals);
+
   console.log(
     `\nTIBIA FLIPPER SIMPLE MODE\n` +
       `Market volatility: ${volatility} (${runAdvice.level})\n` +
@@ -2030,7 +1508,21 @@ async function main() {
       `SELL signals: ${sellSignals.length}\n`,
   );
 
-  buySignals.forEach((item) => printQualityBuySignal(item));
+  buySignals.forEach((item) => {
+    const exposure = getOpenExposureSummary(item);
+    const label = item.signalClass === "BUY_CANDIDATE" ? "BUY CANDIDATE / RESEARCH" : "BUY SIGNAL";
+    console.log(
+      `${label} ${item.name} (ID: ${item.id})\n` +
+        `Quality: ${getQualityLabel(item)} | Confidence: ${item.signalConfidence}/100\n` +
+        `Brain: ${item.brainScore}/100 (${item.strength}) | Risk: ${item.riskLevel}\n` +
+        `Action: ${item.signalClass === "BUY_CANDIDATE" ? "RESEARCH / SMALL TEST ONLY" : item.directAction || "CHECK"} | Qty: ${getSignalQuantity(item)}\n` +
+        `Hard max buy: ${formatGp(getSignalBuyPrice(item))} | Sell target: ${formatGp(getSignalTargetSell(item))}\n` +
+        `Expected profit total: ${formatGp(getNumber(item.realisticProfit, item.profit) * getSignalQuantity(item))} gp\n` +
+        `Exposure: ${exposure.text.replace(/\n/g, " ")}\n` +
+        `Reason: ${item.reason}\n` +
+        `Accept command saved to pending-buy-signals.json. Use npm run pending-buy to view it.\n`,
+    );
+  });
 
   sellSignals.forEach((item) => {
     console.log(
@@ -2042,14 +1534,12 @@ async function main() {
     );
   });
 
-  printManualSnipeChecks(analyzedItems, buySignals);
-  printNearMisses(analyzedItems, buySignals);
+  printTrackedButNotActionableSummary(analyzedItems, buySignals, sellSignals);
 
   if (
     SEND_EMPTY_SUMMARY &&
     buySignals.length === 0 &&
-    sellSignals.length === 0 &&
-    getManualSnipeChecks(analyzedItems, buySignals).length === 0
+    sellSignals.length === 0
   ) {
     await axios.post(DISCORD_WEBHOOK_URL, {
       content:
@@ -2059,8 +1549,6 @@ async function main() {
     });
   }
 
-  savePendingBuySignals(buySignals);
-  await sendDiscordManualSnipeAlerts(analyzedItems, buySignals, state);
   await sendDiscordBuyAlerts(buySignals, state);
   await sendDiscordSellAlerts(sellSignals, state);
 
