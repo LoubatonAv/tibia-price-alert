@@ -29,9 +29,13 @@ echo 14. Run Scanner
 echo 15. Run Discovery Scanner
 echo 16. Git Push
 echo 17. Action Dashboard
-echo 18. Relist / Update Listing
-echo 19. Discovery Promotion
-echo 20. Exit
+echo 18. Pending BUY Signals
+echo 19. Accept BUY Signal
+echo 20. Verify Old Buy Order Still Active
+echo 21. Discovery Promotion
+echo 22. Clean Discovery Candidates
+echo 23. Scanner Promotion
+echo 24. Exit
 echo.
 
 set /p choice=Choose option: 
@@ -53,10 +57,13 @@ if "%choice%"=="14" goto runscanner
 if "%choice%"=="15" goto rundiscovery
 if "%choice%"=="16" goto gitpush
 if "%choice%"=="17" goto dashboard
-if "%choice%"=="18" goto relist
-if "%choice%"=="19" goto promotion
-if "%choice%"=="20" goto relistif "%choice%"=="18" exit
-
+if "%choice%"=="18" goto pendingbuy
+if "%choice%"=="19" goto acceptbuy
+if "%choice%"=="20" goto verifyorder
+if "%choice%"=="21" goto promotediscovery
+if "%choice%"=="22" goto cleandiscovery
+if "%choice%"=="23" goto promotescanner
+if "%choice%"=="24" exit
 goto menu
 
 :buy
@@ -117,9 +124,87 @@ goto menu
 cls
 echo LIST ITEMS FOR SALE
 echo.
-echo This lists items from existing positions, so you do not create duplicate manual listings.
+echo This will first check if your planned sell price makes sense.
+echo IMPORTANT:
+echo - Buy/entry price = the price YOU paid per item.
+echo - Planned sell price = the price you want to list your item for.
+echo - Current lowest sell = the cheapest sell offer you see right now in Tibia Market.
+echo - Quantity at current lowest = how many items are listed at that cheapest price.
 echo.
-call npm run trade -- list-menu
+
+set "ITEM="
+set "QTY="
+set "LIST_PRICE="
+set "ENTRY_PRICE="
+set "LOWEST_SELL="
+set "LOWEST_SELL_QTY="
+set "CONFIRM_LIST="
+
+set /p "ITEM=Item name or ID, example silver token: "
+set /p "QTY=How many items do you want to list? Example 10: "
+
+echo.
+echo YOUR TRADE:
+set /p "ENTRY_PRICE=How much did YOU pay per item? Example 50010: "
+set /p "LIST_PRICE=What price do you want to list EACH item for? Example 59999: "
+
+if not defined ENTRY_PRICE set "ENTRY_PRICE=0"
+if not defined LIST_PRICE set "LIST_PRICE=0"
+
+echo.
+echo LIVE TIBIA MARKET - SELL OFFERS:
+echo Look at the SELL OFFERS side in Tibia Market right now.
+set /p "LOWEST_SELL=What is the cheapest current sell price? Example 60000: "
+set /p "LOWEST_SELL_QTY=How many items are listed at that cheapest price? Example 150: "
+
+if not defined LOWEST_SELL set "LOWEST_SELL=0"
+if not defined LOWEST_SELL_QTY set "LOWEST_SELL_QTY=0"
+
+echo.
+echo ============================
+echo Running sell advisor first...
+echo ============================
+echo.
+echo Checking:
+echo Item: %ITEM%
+echo Quantity: %QTY%
+echo Your entry price: %ENTRY_PRICE%
+echo Your planned sell price: %LIST_PRICE%
+echo Current lowest sell price: %LOWEST_SELL%
+echo Quantity at current lowest price: %LOWEST_SELL_QTY%
+echo.
+echo node inventory.js sell "%ITEM%" %QTY% %LIST_PRICE% --entry-price "%ENTRY_PRICE%" --lowest-sell "%LOWEST_SELL%" --lowest-sell-qty "%LOWEST_SELL_QTY%"
+echo.
+
+call node inventory.js sell "%ITEM%" %QTY% %LIST_PRICE% --entry-price "%ENTRY_PRICE%" --lowest-sell "%LOWEST_SELL%" --lowest-sell-qty "%LOWEST_SELL_QTY%"
+
+if errorlevel 1 (
+  echo.
+  echo Sell check failed. Position was NOT updated.
+  pause
+  goto menu
+)
+
+echo.
+echo ============================
+echo Confirm listing
+echo ============================
+echo.
+echo Only type Y if you ACTUALLY placed this sell offer inside Tibia Market.
+echo This will update your local position as LISTED_FOR_SALE.
+echo.
+
+set /p "CONFIRM_LIST=Did you place this sell offer in Tibia Market now? Y/N: "
+
+if /I "%CONFIRM_LIST%"=="Y" (
+  echo.
+  echo Updating trade position...
+  call npm run trade -- list "%ITEM%" %QTY% %LIST_PRICE% --entry-price "%ENTRY_PRICE%"
+) else (
+  echo.
+  echo Cancelled. Position was NOT updated.
+)
+
 pause
 goto menu
 
@@ -127,22 +212,23 @@ goto menu
 cls
 echo SOLD ITEMS
 echo.
-echo Choose Flip for bought positions, or Loot / External for items added manually.
-echo.
-call npm run trade -- sold-menu
 
+set /p itemInput=Item Name or ID: 
+set /p quantity=Quantity Sold: 
+echo If you listed this item first, leave sell price empty to use the last listed price.
+echo If this was an instant sell or custom price, enter the actual sell price.
 echo.
-set "SELL_MORE="
-set /p "SELL_MORE=Record another sold item? Y/N: "
 
-if /I "%SELL_MORE%"=="Y" goto sold
+set /p sellPrice=Sell Price optional: 
+
+call npm run trade -- sold "%itemInput%" %quantity% %sellPrice%
 
 pause
 goto menu
 
 :stats
 cls
-call npm run trade -- stats-split
+call npm run trade -- stats
 pause
 goto menu
 
@@ -337,11 +423,8 @@ cls
 echo RUN SCANNER
 echo.
 echo This runs npm run scanner locally for tracked items / regular flips.
-echo It also enables manual Snipe Watch for expensive underpriced listings.
 echo.
 set SCANNER_MODE=tracked
-set SNIPE_MIN_SELL_PRICE=100000
-set SNIPE_MIN_DISCOUNT_PERCENT=18
 call npm run scanner
 pause
 goto menu
@@ -358,53 +441,14 @@ call npm run scanner
 pause
 goto menu
 
-
-
-:promotion
+:gitpush
 cls
-echo DISCOVERY PROMOTION
-echo.
-echo Promote stable Discovery candidates into tracked-items.json.
-echo.
-call npm run promote-discovery
-echo.
-echo Finished. Press any key to return to menu.
-pause >nul
-goto menu
-
-:relist
-cls
-echo RELIST / UPDATE EXISTING LISTING
-echo.
-echo Use this only after you actually changed the listing in Tibia Market.
-echo.
-call npm run trade -- relist-menu
+git add positions.json state.json inventory.json tracked-items.json data/tracked-items.json data/discovery-items.json
+git commit -m "update tibia trading data"
+git push
 pause
 goto menu
 
-
-:relist
-cls
-echo RELIST / UPDATE EXISTING LISTING
-echo.
-echo Use this only after you actually changed the listing in Tibia Market.
-echo.
-call npm run trade -- relist-menu
-pause
-goto menu
-
-
-:relist
-cls
-echo RELIST / UPDATE EXISTING LISTING
-echo.
-echo Use this only after you actually changed the listing in Tibia Market.
-echo.
-call npm run trade -- relist-menu
-echo.
-echo Finished. Press any key to return to menu.
-pause >nul
-goto menu
 
 :dashboard
 cls
@@ -414,10 +458,62 @@ call npm run trade -- dashboard
 pause
 goto menu
 
-:gitpush
+:pendingbuy
 cls
-git add positions.json state.json inventory.json tracked-items.json data/tracked-items.json data/discovery-items.json
-git commit -m "update tibia trading data"
-git push
+echo PENDING BUY SIGNALS
+echo.
+call npm run pending-buy
+pause
+goto menu
+
+:acceptbuy
+cls
+echo ACCEPT BUY SIGNAL
+echo.
+echo Only use this AFTER you actually placed the Buy Offer in Tibia Market.
+echo.
+call npm run accept-buy
+pause
+goto menu
+
+:verifyorder
+cls
+echo VERIFY OLD BUY ORDER
+echo.
+echo Use this when Dashboard says an old buy order is near 30 days,
+echo but you checked Tibia Market and it still exists.
+echo.
+set /p itemInput=Item Name or ID: 
+call npm run trade -- verify-order "%itemInput%"
+pause
+goto menu
+
+:promotediscovery
+cls
+echo DISCOVERY PROMOTION
+echo.
+echo Promotes stable discovery candidates into data/tracked-items.json.
+echo.
+call npm run promote-discovery
+pause
+goto menu
+
+:cleandiscovery
+cls
+echo CLEAN DISCOVERY CANDIDATES
+echo.
+echo Removes old weak discovery candidates from state.json.
+echo.
+call npm run clean-discovery
+pause
+goto menu
+:promotescanner
+cls
+echo SCANNER PROMOTION
+echo.
+echo Promotes the latest Scanner research candidates into data/tracked-items.json.
+echo Run Scanner first if this list is empty or old.
+echo.
+call npm run promote-scanner
 pause
 goto menu
