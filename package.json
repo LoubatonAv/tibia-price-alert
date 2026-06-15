@@ -8,7 +8,17 @@
     "discover": "node scanner.js discover",
     "trade": "node trade.js",
     "inventory": "node inventory.js",
-    "promote-discovery": "node promote-discovery.mjs"
+    "accept-buy": "node accept-buy-signal.mjs",
+    "pending-buy": "node pending-buy-signals.mjs",
+    "promote-discovery": "node promote-discovery.mjs",
+    "clean-discovery": "node clean-discovery.mjs",
+    "promote-scanner": "node promote-scanner-candidates.mjs",
+    "flow-receive": "node trade-flow.mjs receive",
+    "flow-list": "node trade-flow.mjs list",
+    "flow-sold": "node trade-flow.mjs sold",
+    "flow-add-loot": "node trade-flow.mjs add-loot",
+    "flow-cancel-order": "node trade-flow.mjs cancel",
+    "flow-expire-order": "node trade-flow.mjs expire"
   },
   "keywords": [],
   "author": "",

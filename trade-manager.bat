@@ -1,4 +1,5 @@
 @echo off
+setlocal EnableExtensions
 title Tibia Trade Manager
 
 :menu
@@ -7,513 +8,280 @@ echo ============================
 echo     TIBIA TRADE MANAGER
 echo ============================
 echo.
-echo ===== Trade Tracking =====
-echo 1. Add Buy Order
-echo 2. Receive Items
-echo 3. Add Loot / External Items
-echo 4. List Items For Sale
-echo 5. Sold Items
-echo 6. Trade Stats
-echo 7. Open Orders / Positions
-echo 8. Cancel Buy Order
-echo 9. Expire Buy Order
+echo 1. Dashboard / What should I do now
+echo 2. Receive filled buy order
+echo 3. List ready items for sale
+echo 4. Mark listed items as sold
+echo 5. Add loot / external items
+echo 6. Buy orders / signals
+echo 7. Find trades / market tools
+echo 8. Stats
+echo 9. Git push data
+echo 0. Exit
 echo.
-echo ===== Market Advisor =====
-echo 10. Sell Check
-echo 11. Buy Price Check
-echo 12. Quick Profit Check
-echo.
-echo ===== Tools =====
-echo 13. Run Flipper Check
-echo 14. Run Scanner
-echo 15. Run Discovery Scanner
-echo 16. Git Push
-echo 17. Action Dashboard
-echo 18. Pending BUY Signals
-echo 19. Accept BUY Signal
-echo 20. Verify Old Buy Order Still Active
-echo 21. Discovery Promotion
-echo 22. Clean Discovery Candidates
-echo 23. Scanner Promotion
-echo 24. Exit
-echo.
-
 set /p choice=Choose option: 
 
-if "%choice%"=="1" goto buy
+if "%choice%"=="1" goto dashboard
 if "%choice%"=="2" goto receive
-if "%choice%"=="3" goto addexternal
-if "%choice%"=="4" goto list
-if "%choice%"=="5" goto sold
-if "%choice%"=="6" goto stats
-if "%choice%"=="7" goto orders
-if "%choice%"=="8" goto cancel
-if "%choice%"=="9" goto expire
-if "%choice%"=="10" goto inventory
-if "%choice%"=="11" goto inventorybuy
-if "%choice%"=="12" goto quickcheck
-if "%choice%"=="13" goto flips
-if "%choice%"=="14" goto runscanner
-if "%choice%"=="15" goto rundiscovery
-if "%choice%"=="16" goto gitpush
-if "%choice%"=="17" goto dashboard
-if "%choice%"=="18" goto pendingbuy
-if "%choice%"=="19" goto acceptbuy
-if "%choice%"=="20" goto verifyorder
-if "%choice%"=="21" goto promotediscovery
-if "%choice%"=="22" goto cleandiscovery
-if "%choice%"=="23" goto promotescanner
-if "%choice%"=="24" exit
+if "%choice%"=="3" goto listready
+if "%choice%"=="4" goto soldlisting
+if "%choice%"=="5" goto addloot
+if "%choice%"=="6" goto buyorders
+if "%choice%"=="7" goto markettools
+if "%choice%"=="8" goto stats
+if "%choice%"=="9" goto gitpush
+if "%choice%"=="0" exit
 goto menu
 
-:buy
+:dashboard
 cls
-echo ADD BUY ORDER
-echo.
-echo Use this after placing a buy offer in Tibia Market.
-echo Target sell is optional. Leave empty and the bot calculates a 6%% target.
-echo.
-
-set /p itemInput=Item Name or ID: 
-set /p entryPrice=Buy price: 
-set /p quantity=Quantity ordered: 
-set /p targetSell=Target sell optional: 
-
-call npm run trade -- buy "%itemInput%" %entryPrice% %quantity% %targetSell%
-
+call npm run trade -- dashboard
 pause
 goto menu
 
 :receive
 cls
-echo RECEIVE ITEMS
-echo.
-
-set /p itemInput=Item Name or ID: 
-set /p quantity=Quantity Received: 
-set /p actualEntryPrice=Actual Entry Price optional: 
-
-call npm run trade -- receive "%itemInput%" %quantity% %actualEntryPrice%
-
+call npm run flow-receive
 pause
 goto menu
 
-:addexternal
+:listready
 cls
-echo ADD LOOT / EXTERNAL ITEMS
-echo.
-echo Use this for loot, drops, manual trades, old stash, or items not bought through the market.
-echo.
-
-set /p itemInput=Item Name or ID: 
-set /p quantity=Quantity: 
-set /p isLoot=Is this loot/drop? Y/N: 
-
-if /I "%isLoot%"=="Y" (
-  set cost=0
-) else (
-  set /p cost=Cost per item, type 0 if free: 
-)
-
-call npm run trade -- add "%itemInput%" %quantity% %cost%
-
+call npm run flow-list
 pause
 goto menu
 
-:list
+:soldlisting
 cls
-echo LIST ITEMS FOR SALE
-echo.
-echo This will first check if your planned sell price makes sense.
-echo IMPORTANT:
-echo - Buy/entry price = the price YOU paid per item.
-echo - Planned sell price = the price you want to list your item for.
-echo - Current lowest sell = the cheapest sell offer you see right now in Tibia Market.
-echo - Quantity at current lowest = how many items are listed at that cheapest price.
-echo.
-
-set "ITEM="
-set "QTY="
-set "LIST_PRICE="
-set "ENTRY_PRICE="
-set "LOWEST_SELL="
-set "LOWEST_SELL_QTY="
-set "CONFIRM_LIST="
-
-set /p "ITEM=Item name or ID, example silver token: "
-set /p "QTY=How many items do you want to list? Example 10: "
-
-echo.
-echo YOUR TRADE:
-set /p "ENTRY_PRICE=How much did YOU pay per item? Example 50010: "
-set /p "LIST_PRICE=What price do you want to list EACH item for? Example 59999: "
-
-if not defined ENTRY_PRICE set "ENTRY_PRICE=0"
-if not defined LIST_PRICE set "LIST_PRICE=0"
-
-echo.
-echo LIVE TIBIA MARKET - SELL OFFERS:
-echo Look at the SELL OFFERS side in Tibia Market right now.
-set /p "LOWEST_SELL=What is the cheapest current sell price? Example 60000: "
-set /p "LOWEST_SELL_QTY=How many items are listed at that cheapest price? Example 150: "
-
-if not defined LOWEST_SELL set "LOWEST_SELL=0"
-if not defined LOWEST_SELL_QTY set "LOWEST_SELL_QTY=0"
-
-echo.
-echo ============================
-echo Running sell advisor first...
-echo ============================
-echo.
-echo Checking:
-echo Item: %ITEM%
-echo Quantity: %QTY%
-echo Your entry price: %ENTRY_PRICE%
-echo Your planned sell price: %LIST_PRICE%
-echo Current lowest sell price: %LOWEST_SELL%
-echo Quantity at current lowest price: %LOWEST_SELL_QTY%
-echo.
-echo node inventory.js sell "%ITEM%" %QTY% %LIST_PRICE% --entry-price "%ENTRY_PRICE%" --lowest-sell "%LOWEST_SELL%" --lowest-sell-qty "%LOWEST_SELL_QTY%"
-echo.
-
-call node inventory.js sell "%ITEM%" %QTY% %LIST_PRICE% --entry-price "%ENTRY_PRICE%" --lowest-sell "%LOWEST_SELL%" --lowest-sell-qty "%LOWEST_SELL_QTY%"
-
-if errorlevel 1 (
-  echo.
-  echo Sell check failed. Position was NOT updated.
-  pause
-  goto menu
-)
-
-echo.
-echo ============================
-echo Confirm listing
-echo ============================
-echo.
-echo Only type Y if you ACTUALLY placed this sell offer inside Tibia Market.
-echo This will update your local position as LISTED_FOR_SALE.
-echo.
-
-set /p "CONFIRM_LIST=Did you place this sell offer in Tibia Market now? Y/N: "
-
-if /I "%CONFIRM_LIST%"=="Y" (
-  echo.
-  echo Updating trade position...
-  call npm run trade -- list "%ITEM%" %QTY% %LIST_PRICE% --entry-price "%ENTRY_PRICE%"
-) else (
-  echo.
-  echo Cancelled. Position was NOT updated.
-)
-
+call npm run flow-sold
 pause
 goto menu
 
-:sold
+:addloot
 cls
-echo SOLD ITEMS
-echo.
-
-set /p itemInput=Item Name or ID: 
-set /p quantity=Quantity Sold: 
-echo If you listed this item first, leave sell price empty to use the last listed price.
-echo If this was an instant sell or custom price, enter the actual sell price.
-echo.
-
-set /p sellPrice=Sell Price optional: 
-
-call npm run trade -- sold "%itemInput%" %quantity% %sellPrice%
-
+call npm run flow-add-loot
 pause
 goto menu
 
 :stats
 cls
-call npm run trade -- stats
-pause
-goto menu
-
-:orders
-cls
-call npm run trade -- orders
-pause
-goto menu
-
-:cancel
-cls
-echo CANCEL BUY ORDER
+echo ============================
+echo           STATS
+echo ============================
 echo.
-echo Use only for a buy order that did not receive items.
-echo This does NOT close a trade. It only marks the order cancelled and records the lost fee.
+echo 1. Split stats - flips vs loot/external
+echo 2. Full stats
+echo 3. Open orders / positions
+echo 0. Back
+echo.
+set /p statchoice=Choose option: 
+if "%statchoice%"=="1" call npm run trade -- stats-split
+if "%statchoice%"=="2" call npm run trade -- stats
+if "%statchoice%"=="3" call npm run trade -- orders
+if "%statchoice%"=="0" goto menu
+pause
+goto stats
+
+:buyorders
+cls
+echo ============================
+echo      BUY ORDERS / SIGNALS
+echo ============================
+echo.
+echo 1. Pending BUY signals
+echo 2. Accept BUY signal after placing buy offer
+echo 3. Manual add buy order
+echo 4. Cancel buy order
+echo 5. Expire buy order
+echo 6. Verify old buy order still active
+echo 0. Back
+echo.
+set /p buychoice=Choose option: 
+if "%buychoice%"=="1" goto pendingbuy
+if "%buychoice%"=="2" goto acceptbuy
+if "%buychoice%"=="3" goto manualbuy
+if "%buychoice%"=="4" goto cancelorder
+if "%buychoice%"=="5" goto expireorder
+if "%buychoice%"=="6" goto verifyorder
+if "%buychoice%"=="0" goto menu
+goto buyorders
+
+:pendingbuy
+cls
+call npm run pending-buy
+pause
+goto buyorders
+
+:acceptbuy
+cls
+echo Only use this AFTER you actually placed the Buy Offer in Tibia Market.
+echo.
+call npm run accept-buy
+pause
+goto buyorders
+
+:manualbuy
+cls
+echo MANUAL ADD BUY ORDER
+echo Use this only after placing a buy offer in Tibia Market.
 echo.
 set /p itemInput=Item Name or ID: 
-set /p reason=Reason optional: 
-call npm run trade -- cancel "%itemInput%" "%reason%"
+set /p entryPrice=Buy price: 
+set /p quantity=Quantity ordered: 
+set /p targetSell=Target sell optional: 
+call npm run trade -- buy "%itemInput%" %entryPrice% %quantity% %targetSell%
 pause
-goto menu
+goto buyorders
 
-:expire
+:cancelorder
 cls
-echo EXPIRE BUY ORDER
-echo.
-echo Use when a buy order expired after about 30 days without filling.
-echo.
+call npm run flow-cancel-order
+pause
+goto buyorders
+
+:expireorder
+cls
+call npm run flow-expire-order
+pause
+goto buyorders
+
+:verifyorder
+cls
 set /p itemInput=Item Name or ID: 
-call npm run trade -- expire "%itemInput%"
+call npm run trade -- verify-order "%itemInput%"
 pause
-goto menu
+goto buyorders
 
-:inventory
+:markettools
 cls
-echo SELL CHECK / SELL PRICE ADVISOR
+echo ============================
+echo    FIND TRADES / MARKET TOOLS
+echo ============================
 echo.
-echo This checks if selling is worth it and suggests a sell price.
-echo IMPORTANT:
-echo - Buy/entry price = the price YOU paid per item.
-echo - Planned sell price = the price you are thinking about listing for.
-echo - Current lowest sell = the cheapest sell offer you see now in Tibia Market.
-echo - Quantity at current lowest = how many items are listed at that cheapest price.
+echo 1. Run Flipper check - BUY/SELL alerts
+echo 2. Run Scanner - research tracked pool
+echo 3. Promote Scanner candidates to Flipper
+echo 4. Run Discovery scanner - find new items
+echo 5. Promote Discovery candidates to Flipper
+echo 6. Clean old Discovery candidates
+echo 7. Sell price advisor
+echo 8. Buy price advisor
+echo 9. Quick profit check
+echo 0. Back
 echo.
-echo This does NOT update your position.
-echo.
+set /p toolchoice=Choose option: 
+if "%toolchoice%"=="1" goto flips
+if "%toolchoice%"=="2" goto runscanner
+if "%toolchoice%"=="3" goto promotescanner
+if "%toolchoice%"=="4" goto rundiscovery
+if "%toolchoice%"=="5" goto promotediscovery
+if "%toolchoice%"=="6" goto cleandiscovery
+if "%toolchoice%"=="7" goto selladvisor
+if "%toolchoice%"=="8" goto buyadvisor
+if "%toolchoice%"=="9" goto quickcheck
+if "%toolchoice%"=="0" goto menu
+goto markettools
 
+:flips
+cls
+set SCANNER_MODE=tracked
+call npm run flips
+pause
+goto markettools
+
+:runscanner
+cls
+set SCANNER_MODE=tracked
+call npm run scanner
+pause
+goto markettools
+
+:promotescanner
+cls
+call npm run promote-scanner
+pause
+goto markettools
+
+:rundiscovery
+cls
+set SCANNER_MODE=discovery
+call npm run scanner
+pause
+goto markettools
+
+:promotediscovery
+cls
+call npm run promote-discovery
+pause
+goto markettools
+
+:cleandiscovery
+cls
+call npm run clean-discovery
+pause
+goto markettools
+
+:selladvisor
+cls
 set "ITEM="
 set "QTY="
 set "YOUR_LIST_PRICE="
 set "ENTRY_PRICE="
 set "LOWEST_SELL="
 set "LOWEST_SELL_QTY="
-
-set /p "ITEM=Item name or ID, example silver token: "
-set /p "QTY=How many items do you have? Example 10: "
-
+echo SELL PRICE ADVISOR - does NOT update positions.
 echo.
-echo YOUR TRADE:
-set /p "ENTRY_PRICE=How much did YOU pay per item? Example 50010: "
-set /p "YOUR_LIST_PRICE=What price are you thinking to sell EACH item for? Press Enter if you want only a suggestion: "
-
+set /p "ITEM=Item name or ID: "
+set /p "QTY=Quantity: "
+set /p "ENTRY_PRICE=Entry price per item, 0 for loot: "
+set /p "YOUR_LIST_PRICE=Planned sell price, Enter for 0/suggestion: "
 if not defined ENTRY_PRICE set "ENTRY_PRICE=0"
 if not defined YOUR_LIST_PRICE set "YOUR_LIST_PRICE=0"
-
-echo.
-echo LIVE TIBIA MARKET - SELL OFFERS:
-echo Look at the SELL OFFERS side in Tibia Market right now.
-set /p "LOWEST_SELL=What is the cheapest current sell price? Example 60000: "
-set /p "LOWEST_SELL_QTY=How many items are listed at that cheapest price? Example 150: "
-
+set /p "LOWEST_SELL=Current lowest sell price: "
+set /p "LOWEST_SELL_QTY=Quantity at current lowest: "
 if not defined LOWEST_SELL set "LOWEST_SELL=0"
 if not defined LOWEST_SELL_QTY set "LOWEST_SELL_QTY=0"
-
-echo.
-echo ============================
-echo Running sell advisor...
-echo ============================
-echo.
-echo Checking:
-echo Item: %ITEM%
-echo Quantity: %QTY%
-echo Your entry price: %ENTRY_PRICE%
-echo Your planned sell price: %YOUR_LIST_PRICE%
-echo Current lowest sell price: %LOWEST_SELL%
-echo Quantity at current lowest price: %LOWEST_SELL_QTY%
-echo.
-echo node inventory.js sell "%ITEM%" %QTY% %YOUR_LIST_PRICE% --entry-price "%ENTRY_PRICE%" --lowest-sell "%LOWEST_SELL%" --lowest-sell-qty "%LOWEST_SELL_QTY%"
-echo.
-
 call node inventory.js sell "%ITEM%" %QTY% %YOUR_LIST_PRICE% --entry-price "%ENTRY_PRICE%" --lowest-sell "%LOWEST_SELL%" --lowest-sell-qty "%LOWEST_SELL_QTY%"
-
 pause
-goto menu
+goto markettools
 
-:inventorybuy
+:buyadvisor
 cls
-echo BUY OFFER ADVISOR
-echo.
-echo This helps you decide where to place a BUY offer.
-echo.
-echo Look only at the BUY OFFERS side in Tibia Market.
-echo.
-echo Highest buy offer = the top buy offer.
-echo Lowest relevant buy = the lowest buy offer in the crowded/range area you care about.
-echo Estimated quantity in range = about how many items are competing between those prices.
-echo.
-echo You can leave "Your planned buy price" empty if you want the bot to suggest one.
-echo.
-
 set "ITEM="
 set "QTY="
 set "BUY_PRICE="
 set "LIVE_BUY="
 set "LOW_BUY_ABOVE="
 set "BUY_AHEAD="
-
-set /p "ITEM=Item Name or ID: "
+echo BUY PRICE ADVISOR - does NOT update positions.
+echo.
+set /p "ITEM=Item name or ID: "
 set /p "QTY=Quantity you want to buy: "
-set /p "BUY_PRICE=Your planned buy price optional, press Enter for advisor mode: "
-
+set /p "BUY_PRICE=Planned buy price, Enter for 0/advisor: "
 if not defined BUY_PRICE set "BUY_PRICE=0"
-
-echo.
-echo BUY OFFERS side:
 set /p "LIVE_BUY=Highest buy offer: "
-set /p "LOW_BUY_ABOVE=Lowest relevant buy offer in this range: "
-set /p "BUY_AHEAD=Estimated total quantity in this range: "
-
-echo.
-echo Running advisor...
-echo node inventory.js buy "%ITEM%" %QTY% %BUY_PRICE% --live-buy "%LIVE_BUY%" --buy-range-low "%LOW_BUY_ABOVE%" --buy-ahead "%BUY_AHEAD%"
-echo.
-
+set /p "LOW_BUY_ABOVE=Lowest relevant buy offer in range: "
+set /p "BUY_AHEAD=Estimated quantity in range: "
 call node inventory.js buy "%ITEM%" %QTY% %BUY_PRICE% --live-buy "%LIVE_BUY%" --buy-range-low "%LOW_BUY_ABOVE%" --buy-ahead "%BUY_AHEAD%"
-
 pause
-goto menu
+goto markettools
 
 :quickcheck
 cls
-echo QUICK PROFIT CHECK
-echo.
-echo Use this BEFORE buying or listing when you want a simple yes/no profit check.
-echo This does NOT update your position. It only checks profit after fees.
-echo.
-echo Example:
-echo Item: stone skin amulet
-echo Buy price: 8199
-echo Sell price: 9500
-echo Quantity: 10
-echo.
-
-set "ITEM="
-set "ENTRY_PRICE="
-set "SELL_PRICE="
-set "QTY="
-
 set /p "ITEM=Item name or ID: "
 set /p "ENTRY_PRICE=Buy / entry price per item: "
 set /p "SELL_PRICE=Expected sell price per item: "
-set /p "QTY=Quantity, press Enter for 1: "
-
+set /p "QTY=Quantity, Enter for 1: "
 if not defined QTY set "QTY=1"
-
-echo.
-echo ============================
-echo Running quick profit check...
-echo ============================
-echo.
-echo node trade.js check "%ITEM%" %ENTRY_PRICE% %SELL_PRICE% %QTY%
-echo.
-
 call npm run trade -- check "%ITEM%" %ENTRY_PRICE% %SELL_PRICE% %QTY%
-
 pause
-goto menu
-
-:flips
-cls
-echo RUN FLIPPER CHECK
-echo.
-set SCANNER_MODE=tracked
-call npm run flips
-echo.
-echo Finished. Press any key to return to menu.
-pause >nul
-goto menu
-
-:runscanner
-cls
-echo RUN SCANNER
-echo.
-echo This runs npm run scanner locally for tracked items / regular flips.
-echo.
-set SCANNER_MODE=tracked
-call npm run scanner
-pause
-goto menu
-
-:rundiscovery
-cls
-echo RUN DISCOVERY SCANNER
-echo.
-echo This checks a larger research pool and suggests IDs to add to watch/experimental.
-echo It does NOT send BUY/SELL alerts.
-echo.
-set SCANNER_MODE=discovery
-call npm run scanner
-pause
-goto menu
+goto markettools
 
 :gitpush
 cls
-git add positions.json state.json inventory.json tracked-items.json data/tracked-items.json data/discovery-items.json
+git add positions.json state.json inventory.json pending-buy-signals.json scanner-candidates.json tracked-items.json data/tracked-items.json data/discovery-items.json
 git commit -m "update tibia trading data"
 git push
 pause
 goto menu
 
-
-:dashboard
-cls
-echo ACTION DASHBOARD
-echo.
-call npm run trade -- dashboard
-pause
-goto menu
-
-:pendingbuy
-cls
-echo PENDING BUY SIGNALS
-echo.
-call npm run pending-buy
-pause
-goto menu
-
-:acceptbuy
-cls
-echo ACCEPT BUY SIGNAL
-echo.
-echo Only use this AFTER you actually placed the Buy Offer in Tibia Market.
-echo.
-call npm run accept-buy
-pause
-goto menu
-
-:verifyorder
-cls
-echo VERIFY OLD BUY ORDER
-echo.
-echo Use this when Dashboard says an old buy order is near 30 days,
-echo but you checked Tibia Market and it still exists.
-echo.
-set /p itemInput=Item Name or ID: 
-call npm run trade -- verify-order "%itemInput%"
-pause
-goto menu
-
-:promotediscovery
-cls
-echo DISCOVERY PROMOTION
-echo.
-echo Promotes stable discovery candidates into data/tracked-items.json.
-echo.
-call npm run promote-discovery
-pause
-goto menu
-
-:cleandiscovery
-cls
-echo CLEAN DISCOVERY CANDIDATES
-echo.
-echo Removes old weak discovery candidates from state.json.
-echo.
-call npm run clean-discovery
-pause
-goto menu
-:promotescanner
-cls
-echo SCANNER PROMOTION
-echo.
-echo Promotes the latest Scanner research candidates into data/tracked-items.json.
-echo Run Scanner first if this list is empty or old.
-echo.
-call npm run promote-scanner
-pause
-goto menu
