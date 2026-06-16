@@ -41,9 +41,7 @@ jobs:
           TIBIA_WORLD: Harmonia
           SCANNER_MODE: tracked
 
-                SNIPE_MIN_SELL_PRICE: 100000
-          SNIPE_MIN_DISCOUNT_PERCENT: 18
-- name: Save scanner state cache
+      - name: Save scanner state cache
         if: always()
         uses: actions/cache/save@v4
         with:

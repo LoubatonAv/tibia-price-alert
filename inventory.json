@@ -1,0 +1,5714 @@
+{
+  "items": [
+    {
+      "id": 7438,
+      "name": "elvish bow",
+      "quantity": 1,
+      "lastMode": "sell",
+      "lastCheckedAt": "2026-05-11T09:22:54.859Z",
+      "lastAdvisorInput": {
+        "yourSellPrice": 1000000,
+        "plannedBuyPrice": 0,
+        "minSellPrice": 0,
+        "entryPrice": 0
+      },
+      "lastMarketData": {
+        "currentSellOffer": 2099,
+        "currentBuyOffer": 1675,
+        "daySold": 0,
+        "monthSold": 26,
+        "dayAverageSell": 0,
+        "monthAverageSell": 2572,
+        "apiDataAvailable": true
+      }
+    },
+    {
+      "id": 3081,
+      "name": "stone skin amulet",
+      "quantity": 9,
+      "lastMode": "sell",
+      "lastCheckedAt": "2026-06-14T23:44:44.352Z",
+      "lastAdvisorInput": {
+        "yourSellPrice": 15992,
+        "plannedBuyPrice": 0,
+        "minSellPrice": 0,
+        "entryPrice": 0,
+        "liveSellOffer": 15993,
+        "liveBuyOffer": 7228,
+        "liveBuyRangeLow": 0,
+        "liveBuyQueueAhead": 0,
+        "liveSellQueueAhead": 0
+      },
+      "lastMarketData": {
+        "currentSellOffer": 7839,
+        "currentBuyOffer": 7228,
+        "daySold": 3,
+        "monthSold": 604,
+        "dayAverageSell": 7883,
+        "monthAverageSell": 9931,
+        "liveSellOffer": 15993,
+        "liveBuyOffer": 7228,
+        "apiDataAvailable": true
+      },
+      "category": "Amulets",
+      "bestNpcBuy": {
+        "name": "Haroun",
+        "location": "Ashta'daramai",
+        "price": 500
+      }
+    },
+    {
+      "id": 9631,
+      "name": "scarab pincers",
+      "quantity": 100,
+      "lastMode": "buy",
+      "lastCheckedAt": "2026-05-12T05:27:06.394Z",
+      "lastAdvisorInput": {
+        "yourSellPrice": 0,
+        "plannedBuyPrice": 1998,
+        "minSellPrice": 0,
+        "entryPrice": 0
+      },
+      "lastMarketData": {
+        "currentSellOffer": 1996,
+        "currentBuyOffer": 711,
+        "daySold": 2,
+        "monthSold": 226,
+        "dayAverageSell": 1998,
+        "monthAverageSell": 4473,
+        "apiDataAvailable": true
+      },
+      "category": "Creature Products",
+      "bestNpcBuy": {
+        "name": "Grizzly Adams",
+        "location": "Port Hope City",
+        "price": 280
+      }
+    },
+    {
+      "id": 9633,
+      "name": "bloody pincers",
+      "quantity": 15,
+      "category": "Creature Products",
+      "lastMode": "sell",
+      "lastCheckedAt": "2026-06-08T19:10:59.713Z",
+      "bestNpcBuy": {
+        "name": "Grizzly Adams",
+        "location": "Port Hope City",
+        "price": 100
+      },
+      "lastAdvisorInput": {
+        "yourSellPrice": 12373,
+        "plannedBuyPrice": 0,
+        "minSellPrice": 0,
+        "entryPrice": 10910,
+        "liveSellOffer": 12250,
+        "liveBuyOffer": 13400,
+        "liveBuyRangeLow": 0,
+        "liveBuyQueueAhead": 278,
+        "liveSellQueueAhead": 462
+      },
+      "lastMarketData": {
+        "currentSellOffer": 15553,
+        "currentBuyOffer": 13400,
+        "daySold": 39,
+        "monthSold": 1311,
+        "dayAverageSell": 16281,
+        "monthAverageSell": 13380,
+        "liveSellOffer": 12250,
+        "liveBuyOffer": 13400,
+        "apiDataAvailable": true
+      }
+    },
+    {
+      "id": 3324,
+      "name": "skull staff",
+      "quantity": 13,
+      "category": "Clubs",
+      "lastMode": "sell",
+      "lastCheckedAt": "2026-05-13T13:00:49.840Z",
+      "bestNpcBuy": {
+        "name": "Alesar",
+        "location": "Mal'ouquah",
+        "price": 6000
+      },
+      "lastAdvisorInput": {
+        "yourSellPrice": 5988,
+        "plannedBuyPrice": 0,
+        "minSellPrice": 5988,
+        "entryPrice": 0,
+        "liveSellOffer": 5989,
+        "liveBuyOffer": 5705
+      },
+      "lastMarketData": {
+        "currentSellOffer": 5989,
+        "currentBuyOffer": 5706,
+        "daySold": 0,
+        "monthSold": 94,
+        "dayAverageSell": 0,
+        "monthAverageSell": 5823,
+        "liveSellOffer": 5989,
+        "liveBuyOffer": 5705,
+        "apiDataAvailable": true
+      }
+    },
+    {
+      "id": 22721,
+      "name": "gold token",
+      "quantity": 10,
+      "category": "Valuables",
+      "lastMode": "buy",
+      "lastCheckedAt": "2026-05-14T00:28:22.393Z",
+      "bestNpcBuy": null,
+      "lastAdvisorInput": {
+        "yourSellPrice": 0,
+        "plannedBuyPrice": 240,
+        "minSellPrice": 0,
+        "entryPrice": 0,
+        "liveSellOffer": 123,
+        "liveBuyOffer": 0
+      },
+      "lastMarketData": {
+        "currentSellOffer": 46899,
+        "currentBuyOffer": 43515,
+        "daySold": 29,
+        "monthSold": 1074,
+        "dayAverageSell": 46851,
+        "monthAverageSell": 47753,
+        "liveSellOffer": 123,
+        "liveBuyOffer": 0,
+        "apiDataAvailable": true
+      }
+    },
+    {
+      "id": 22516,
+      "name": "silver token",
+      "quantity": 10,
+      "category": "Valuables",
+      "lastMode": "sell",
+      "lastCheckedAt": "2026-05-23T13:54:05.788Z",
+      "bestNpcBuy": null,
+      "lastAdvisorInput": {
+        "yourSellPrice": 59999,
+        "plannedBuyPrice": 0,
+        "minSellPrice": 0,
+        "entryPrice": 50010,
+        "liveSellOffer": 60000,
+        "liveBuyOffer": 48195,
+        "liveBuyRangeLow": 0,
+        "liveBuyQueueAhead": 0,
+        "liveSellQueueAhead": 0
+      },
+      "lastMarketData": {
+        "currentSellOffer": 53400,
+        "currentBuyOffer": 48195,
+        "daySold": 62,
+        "monthSold": 1860,
+        "dayAverageSell": 52773,
+        "monthAverageSell": 51006,
+        "liveSellOffer": 60000,
+        "liveBuyOffer": 48195,
+        "apiDataAvailable": true
+      }
+    },
+    {
+      "id": 2,
+      "name": "2",
+      "quantity": 1,
+      "category": null,
+      "lastMode": "sell",
+      "lastCheckedAt": "2026-05-15T13:22:38.109Z",
+      "bestNpcBuy": null,
+      "lastAdvisorInput": {
+        "yourSellPrice": 0,
+        "plannedBuyPrice": 0,
+        "minSellPrice": 0,
+        "entryPrice": 0,
+        "liveSellOffer": 0,
+        "liveBuyOffer": 0
+      },
+      "lastMarketData": {
+        "currentSellOffer": 0,
+        "currentBuyOffer": 0,
+        "daySold": 0,
+        "monthSold": 0,
+        "dayAverageSell": 0,
+        "monthAverageSell": 0,
+        "liveSellOffer": 0,
+        "liveBuyOffer": 0,
+        "apiDataAvailable": false
+      }
+    },
+    {
+      "id": 3054,
+      "name": "silver amulet",
+      "quantity": 10,
+      "category": "Amulets",
+      "lastMode": "sell",
+      "lastCheckedAt": "2026-05-23T13:34:35.649Z",
+      "bestNpcBuy": {
+        "name": "Yaman",
+        "location": "Mal'ouquah",
+        "price": 50
+      },
+      "lastAdvisorInput": {
+        "yourSellPrice": 59999,
+        "plannedBuyPrice": 0,
+        "minSellPrice": 0,
+        "entryPrice": 60000,
+        "liveSellOffer": 37,
+        "liveBuyOffer": 9,
+        "liveBuyRangeLow": 0,
+        "liveBuyQueueAhead": 0,
+        "liveSellQueueAhead": 150
+      },
+      "lastMarketData": {
+        "currentSellOffer": 37,
+        "currentBuyOffer": 9,
+        "daySold": 0,
+        "monthSold": 19,
+        "dayAverageSell": 0,
+        "monthAverageSell": 46,
+        "liveSellOffer": 37,
+        "liveBuyOffer": 9,
+        "apiDataAvailable": true
+      }
+    },
+    {
+      "id": 23544,
+      "name": "collar of red plasma",
+      "quantity": 10,
+      "category": "Amulets",
+      "lastMode": "buy",
+      "lastCheckedAt": "2026-06-03T00:58:19.415Z",
+      "bestNpcBuy": {
+        "name": "Fadil",
+        "location": "Darashia City",
+        "price": 6000
+      },
+      "lastAdvisorInput": {
+        "yourSellPrice": 0,
+        "plannedBuyPrice": 22403,
+        "minSellPrice": 0,
+        "entryPrice": 0,
+        "liveSellOffer": 24696,
+        "liveBuyOffer": 22402,
+        "liveBuyRangeLow": 22310,
+        "liveBuyQueueAhead": 170,
+        "liveSellQueueAhead": 0
+      },
+      "lastMarketData": {
+        "currentSellOffer": 24696,
+        "currentBuyOffer": 22016,
+        "daySold": 34,
+        "monthSold": 1060,
+        "dayAverageSell": 24829,
+        "monthAverageSell": 24956,
+        "liveSellOffer": 24696,
+        "liveBuyOffer": 22402,
+        "apiDataAvailable": true
+      }
+    }
+  ],
+  "checks": [
+    {
+      "checkedAt": "2026-06-14T23:44:44.352Z",
+      "mode": "sell",
+      "id": 3081,
+      "name": "stone skin amulet",
+      "quantity": 9,
+      "itemInfo": {
+        "id": 3081,
+        "category": "Amulets",
+        "tier": -1,
+        "wiki_name": "Stone Skin Amulet"
+      },
+      "bestNpcBuy": {
+        "name": "Haroun",
+        "location": "Ashta'daramai",
+        "price": 500
+      },
+      "currentSellOffer": 7839,
+      "currentBuyOffer": 7228,
+      "daySold": 3,
+      "monthSold": 604,
+      "dayAverageSell": 7883,
+      "monthAverageSell": 9931,
+      "marketBoardAvailable": true,
+      "manualBuyLadderProvided": false,
+      "liveSellOffer": 15993,
+      "liveSellOfferSource": "manual live input",
+      "liveLowestSellQty": 17,
+      "liveBuyOffer": 7228,
+      "liveBuyRangeLow": 0,
+      "liveBuyQueueAhead": 0,
+      "liveSellQueueAhead": 0,
+      "instantSellQuantity": 9,
+      "instantSellTotal": 65045,
+      "instantSellAveragePrice": 7227.222222222223,
+      "instantSellFullyCovered": true,
+      "apiDataAvailable": true,
+      "liveBuyAvailable": 2,
+      "liveBuyLadder": [
+        {
+          "price": 7228,
+          "amount": 2
+        },
+        {
+          "price": 7227,
+          "amount": 55
+        },
+        {
+          "price": 7225,
+          "amount": 7
+        },
+        {
+          "price": 7224,
+          "amount": 8
+        },
+        {
+          "price": 7223,
+          "amount": 6
+        },
+        {
+          "price": 7222,
+          "amount": 20
+        },
+        {
+          "price": 7217,
+          "amount": 7
+        },
+        {
+          "price": 7216,
+          "amount": 4
+        },
+        {
+          "price": 7214,
+          "amount": 26
+        },
+        {
+          "price": 7212,
+          "amount": 270
+        },
+        {
+          "price": 7210,
+          "amount": 1
+        },
+        {
+          "price": 7201,
+          "amount": 7
+        },
+        {
+          "price": 7184,
+          "amount": 312
+        },
+        {
+          "price": 5029,
+          "amount": 158
+        }
+      ],
+      "buyLadderStructure": {
+        "source": "Manual live ladder",
+        "summary": "14 visible buy levels, 883 total visible quantity",
+        "visibleQuantity": 883,
+        "topPrice": 7228,
+        "topAmount": 2,
+        "queueAhead": 0,
+        "whaleWalls": 3,
+        "recommendation": "You are above the visible top buy. This is fast, but it can start a +1gp war."
+      },
+      "yourSellPrice": 15992,
+      "minSellPrice": 0,
+      "entryPrice": 0,
+      "plannedBuyPrice": 0
+    },
+    {
+      "checkedAt": "2026-06-14T23:43:33.254Z",
+      "mode": "sell",
+      "id": 3081,
+      "name": "stone skin amulet",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 3081,
+        "category": "Amulets",
+        "tier": -1,
+        "wiki_name": "Stone Skin Amulet"
+      },
+      "bestNpcBuy": {
+        "name": "Haroun",
+        "location": "Ashta'daramai",
+        "price": 500
+      },
+      "currentSellOffer": 7839,
+      "currentBuyOffer": 7228,
+      "daySold": 3,
+      "monthSold": 604,
+      "dayAverageSell": 7883,
+      "monthAverageSell": 9931,
+      "marketBoardAvailable": true,
+      "manualBuyLadderProvided": false,
+      "liveSellOffer": 15995,
+      "liveSellOfferSource": "manual live input",
+      "liveLowestSellQty": 140,
+      "liveBuyOffer": 7228,
+      "liveBuyRangeLow": 0,
+      "liveBuyQueueAhead": 0,
+      "liveSellQueueAhead": 0,
+      "instantSellQuantity": 10,
+      "instantSellTotal": 72272,
+      "instantSellAveragePrice": 7227.2,
+      "instantSellFullyCovered": true,
+      "apiDataAvailable": true,
+      "liveBuyAvailable": 2,
+      "liveBuyLadder": [
+        {
+          "price": 7228,
+          "amount": 2
+        },
+        {
+          "price": 7227,
+          "amount": 55
+        },
+        {
+          "price": 7225,
+          "amount": 7
+        },
+        {
+          "price": 7224,
+          "amount": 8
+        },
+        {
+          "price": 7223,
+          "amount": 6
+        },
+        {
+          "price": 7222,
+          "amount": 20
+        },
+        {
+          "price": 7217,
+          "amount": 7
+        },
+        {
+          "price": 7216,
+          "amount": 4
+        },
+        {
+          "price": 7214,
+          "amount": 26
+        },
+        {
+          "price": 7212,
+          "amount": 270
+        },
+        {
+          "price": 7210,
+          "amount": 1
+        },
+        {
+          "price": 7201,
+          "amount": 7
+        },
+        {
+          "price": 7184,
+          "amount": 312
+        },
+        {
+          "price": 5029,
+          "amount": 158
+        }
+      ],
+      "buyLadderStructure": {
+        "source": "Manual live ladder",
+        "summary": "14 visible buy levels, 883 total visible quantity",
+        "visibleQuantity": 883,
+        "topPrice": 7228,
+        "topAmount": 2,
+        "queueAhead": 0,
+        "whaleWalls": 3,
+        "recommendation": "You are above the visible top buy. This is fast, but it can start a +1gp war."
+      },
+      "yourSellPrice": 15992,
+      "minSellPrice": 0,
+      "entryPrice": 7214,
+      "plannedBuyPrice": 0
+    },
+    {
+      "checkedAt": "2026-06-14T23:42:28.478Z",
+      "mode": "sell",
+      "id": 3081,
+      "name": "stone skin amulet",
+      "quantity": 19,
+      "itemInfo": {
+        "id": 3081,
+        "category": "Amulets",
+        "tier": -1,
+        "wiki_name": "Stone Skin Amulet"
+      },
+      "bestNpcBuy": {
+        "name": "Haroun",
+        "location": "Ashta'daramai",
+        "price": 500
+      },
+      "currentSellOffer": 7839,
+      "currentBuyOffer": 7228,
+      "daySold": 3,
+      "monthSold": 604,
+      "dayAverageSell": 7883,
+      "monthAverageSell": 9931,
+      "marketBoardAvailable": true,
+      "manualBuyLadderProvided": false,
+      "liveSellOffer": 15993,
+      "liveSellOfferSource": "manual live input",
+      "liveLowestSellQty": 17,
+      "liveBuyOffer": 7228,
+      "liveBuyRangeLow": 0,
+      "liveBuyQueueAhead": 0,
+      "liveSellQueueAhead": 0,
+      "instantSellQuantity": 19,
+      "instantSellTotal": 137315,
+      "instantSellAveragePrice": 7227.105263157895,
+      "instantSellFullyCovered": true,
+      "apiDataAvailable": true,
+      "liveBuyAvailable": 2,
+      "liveBuyLadder": [
+        {
+          "price": 7228,
+          "amount": 2
+        },
+        {
+          "price": 7227,
+          "amount": 55
+        },
+        {
+          "price": 7225,
+          "amount": 7
+        },
+        {
+          "price": 7224,
+          "amount": 8
+        },
+        {
+          "price": 7223,
+          "amount": 6
+        },
+        {
+          "price": 7222,
+          "amount": 20
+        },
+        {
+          "price": 7217,
+          "amount": 7
+        },
+        {
+          "price": 7216,
+          "amount": 4
+        },
+        {
+          "price": 7214,
+          "amount": 26
+        },
+        {
+          "price": 7212,
+          "amount": 270
+        },
+        {
+          "price": 7210,
+          "amount": 1
+        },
+        {
+          "price": 7201,
+          "amount": 7
+        },
+        {
+          "price": 7184,
+          "amount": 312
+        },
+        {
+          "price": 5029,
+          "amount": 158
+        }
+      ],
+      "buyLadderStructure": {
+        "source": "Manual live ladder",
+        "summary": "14 visible buy levels, 883 total visible quantity",
+        "visibleQuantity": 883,
+        "topPrice": 7228,
+        "topAmount": 2,
+        "queueAhead": 0,
+        "whaleWalls": 3,
+        "recommendation": "You are above the visible top buy. This is fast, but it can start a +1gp war."
+      },
+      "yourSellPrice": 15992,
+      "minSellPrice": 0,
+      "entryPrice": 7214,
+      "plannedBuyPrice": 0
+    },
+    {
+      "checkedAt": "2026-06-14T23:41:14.325Z",
+      "mode": "sell",
+      "id": 3081,
+      "name": "stone skin amulet",
+      "quantity": 19,
+      "itemInfo": {
+        "id": 3081,
+        "category": "Amulets",
+        "tier": -1,
+        "wiki_name": "Stone Skin Amulet"
+      },
+      "bestNpcBuy": {
+        "name": "Haroun",
+        "location": "Ashta'daramai",
+        "price": 500
+      },
+      "currentSellOffer": 7839,
+      "currentBuyOffer": 7228,
+      "daySold": 3,
+      "monthSold": 604,
+      "dayAverageSell": 7883,
+      "monthAverageSell": 9931,
+      "marketBoardAvailable": true,
+      "manualBuyLadderProvided": false,
+      "liveSellOffer": 15993,
+      "liveSellOfferSource": "manual live input",
+      "liveLowestSellQty": 17,
+      "liveBuyOffer": 7228,
+      "liveBuyRangeLow": 0,
+      "liveBuyQueueAhead": 0,
+      "liveSellQueueAhead": 0,
+      "instantSellQuantity": 19,
+      "instantSellTotal": 137315,
+      "instantSellAveragePrice": 7227.105263157895,
+      "instantSellFullyCovered": true,
+      "apiDataAvailable": true,
+      "liveBuyAvailable": 2,
+      "liveBuyLadder": [
+        {
+          "price": 7228,
+          "amount": 2
+        },
+        {
+          "price": 7227,
+          "amount": 55
+        },
+        {
+          "price": 7225,
+          "amount": 7
+        },
+        {
+          "price": 7224,
+          "amount": 8
+        },
+        {
+          "price": 7223,
+          "amount": 6
+        },
+        {
+          "price": 7222,
+          "amount": 20
+        },
+        {
+          "price": 7217,
+          "amount": 7
+        },
+        {
+          "price": 7216,
+          "amount": 4
+        },
+        {
+          "price": 7214,
+          "amount": 26
+        },
+        {
+          "price": 7212,
+          "amount": 270
+        },
+        {
+          "price": 7210,
+          "amount": 1
+        },
+        {
+          "price": 7201,
+          "amount": 7
+        },
+        {
+          "price": 7184,
+          "amount": 312
+        },
+        {
+          "price": 5029,
+          "amount": 158
+        }
+      ],
+      "buyLadderStructure": {
+        "source": "Manual live ladder",
+        "summary": "14 visible buy levels, 883 total visible quantity",
+        "visibleQuantity": 883,
+        "topPrice": 7228,
+        "topAmount": 2,
+        "queueAhead": 0,
+        "whaleWalls": 3,
+        "recommendation": "You are above the visible top buy. This is fast, but it can start a +1gp war."
+      },
+      "yourSellPrice": 15992,
+      "minSellPrice": 0,
+      "entryPrice": 7214,
+      "plannedBuyPrice": 0
+    },
+    {
+      "checkedAt": "2026-06-08T19:10:59.713Z",
+      "mode": "sell",
+      "id": 9633,
+      "name": "bloody pincers",
+      "quantity": 15,
+      "itemInfo": {
+        "id": 9633,
+        "category": "Creature Products",
+        "tier": -1,
+        "wiki_name": "Bloody Pincers"
+      },
+      "bestNpcBuy": {
+        "name": "Grizzly Adams",
+        "location": "Port Hope City",
+        "price": 100
+      },
+      "currentSellOffer": 15553,
+      "currentBuyOffer": 13400,
+      "daySold": 39,
+      "monthSold": 1311,
+      "dayAverageSell": 16281,
+      "monthAverageSell": 13380,
+      "marketBoardAvailable": true,
+      "manualBuyLadderProvided": false,
+      "liveSellOffer": 12250,
+      "liveSellOfferSource": "manual live input",
+      "liveLowestSellQty": 462,
+      "liveBuyOffer": 13400,
+      "liveBuyRangeLow": 0,
+      "liveBuyQueueAhead": 278,
+      "liveSellQueueAhead": 462,
+      "instantSellQuantity": 15,
+      "instantSellTotal": 201000,
+      "instantSellAveragePrice": 13400,
+      "instantSellFullyCovered": true,
+      "apiDataAvailable": true,
+      "liveBuyAvailable": 30,
+      "liveBuyLadder": [
+        {
+          "price": 13400,
+          "amount": 30
+        },
+        {
+          "price": 13250,
+          "amount": 12
+        },
+        {
+          "price": 13015,
+          "amount": 5
+        },
+        {
+          "price": 13014,
+          "amount": 139
+        },
+        {
+          "price": 13013,
+          "amount": 21
+        },
+        {
+          "price": 13012,
+          "amount": 20
+        },
+        {
+          "price": 13007,
+          "amount": 2
+        },
+        {
+          "price": 13006,
+          "amount": 2
+        },
+        {
+          "price": 12600,
+          "amount": 10
+        },
+        {
+          "price": 12512,
+          "amount": 6
+        },
+        {
+          "price": 12510,
+          "amount": 7
+        },
+        {
+          "price": 12508,
+          "amount": 2
+        },
+        {
+          "price": 12503,
+          "amount": 8
+        },
+        {
+          "price": 12502,
+          "amount": 4
+        },
+        {
+          "price": 12500,
+          "amount": 10
+        },
+        {
+          "price": 11762,
+          "amount": 9
+        },
+        {
+          "price": 10910,
+          "amount": 15
+        },
+        {
+          "price": 10402,
+          "amount": 9
+        },
+        {
+          "price": 10302,
+          "amount": 4
+        },
+        {
+          "price": 10008,
+          "amount": 10
+        }
+      ],
+      "buyLadderStructure": {
+        "source": "Manual live ladder",
+        "summary": "20 visible buy levels, 325 total visible quantity",
+        "visibleQuantity": 325,
+        "topPrice": 13400,
+        "topAmount": 30,
+        "queueAhead": 278,
+        "whaleWalls": 1,
+        "recommendation": "You are deep below the visible buy ladder. Good value, but fill may take patience."
+      },
+      "yourSellPrice": 12373,
+      "minSellPrice": 0,
+      "entryPrice": 10910,
+      "plannedBuyPrice": 0
+    },
+    {
+      "checkedAt": "2026-06-08T19:05:49.011Z",
+      "mode": "sell",
+      "id": 9633,
+      "name": "bloody pincers",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 9633,
+        "category": "Creature Products",
+        "tier": -1,
+        "wiki_name": "Bloody Pincers"
+      },
+      "bestNpcBuy": {
+        "name": "Grizzly Adams",
+        "location": "Port Hope City",
+        "price": 100
+      },
+      "currentSellOffer": 15553,
+      "currentBuyOffer": 13400,
+      "daySold": 39,
+      "monthSold": 1311,
+      "dayAverageSell": 16281,
+      "monthAverageSell": 13380,
+      "marketBoardAvailable": true,
+      "manualBuyLadderProvided": false,
+      "liveSellOffer": 12250,
+      "liveSellOfferSource": "manual live input",
+      "liveLowestSellQty": 462,
+      "liveBuyOffer": 13400,
+      "liveBuyRangeLow": 0,
+      "liveBuyQueueAhead": 278,
+      "liveSellQueueAhead": 0,
+      "instantSellQuantity": 10,
+      "instantSellTotal": 134000,
+      "instantSellAveragePrice": 13400,
+      "instantSellFullyCovered": true,
+      "apiDataAvailable": true,
+      "liveBuyAvailable": 30,
+      "liveBuyLadder": [
+        {
+          "price": 13400,
+          "amount": 30
+        },
+        {
+          "price": 13250,
+          "amount": 12
+        },
+        {
+          "price": 13015,
+          "amount": 5
+        },
+        {
+          "price": 13014,
+          "amount": 139
+        },
+        {
+          "price": 13013,
+          "amount": 21
+        },
+        {
+          "price": 13012,
+          "amount": 20
+        },
+        {
+          "price": 13007,
+          "amount": 2
+        },
+        {
+          "price": 13006,
+          "amount": 2
+        },
+        {
+          "price": 12600,
+          "amount": 10
+        },
+        {
+          "price": 12512,
+          "amount": 6
+        },
+        {
+          "price": 12510,
+          "amount": 7
+        },
+        {
+          "price": 12508,
+          "amount": 2
+        },
+        {
+          "price": 12503,
+          "amount": 8
+        },
+        {
+          "price": 12502,
+          "amount": 4
+        },
+        {
+          "price": 12500,
+          "amount": 10
+        },
+        {
+          "price": 11762,
+          "amount": 9
+        },
+        {
+          "price": 10910,
+          "amount": 15
+        },
+        {
+          "price": 10402,
+          "amount": 9
+        },
+        {
+          "price": 10302,
+          "amount": 4
+        },
+        {
+          "price": 10008,
+          "amount": 10
+        }
+      ],
+      "buyLadderStructure": {
+        "source": "Manual live ladder",
+        "summary": "20 visible buy levels, 325 total visible quantity",
+        "visibleQuantity": 325,
+        "topPrice": 13400,
+        "topAmount": 30,
+        "queueAhead": 278,
+        "whaleWalls": 1,
+        "recommendation": "You are deep below the visible buy ladder. Good value, but fill may take patience."
+      },
+      "yourSellPrice": 12249,
+      "minSellPrice": 0,
+      "entryPrice": 10910,
+      "plannedBuyPrice": 0
+    },
+    {
+      "checkedAt": "2026-06-08T19:04:04.585Z",
+      "mode": "sell",
+      "id": 3081,
+      "name": "stone skin amulet",
+      "quantity": 30,
+      "itemInfo": {
+        "id": 3081,
+        "category": "Amulets",
+        "tier": -1,
+        "wiki_name": "Stone Skin Amulet"
+      },
+      "bestNpcBuy": {
+        "name": "Haroun",
+        "location": "Ashta'daramai",
+        "price": 500
+      },
+      "currentSellOffer": 9198,
+      "currentBuyOffer": 7185,
+      "daySold": 28,
+      "monthSold": 690,
+      "dayAverageSell": 11008,
+      "monthAverageSell": 10097,
+      "marketBoardAvailable": true,
+      "manualBuyLadderProvided": false,
+      "liveSellOffer": 8999,
+      "liveSellOfferSource": "manual live input",
+      "liveLowestSellQty": 3,
+      "liveBuyOffer": 7185,
+      "liveBuyRangeLow": 0,
+      "liveBuyQueueAhead": 0,
+      "liveSellQueueAhead": 0,
+      "instantSellQuantity": 30,
+      "instantSellTotal": 215530,
+      "instantSellAveragePrice": 7184.333333333333,
+      "instantSellFullyCovered": true,
+      "apiDataAvailable": true,
+      "liveBuyAvailable": 10,
+      "liveBuyLadder": [
+        {
+          "price": 7185,
+          "amount": 10
+        },
+        {
+          "price": 7184,
+          "amount": 344
+        },
+        {
+          "price": 7183,
+          "amount": 7
+        },
+        {
+          "price": 7182,
+          "amount": 88
+        },
+        {
+          "price": 7181,
+          "amount": 3
+        },
+        {
+          "price": 7180,
+          "amount": 10
+        },
+        {
+          "price": 7178,
+          "amount": 25
+        },
+        {
+          "price": 5102,
+          "amount": 126
+        },
+        {
+          "price": 5101,
+          "amount": 1
+        },
+        {
+          "price": 5029,
+          "amount": 158
+        }
+      ],
+      "buyLadderStructure": {
+        "source": "Manual live ladder",
+        "summary": "10 visible buy levels, 772 total visible quantity",
+        "visibleQuantity": 772,
+        "topPrice": 7185,
+        "topAmount": 10,
+        "queueAhead": 0,
+        "whaleWalls": 4,
+        "recommendation": "You are above the visible top buy. This is fast, but it can start a +1gp war."
+      },
+      "yourSellPrice": 8998,
+      "minSellPrice": 0,
+      "entryPrice": 7500,
+      "plannedBuyPrice": 0
+    },
+    {
+      "checkedAt": "2026-06-07T15:28:57.587Z",
+      "mode": "buy",
+      "id": 3081,
+      "name": "stone skin amulet",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 3081,
+        "category": "Amulets",
+        "tier": -1,
+        "wiki_name": "Stone Skin Amulet"
+      },
+      "bestNpcBuy": {
+        "name": "Haroun",
+        "location": "Ashta'daramai",
+        "price": 500
+      },
+      "currentSellOffer": 9198,
+      "currentBuyOffer": 7185,
+      "daySold": 28,
+      "monthSold": 690,
+      "dayAverageSell": 11008,
+      "monthAverageSell": 10097,
+      "marketBoardAvailable": true,
+      "manualBuyLadderProvided": false,
+      "liveSellOffer": 9198,
+      "liveSellOfferSource": "API market board snapshot",
+      "liveLowestSellQty": 0,
+      "liveBuyOffer": 7212,
+      "liveBuyRangeLow": 7181,
+      "liveBuyQueueAhead": 650,
+      "liveSellQueueAhead": 19,
+      "instantSellQuantity": 10,
+      "instantSellTotal": 71850,
+      "instantSellAveragePrice": 7185,
+      "instantSellFullyCovered": true,
+      "apiDataAvailable": true,
+      "liveBuyAvailable": 10,
+      "liveBuyLadder": [
+        {
+          "price": 7185,
+          "amount": 10
+        },
+        {
+          "price": 7184,
+          "amount": 344
+        },
+        {
+          "price": 7183,
+          "amount": 7
+        },
+        {
+          "price": 7182,
+          "amount": 88
+        },
+        {
+          "price": 7181,
+          "amount": 3
+        },
+        {
+          "price": 7180,
+          "amount": 10
+        },
+        {
+          "price": 7178,
+          "amount": 25
+        },
+        {
+          "price": 5102,
+          "amount": 126
+        },
+        {
+          "price": 5101,
+          "amount": 1
+        },
+        {
+          "price": 5029,
+          "amount": 158
+        }
+      ],
+      "buyLadderStructure": {
+        "source": "Manual live ladder",
+        "summary": "10 visible buy levels, 772 total visible quantity",
+        "visibleQuantity": 772,
+        "topPrice": 7185,
+        "topAmount": 10,
+        "queueAhead": 452,
+        "whaleWalls": 4,
+        "recommendation": "Balanced market structure."
+      },
+      "plannedBuyPrice": 0,
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0
+    },
+    {
+      "checkedAt": "2026-06-03T00:58:19.415Z",
+      "mode": "buy",
+      "id": 23544,
+      "name": "collar of red plasma",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 23544,
+        "category": "Amulets",
+        "tier": -1,
+        "wiki_name": "Collar of Red Plasma"
+      },
+      "bestNpcBuy": {
+        "name": "Fadil",
+        "location": "Darashia City",
+        "price": 6000
+      },
+      "currentSellOffer": 24696,
+      "currentBuyOffer": 22016,
+      "daySold": 34,
+      "monthSold": 1060,
+      "dayAverageSell": 24829,
+      "monthAverageSell": 24956,
+      "marketBoardAvailable": true,
+      "manualBuyLadderProvided": false,
+      "liveSellOffer": 24696,
+      "liveSellOfferSource": "API market board snapshot",
+      "liveLowestSellQty": 0,
+      "liveBuyOffer": 22402,
+      "liveBuyRangeLow": 22310,
+      "liveBuyQueueAhead": 170,
+      "liveSellQueueAhead": 0,
+      "instantSellQuantity": 10,
+      "instantSellTotal": 220147,
+      "instantSellAveragePrice": 22014.7,
+      "instantSellFullyCovered": true,
+      "apiDataAvailable": true,
+      "liveBuyAvailable": 5,
+      "liveBuyLadder": [
+        {
+          "price": 22016,
+          "amount": 5
+        },
+        {
+          "price": 22015,
+          "amount": 3
+        },
+        {
+          "price": 22011,
+          "amount": 4
+        },
+        {
+          "price": 22010,
+          "amount": 97
+        },
+        {
+          "price": 22009,
+          "amount": 4
+        },
+        {
+          "price": 22008,
+          "amount": 3
+        },
+        {
+          "price": 22007,
+          "amount": 88
+        },
+        {
+          "price": 22006,
+          "amount": 10
+        },
+        {
+          "price": 22005,
+          "amount": 2
+        },
+        {
+          "price": 22001,
+          "amount": 4
+        },
+        {
+          "price": 22000,
+          "amount": 10
+        },
+        {
+          "price": 21556,
+          "amount": 7
+        },
+        {
+          "price": 21555,
+          "amount": 20
+        },
+        {
+          "price": 21521,
+          "amount": 6
+        },
+        {
+          "price": 21510,
+          "amount": 4
+        },
+        {
+          "price": 21509,
+          "amount": 59
+        },
+        {
+          "price": 21508,
+          "amount": 10
+        },
+        {
+          "price": 21502,
+          "amount": 9
+        },
+        {
+          "price": 21501,
+          "amount": 61
+        },
+        {
+          "price": 21500,
+          "amount": 10
+        },
+        {
+          "price": 21307,
+          "amount": 2
+        },
+        {
+          "price": 21305,
+          "amount": 11
+        },
+        {
+          "price": 21304,
+          "amount": 61
+        },
+        {
+          "price": 21295,
+          "amount": 61
+        },
+        {
+          "price": 21268,
+          "amount": 92
+        },
+        {
+          "price": 21262,
+          "amount": 61
+        },
+        {
+          "price": 21260,
+          "amount": 7
+        },
+        {
+          "price": 21004,
+          "amount": 40
+        },
+        {
+          "price": 21000,
+          "amount": 5
+        },
+        {
+          "price": 15100,
+          "amount": 20
+        },
+        {
+          "price": 13200,
+          "amount": 2
+        },
+        {
+          "price": 1,
+          "amount": 110
+        }
+      ],
+      "buyLadderStructure": {
+        "source": "Manual live ladder",
+        "summary": "32 visible buy levels, 888 total visible quantity",
+        "visibleQuantity": 888,
+        "topPrice": 22016,
+        "topAmount": 5,
+        "queueAhead": 0,
+        "whaleWalls": 4,
+        "recommendation": "You are above the visible top buy. This is fast, but it can start a +1gp war."
+      },
+      "plannedBuyPrice": 22403,
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0
+    },
+    {
+      "checkedAt": "2026-06-03T00:56:14.361Z",
+      "mode": "sell",
+      "id": 23544,
+      "name": "collar of red plasma",
+      "quantity": 4,
+      "itemInfo": {
+        "id": 23544,
+        "category": "Amulets",
+        "tier": -1,
+        "wiki_name": "Collar of Red Plasma"
+      },
+      "bestNpcBuy": {
+        "name": "Fadil",
+        "location": "Darashia City",
+        "price": 6000
+      },
+      "currentSellOffer": 24696,
+      "currentBuyOffer": 22016,
+      "daySold": 34,
+      "monthSold": 1060,
+      "dayAverageSell": 24829,
+      "monthAverageSell": 24956,
+      "marketBoardAvailable": true,
+      "manualBuyLadderProvided": false,
+      "liveSellOffer": 25384,
+      "liveSellOfferSource": "manual live input",
+      "liveLowestSellQty": 34,
+      "liveBuyOffer": 22016,
+      "liveBuyRangeLow": 0,
+      "liveBuyQueueAhead": 0,
+      "liveSellQueueAhead": 34,
+      "instantSellQuantity": 4,
+      "instantSellTotal": 88064,
+      "instantSellAveragePrice": 22016,
+      "instantSellFullyCovered": true,
+      "apiDataAvailable": true,
+      "liveBuyAvailable": 5,
+      "liveBuyLadder": [
+        {
+          "price": 22016,
+          "amount": 5
+        },
+        {
+          "price": 22015,
+          "amount": 3
+        },
+        {
+          "price": 22011,
+          "amount": 4
+        },
+        {
+          "price": 22010,
+          "amount": 97
+        },
+        {
+          "price": 22009,
+          "amount": 4
+        },
+        {
+          "price": 22008,
+          "amount": 3
+        },
+        {
+          "price": 22007,
+          "amount": 88
+        },
+        {
+          "price": 22006,
+          "amount": 10
+        },
+        {
+          "price": 22005,
+          "amount": 2
+        },
+        {
+          "price": 22001,
+          "amount": 4
+        },
+        {
+          "price": 22000,
+          "amount": 10
+        },
+        {
+          "price": 21556,
+          "amount": 7
+        },
+        {
+          "price": 21555,
+          "amount": 20
+        },
+        {
+          "price": 21521,
+          "amount": 6
+        },
+        {
+          "price": 21510,
+          "amount": 4
+        },
+        {
+          "price": 21509,
+          "amount": 59
+        },
+        {
+          "price": 21508,
+          "amount": 10
+        },
+        {
+          "price": 21502,
+          "amount": 9
+        },
+        {
+          "price": 21501,
+          "amount": 61
+        },
+        {
+          "price": 21500,
+          "amount": 10
+        },
+        {
+          "price": 21307,
+          "amount": 2
+        },
+        {
+          "price": 21305,
+          "amount": 11
+        },
+        {
+          "price": 21304,
+          "amount": 61
+        },
+        {
+          "price": 21295,
+          "amount": 61
+        },
+        {
+          "price": 21268,
+          "amount": 92
+        },
+        {
+          "price": 21262,
+          "amount": 61
+        },
+        {
+          "price": 21260,
+          "amount": 7
+        },
+        {
+          "price": 21004,
+          "amount": 40
+        },
+        {
+          "price": 21000,
+          "amount": 5
+        },
+        {
+          "price": 15100,
+          "amount": 20
+        },
+        {
+          "price": 13200,
+          "amount": 2
+        },
+        {
+          "price": 1,
+          "amount": 110
+        }
+      ],
+      "buyLadderStructure": {
+        "source": "Manual live ladder",
+        "summary": "32 visible buy levels, 888 total visible quantity",
+        "visibleQuantity": 888,
+        "topPrice": 22016,
+        "topAmount": 5,
+        "queueAhead": 0,
+        "whaleWalls": 4,
+        "recommendation": "You are above the visible top buy. This is fast, but it can start a +1gp war."
+      },
+      "yourSellPrice": 25384,
+      "minSellPrice": 0,
+      "entryPrice": 0,
+      "plannedBuyPrice": 0
+    },
+    {
+      "checkedAt": "2026-06-03T00:53:49.399Z",
+      "mode": "sell",
+      "id": 23544,
+      "name": "collar of red plasma",
+      "quantity": 4,
+      "itemInfo": {
+        "id": 23544,
+        "category": "Amulets",
+        "tier": -1,
+        "wiki_name": "Collar of Red Plasma"
+      },
+      "bestNpcBuy": {
+        "name": "Fadil",
+        "location": "Darashia City",
+        "price": 6000
+      },
+      "currentSellOffer": 24696,
+      "currentBuyOffer": 22016,
+      "daySold": 34,
+      "monthSold": 1060,
+      "dayAverageSell": 24829,
+      "monthAverageSell": 24956,
+      "marketBoardAvailable": true,
+      "manualBuyLadderProvided": false,
+      "liveSellOffer": 25384,
+      "liveSellOfferSource": "manual live input",
+      "liveLowestSellQty": 30,
+      "liveBuyOffer": 22016,
+      "liveBuyRangeLow": 0,
+      "liveBuyQueueAhead": 0,
+      "liveSellQueueAhead": 0,
+      "instantSellQuantity": 4,
+      "instantSellTotal": 88064,
+      "instantSellAveragePrice": 22016,
+      "instantSellFullyCovered": true,
+      "apiDataAvailable": true,
+      "liveBuyAvailable": 5,
+      "liveBuyLadder": [
+        {
+          "price": 22016,
+          "amount": 5
+        },
+        {
+          "price": 22015,
+          "amount": 3
+        },
+        {
+          "price": 22011,
+          "amount": 4
+        },
+        {
+          "price": 22010,
+          "amount": 97
+        },
+        {
+          "price": 22009,
+          "amount": 4
+        },
+        {
+          "price": 22008,
+          "amount": 3
+        },
+        {
+          "price": 22007,
+          "amount": 88
+        },
+        {
+          "price": 22006,
+          "amount": 10
+        },
+        {
+          "price": 22005,
+          "amount": 2
+        },
+        {
+          "price": 22001,
+          "amount": 4
+        },
+        {
+          "price": 22000,
+          "amount": 10
+        },
+        {
+          "price": 21556,
+          "amount": 7
+        },
+        {
+          "price": 21555,
+          "amount": 20
+        },
+        {
+          "price": 21521,
+          "amount": 6
+        },
+        {
+          "price": 21510,
+          "amount": 4
+        },
+        {
+          "price": 21509,
+          "amount": 59
+        },
+        {
+          "price": 21508,
+          "amount": 10
+        },
+        {
+          "price": 21502,
+          "amount": 9
+        },
+        {
+          "price": 21501,
+          "amount": 61
+        },
+        {
+          "price": 21500,
+          "amount": 10
+        },
+        {
+          "price": 21307,
+          "amount": 2
+        },
+        {
+          "price": 21305,
+          "amount": 11
+        },
+        {
+          "price": 21304,
+          "amount": 61
+        },
+        {
+          "price": 21295,
+          "amount": 61
+        },
+        {
+          "price": 21268,
+          "amount": 92
+        },
+        {
+          "price": 21262,
+          "amount": 61
+        },
+        {
+          "price": 21260,
+          "amount": 7
+        },
+        {
+          "price": 21004,
+          "amount": 40
+        },
+        {
+          "price": 21000,
+          "amount": 5
+        },
+        {
+          "price": 15100,
+          "amount": 20
+        },
+        {
+          "price": 13200,
+          "amount": 2
+        },
+        {
+          "price": 1,
+          "amount": 110
+        }
+      ],
+      "buyLadderStructure": {
+        "source": "Manual live ladder",
+        "summary": "32 visible buy levels, 888 total visible quantity",
+        "visibleQuantity": 888,
+        "topPrice": 22016,
+        "topAmount": 5,
+        "queueAhead": 0,
+        "whaleWalls": 4,
+        "recommendation": "You are above the visible top buy. This is fast, but it can start a +1gp war."
+      },
+      "yourSellPrice": 25383,
+      "minSellPrice": 0,
+      "entryPrice": 0,
+      "plannedBuyPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-26T14:36:10.796Z",
+      "mode": "sell",
+      "id": 3081,
+      "name": "stone skin amulet",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 3081,
+        "category": "Amulets",
+        "tier": -1,
+        "wiki_name": "Stone Skin Amulet"
+      },
+      "bestNpcBuy": {
+        "name": "Haroun",
+        "location": "Ashta'daramai",
+        "price": 500
+      },
+      "currentSellOffer": 9499,
+      "currentBuyOffer": 7180,
+      "daySold": 62,
+      "monthSold": 716,
+      "dayAverageSell": 7897,
+      "monthAverageSell": 9123,
+      "marketBoardAvailable": true,
+      "manualBuyLadderProvided": false,
+      "liveSellOffer": 9499,
+      "liveSellOfferSource": "manual live input",
+      "liveLowestSellQty": 101,
+      "liveBuyOffer": 7180,
+      "liveBuyRangeLow": 0,
+      "liveBuyQueueAhead": 0,
+      "liveSellQueueAhead": 101,
+      "instantSellQuantity": 10,
+      "instantSellTotal": 71797,
+      "instantSellAveragePrice": 7179.7,
+      "instantSellFullyCovered": true,
+      "apiDataAvailable": true,
+      "liveBuyAvailable": 7,
+      "liveBuyLadder": [
+        {
+          "price": 7180,
+          "amount": 7
+        },
+        {
+          "price": 7179,
+          "amount": 101
+        },
+        {
+          "price": 7178,
+          "amount": 9
+        },
+        {
+          "price": 7177,
+          "amount": 1
+        },
+        {
+          "price": 7002,
+          "amount": 15
+        },
+        {
+          "price": 7001,
+          "amount": 22
+        },
+        {
+          "price": 6915,
+          "amount": 157
+        },
+        {
+          "price": 5029,
+          "amount": 158
+        },
+        {
+          "price": 5022,
+          "amount": 19
+        },
+        {
+          "price": 5000,
+          "amount": 220
+        }
+      ],
+      "buyLadderStructure": {
+        "source": "Manual live ladder",
+        "summary": "10 visible buy levels, 709 total visible quantity",
+        "visibleQuantity": 709,
+        "topPrice": 7180,
+        "topAmount": 7,
+        "queueAhead": 0,
+        "whaleWalls": 4,
+        "recommendation": "You are above the visible top buy. This is fast, but it can start a +1gp war."
+      },
+      "yourSellPrice": 9499,
+      "minSellPrice": 0,
+      "entryPrice": 8199,
+      "plannedBuyPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-26T14:30:34.226Z",
+      "mode": "sell",
+      "id": 3081,
+      "name": "stone skin amulet",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 3081,
+        "category": "Amulets",
+        "tier": -1,
+        "wiki_name": "Stone Skin Amulet"
+      },
+      "bestNpcBuy": {
+        "name": "Haroun",
+        "location": "Ashta'daramai",
+        "price": 500
+      },
+      "currentSellOffer": 9499,
+      "currentBuyOffer": 7180,
+      "daySold": 62,
+      "monthSold": 716,
+      "dayAverageSell": 7897,
+      "monthAverageSell": 9123,
+      "marketBoardAvailable": true,
+      "manualBuyLadderProvided": false,
+      "liveSellOffer": 9499,
+      "liveSellOfferSource": "manual live input",
+      "liveLowestSellQty": 101,
+      "liveBuyOffer": 7180,
+      "liveBuyRangeLow": 0,
+      "liveBuyQueueAhead": 0,
+      "liveSellQueueAhead": 101,
+      "instantSellQuantity": 10,
+      "instantSellTotal": 71797,
+      "instantSellAveragePrice": 7179.7,
+      "instantSellFullyCovered": true,
+      "apiDataAvailable": true,
+      "liveBuyAvailable": 7,
+      "liveBuyLadder": [
+        {
+          "price": 7180,
+          "amount": 7
+        },
+        {
+          "price": 7179,
+          "amount": 101
+        },
+        {
+          "price": 7178,
+          "amount": 9
+        },
+        {
+          "price": 7177,
+          "amount": 1
+        },
+        {
+          "price": 7002,
+          "amount": 15
+        },
+        {
+          "price": 7001,
+          "amount": 22
+        },
+        {
+          "price": 6915,
+          "amount": 157
+        },
+        {
+          "price": 5029,
+          "amount": 158
+        },
+        {
+          "price": 5022,
+          "amount": 19
+        },
+        {
+          "price": 5000,
+          "amount": 220
+        }
+      ],
+      "buyLadderStructure": {
+        "source": "Manual live ladder",
+        "summary": "10 visible buy levels, 709 total visible quantity",
+        "visibleQuantity": 709,
+        "topPrice": 7180,
+        "topAmount": 7,
+        "queueAhead": 0,
+        "whaleWalls": 4,
+        "recommendation": "You are above the visible top buy. This is fast, but it can start a +1gp war."
+      },
+      "yourSellPrice": 9499,
+      "minSellPrice": 0,
+      "entryPrice": 8199,
+      "plannedBuyPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-26T14:16:28.375Z",
+      "mode": "sell",
+      "id": 3081,
+      "name": "stone skin amulet",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 3081,
+        "category": "Amulets",
+        "tier": -1,
+        "wiki_name": "Stone Skin Amulet"
+      },
+      "bestNpcBuy": {
+        "name": "Haroun",
+        "location": "Ashta'daramai",
+        "price": 500
+      },
+      "currentSellOffer": 9499,
+      "currentBuyOffer": 7180,
+      "daySold": 62,
+      "monthSold": 716,
+      "dayAverageSell": 7897,
+      "monthAverageSell": 9123,
+      "marketBoardAvailable": true,
+      "manualBuyLadderProvided": false,
+      "liveSellOffer": 9499,
+      "liveSellOfferSource": "manual live input",
+      "liveLowestSellQty": 101,
+      "liveBuyOffer": 7180,
+      "liveBuyRangeLow": 0,
+      "liveBuyQueueAhead": 0,
+      "liveSellQueueAhead": 101,
+      "instantSellQuantity": 10,
+      "instantSellTotal": 71797,
+      "instantSellAveragePrice": 7179.7,
+      "instantSellFullyCovered": true,
+      "apiDataAvailable": true,
+      "liveBuyAvailable": 7,
+      "liveBuyLadder": [
+        {
+          "price": 7180,
+          "amount": 7
+        },
+        {
+          "price": 7179,
+          "amount": 101
+        },
+        {
+          "price": 7178,
+          "amount": 9
+        },
+        {
+          "price": 7177,
+          "amount": 1
+        },
+        {
+          "price": 7002,
+          "amount": 15
+        },
+        {
+          "price": 7001,
+          "amount": 22
+        },
+        {
+          "price": 6915,
+          "amount": 157
+        },
+        {
+          "price": 5029,
+          "amount": 158
+        },
+        {
+          "price": 5022,
+          "amount": 19
+        },
+        {
+          "price": 5000,
+          "amount": 220
+        }
+      ],
+      "buyLadderStructure": {
+        "source": "Manual live ladder",
+        "summary": "10 visible buy levels, 709 total visible quantity",
+        "visibleQuantity": 709,
+        "topPrice": 7180,
+        "topAmount": 7,
+        "queueAhead": 0,
+        "whaleWalls": 4,
+        "recommendation": "You are above the visible top buy. This is fast, but it can start a +1gp war."
+      },
+      "yourSellPrice": 9500,
+      "minSellPrice": 0,
+      "entryPrice": 8199,
+      "plannedBuyPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-26T14:08:38.700Z",
+      "mode": "sell",
+      "id": 3081,
+      "name": "stone skin amulet",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 3081,
+        "category": "Amulets",
+        "tier": -1,
+        "wiki_name": "Stone Skin Amulet"
+      },
+      "bestNpcBuy": {
+        "name": "Haroun",
+        "location": "Ashta'daramai",
+        "price": 500
+      },
+      "currentSellOffer": 9499,
+      "currentBuyOffer": 7180,
+      "daySold": 62,
+      "monthSold": 716,
+      "dayAverageSell": 7897,
+      "monthAverageSell": 9123,
+      "marketBoardAvailable": true,
+      "manualBuyLadderProvided": false,
+      "liveSellOffer": 9499,
+      "liveSellOfferSource": "manual live input",
+      "liveLowestSellQty": 101,
+      "liveBuyOffer": 7180,
+      "liveBuyRangeLow": 0,
+      "liveBuyQueueAhead": 0,
+      "liveSellQueueAhead": 101,
+      "instantSellQuantity": 10,
+      "instantSellTotal": 71797,
+      "instantSellAveragePrice": 7179.7,
+      "instantSellFullyCovered": true,
+      "apiDataAvailable": true,
+      "liveBuyAvailable": 7,
+      "liveBuyLadder": [
+        {
+          "price": 7180,
+          "amount": 7
+        },
+        {
+          "price": 7179,
+          "amount": 101
+        },
+        {
+          "price": 7178,
+          "amount": 9
+        },
+        {
+          "price": 7177,
+          "amount": 1
+        },
+        {
+          "price": 7002,
+          "amount": 15
+        },
+        {
+          "price": 7001,
+          "amount": 22
+        },
+        {
+          "price": 6915,
+          "amount": 157
+        },
+        {
+          "price": 5029,
+          "amount": 158
+        },
+        {
+          "price": 5022,
+          "amount": 19
+        },
+        {
+          "price": 5000,
+          "amount": 220
+        }
+      ],
+      "buyLadderStructure": {
+        "source": "Manual live ladder",
+        "summary": "10 visible buy levels, 709 total visible quantity",
+        "visibleQuantity": 709,
+        "topPrice": 7180,
+        "topAmount": 7,
+        "queueAhead": 0,
+        "whaleWalls": 4,
+        "recommendation": "You are above the visible top buy. This is fast, but it can start a +1gp war."
+      },
+      "yourSellPrice": 9499,
+      "minSellPrice": 0,
+      "entryPrice": 8199,
+      "plannedBuyPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-23T13:54:05.788Z",
+      "mode": "sell",
+      "id": 22516,
+      "name": "silver token",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 22516,
+        "category": "Valuables",
+        "tier": -1,
+        "wiki_name": "Silver Token"
+      },
+      "bestNpcBuy": null,
+      "currentSellOffer": 53400,
+      "currentBuyOffer": 48195,
+      "daySold": 62,
+      "monthSold": 1860,
+      "dayAverageSell": 52773,
+      "monthAverageSell": 51006,
+      "marketBoardAvailable": true,
+      "manualBuyLadderProvided": false,
+      "liveSellOffer": 60000,
+      "liveSellOfferSource": "manual live input",
+      "liveLowestSellQty": 150,
+      "liveBuyOffer": 48195,
+      "liveBuyRangeLow": 0,
+      "liveBuyQueueAhead": 0,
+      "liveSellQueueAhead": 0,
+      "instantSellQuantity": 10,
+      "instantSellTotal": 481941,
+      "instantSellAveragePrice": 48194.1,
+      "instantSellFullyCovered": true,
+      "apiDataAvailable": true,
+      "liveBuyAvailable": 1,
+      "liveBuyLadder": [
+        {
+          "price": 48195,
+          "amount": 1
+        },
+        {
+          "price": 48194,
+          "amount": 101
+        },
+        {
+          "price": 48193,
+          "amount": 49
+        },
+        {
+          "price": 48192,
+          "amount": 2
+        },
+        {
+          "price": 48191,
+          "amount": 49
+        },
+        {
+          "price": 48190,
+          "amount": 3
+        },
+        {
+          "price": 48189,
+          "amount": 19
+        },
+        {
+          "price": 48188,
+          "amount": 4
+        },
+        {
+          "price": 48187,
+          "amount": 28
+        },
+        {
+          "price": 48185,
+          "amount": 36
+        },
+        {
+          "price": 48001,
+          "amount": 1
+        },
+        {
+          "price": 48000,
+          "amount": 8
+        },
+        {
+          "price": 47508,
+          "amount": 5
+        },
+        {
+          "price": 47507,
+          "amount": 103
+        },
+        {
+          "price": 47505,
+          "amount": 3
+        },
+        {
+          "price": 47501,
+          "amount": 2
+        },
+        {
+          "price": 47500,
+          "amount": 21
+        },
+        {
+          "price": 47067,
+          "amount": 1
+        },
+        {
+          "price": 47058,
+          "amount": 30
+        },
+        {
+          "price": 47050,
+          "amount": 100
+        },
+        {
+          "price": 47009,
+          "amount": 3
+        },
+        {
+          "price": 42500,
+          "amount": 87
+        },
+        {
+          "price": 41100,
+          "amount": 7
+        }
+      ],
+      "buyLadderStructure": {
+        "source": "Manual live ladder",
+        "summary": "23 visible buy levels, 663 total visible quantity",
+        "visibleQuantity": 663,
+        "topPrice": 48195,
+        "topAmount": 1,
+        "queueAhead": 0,
+        "whaleWalls": 4,
+        "recommendation": "You are above the visible top buy. This is fast, but it can start a +1gp war."
+      },
+      "yourSellPrice": 59999,
+      "minSellPrice": 0,
+      "entryPrice": 50010,
+      "plannedBuyPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-23T13:52:39.778Z",
+      "mode": "sell",
+      "id": 22516,
+      "name": "silver token",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 22516,
+        "category": "Valuables",
+        "tier": -1,
+        "wiki_name": "Silver Token"
+      },
+      "bestNpcBuy": null,
+      "currentSellOffer": 53400,
+      "currentBuyOffer": 48195,
+      "daySold": 62,
+      "monthSold": 1860,
+      "dayAverageSell": 52773,
+      "monthAverageSell": 51006,
+      "marketBoardAvailable": true,
+      "manualBuyLadderProvided": false,
+      "liveSellOffer": 60000,
+      "liveSellOfferSource": "manual live input",
+      "liveLowestSellQty": 150,
+      "liveBuyOffer": 48195,
+      "liveBuyRangeLow": 0,
+      "liveBuyQueueAhead": 0,
+      "liveSellQueueAhead": 0,
+      "instantSellQuantity": 10,
+      "instantSellTotal": 481941,
+      "instantSellAveragePrice": 48194.1,
+      "instantSellFullyCovered": true,
+      "apiDataAvailable": true,
+      "liveBuyAvailable": 1,
+      "liveBuyLadder": [
+        {
+          "price": 48195,
+          "amount": 1
+        },
+        {
+          "price": 48194,
+          "amount": 101
+        },
+        {
+          "price": 48193,
+          "amount": 49
+        },
+        {
+          "price": 48192,
+          "amount": 2
+        },
+        {
+          "price": 48191,
+          "amount": 49
+        },
+        {
+          "price": 48190,
+          "amount": 3
+        },
+        {
+          "price": 48189,
+          "amount": 19
+        },
+        {
+          "price": 48188,
+          "amount": 4
+        },
+        {
+          "price": 48187,
+          "amount": 28
+        },
+        {
+          "price": 48185,
+          "amount": 36
+        },
+        {
+          "price": 48001,
+          "amount": 1
+        },
+        {
+          "price": 48000,
+          "amount": 8
+        },
+        {
+          "price": 47508,
+          "amount": 5
+        },
+        {
+          "price": 47507,
+          "amount": 103
+        },
+        {
+          "price": 47505,
+          "amount": 3
+        },
+        {
+          "price": 47501,
+          "amount": 2
+        },
+        {
+          "price": 47500,
+          "amount": 21
+        },
+        {
+          "price": 47067,
+          "amount": 1
+        },
+        {
+          "price": 47058,
+          "amount": 30
+        },
+        {
+          "price": 47050,
+          "amount": 100
+        },
+        {
+          "price": 47009,
+          "amount": 3
+        },
+        {
+          "price": 42500,
+          "amount": 87
+        },
+        {
+          "price": 41100,
+          "amount": 7
+        }
+      ],
+      "buyLadderStructure": {
+        "source": "Manual live ladder",
+        "summary": "23 visible buy levels, 663 total visible quantity",
+        "visibleQuantity": 663,
+        "topPrice": 48195,
+        "topAmount": 1,
+        "queueAhead": 0,
+        "whaleWalls": 4,
+        "recommendation": "You are above the visible top buy. This is fast, but it can start a +1gp war."
+      },
+      "yourSellPrice": 59999,
+      "minSellPrice": 0,
+      "entryPrice": 50010,
+      "plannedBuyPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-23T13:49:30.574Z",
+      "mode": "sell",
+      "id": 22516,
+      "name": "silver token",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 22516,
+        "category": "Valuables",
+        "tier": -1,
+        "wiki_name": "Silver Token"
+      },
+      "bestNpcBuy": null,
+      "currentSellOffer": 53400,
+      "currentBuyOffer": 48195,
+      "daySold": 62,
+      "monthSold": 1860,
+      "dayAverageSell": 52773,
+      "monthAverageSell": 51006,
+      "marketBoardAvailable": true,
+      "manualBuyLadderProvided": false,
+      "liveSellOffer": 60000,
+      "liveSellOfferSource": "manual live input",
+      "liveLowestSellQty": 150,
+      "liveBuyOffer": 48195,
+      "liveBuyRangeLow": 0,
+      "liveBuyQueueAhead": 0,
+      "liveSellQueueAhead": 0,
+      "instantSellQuantity": 10,
+      "instantSellTotal": 481941,
+      "instantSellAveragePrice": 48194.1,
+      "instantSellFullyCovered": true,
+      "apiDataAvailable": true,
+      "liveBuyAvailable": 1,
+      "liveBuyLadder": [
+        {
+          "price": 48195,
+          "amount": 1
+        },
+        {
+          "price": 48194,
+          "amount": 101
+        },
+        {
+          "price": 48193,
+          "amount": 49
+        },
+        {
+          "price": 48192,
+          "amount": 2
+        },
+        {
+          "price": 48191,
+          "amount": 49
+        },
+        {
+          "price": 48190,
+          "amount": 3
+        },
+        {
+          "price": 48189,
+          "amount": 19
+        },
+        {
+          "price": 48188,
+          "amount": 4
+        },
+        {
+          "price": 48187,
+          "amount": 28
+        },
+        {
+          "price": 48185,
+          "amount": 36
+        },
+        {
+          "price": 48001,
+          "amount": 1
+        },
+        {
+          "price": 48000,
+          "amount": 8
+        },
+        {
+          "price": 47508,
+          "amount": 5
+        },
+        {
+          "price": 47507,
+          "amount": 103
+        },
+        {
+          "price": 47505,
+          "amount": 3
+        },
+        {
+          "price": 47501,
+          "amount": 2
+        },
+        {
+          "price": 47500,
+          "amount": 21
+        },
+        {
+          "price": 47067,
+          "amount": 1
+        },
+        {
+          "price": 47058,
+          "amount": 30
+        },
+        {
+          "price": 47050,
+          "amount": 100
+        },
+        {
+          "price": 47009,
+          "amount": 3
+        },
+        {
+          "price": 42500,
+          "amount": 87
+        },
+        {
+          "price": 41100,
+          "amount": 7
+        }
+      ],
+      "buyLadderStructure": {
+        "source": "Manual live ladder",
+        "summary": "23 visible buy levels, 663 total visible quantity",
+        "visibleQuantity": 663,
+        "topPrice": 48195,
+        "topAmount": 1,
+        "queueAhead": 0,
+        "whaleWalls": 4,
+        "recommendation": "You are above the visible top buy. This is fast, but it can start a +1gp war."
+      },
+      "yourSellPrice": 59999,
+      "minSellPrice": 0,
+      "entryPrice": 50010,
+      "plannedBuyPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-23T13:44:17.761Z",
+      "mode": "sell",
+      "id": 22516,
+      "name": "silver token",
+      "liveSellOfferSource": "manual live input",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 22516,
+        "category": "Valuables",
+        "tier": -1,
+        "wiki_name": "Silver Token"
+      },
+      "bestNpcBuy": null,
+      "currentSellOffer": 53400,
+      "currentBuyOffer": 48195,
+      "daySold": 62,
+      "monthSold": 1860,
+      "dayAverageSell": 52773,
+      "monthAverageSell": 51006,
+      "marketBoardAvailable": true,
+      "manualBuyLadderProvided": false,
+      "liveSellOffer": 60000,
+      "liveBuyOffer": 48195,
+      "liveBuyRangeLow": 0,
+      "liveBuyQueueAhead": 0,
+      "liveLowestSellQty": 150,
+      "liveSellQueueAhead": 158,
+      "instantSellQuantity": 10,
+      "instantSellTotal": 481941,
+      "instantSellAveragePrice": 48194.1,
+      "instantSellFullyCovered": true,
+      "apiDataAvailable": true,
+      "liveBuyAvailable": 1,
+      "liveBuyLadder": [
+        {
+          "price": 48195,
+          "amount": 1
+        },
+        {
+          "price": 48194,
+          "amount": 101
+        },
+        {
+          "price": 48193,
+          "amount": 49
+        },
+        {
+          "price": 48192,
+          "amount": 2
+        },
+        {
+          "price": 48191,
+          "amount": 49
+        },
+        {
+          "price": 48190,
+          "amount": 3
+        },
+        {
+          "price": 48189,
+          "amount": 19
+        },
+        {
+          "price": 48188,
+          "amount": 4
+        },
+        {
+          "price": 48187,
+          "amount": 28
+        },
+        {
+          "price": 48185,
+          "amount": 36
+        },
+        {
+          "price": 48001,
+          "amount": 1
+        },
+        {
+          "price": 48000,
+          "amount": 8
+        },
+        {
+          "price": 47508,
+          "amount": 5
+        },
+        {
+          "price": 47507,
+          "amount": 103
+        },
+        {
+          "price": 47505,
+          "amount": 3
+        },
+        {
+          "price": 47501,
+          "amount": 2
+        },
+        {
+          "price": 47500,
+          "amount": 21
+        },
+        {
+          "price": 47067,
+          "amount": 1
+        },
+        {
+          "price": 47058,
+          "amount": 30
+        },
+        {
+          "price": 47050,
+          "amount": 100
+        },
+        {
+          "price": 47009,
+          "amount": 3
+        },
+        {
+          "price": 42500,
+          "amount": 87
+        },
+        {
+          "price": 41100,
+          "amount": 7
+        }
+      ],
+      "buyLadderStructure": {
+        "source": "Manual live ladder",
+        "summary": "23 visible buy levels, 663 total visible quantity",
+        "visibleQuantity": 663,
+        "topPrice": 48195,
+        "topAmount": 1,
+        "queueAhead": 0,
+        "whaleWalls": 4,
+        "recommendation": "You are above the visible top buy. This is fast, but it can start a +1gp war."
+      },
+      "yourSellPrice": 59999,
+      "minSellPrice": 0,
+      "entryPrice": 50010,
+      "plannedBuyPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-23T13:37:59.917Z",
+      "mode": "sell",
+      "id": 22516,
+      "name": "silver token",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 22516,
+        "category": "Valuables",
+        "tier": -1,
+        "wiki_name": "Silver Token"
+      },
+      "bestNpcBuy": null,
+      "currentSellOffer": 53400,
+      "currentBuyOffer": 48195,
+      "daySold": 62,
+      "monthSold": 1860,
+      "dayAverageSell": 52773,
+      "monthAverageSell": 51006,
+      "marketBoardAvailable": true,
+      "manualBuyLadderProvided": false,
+      "liveSellOffer": 53400,
+      "liveBuyOffer": 48195,
+      "liveBuyRangeLow": 0,
+      "liveBuyQueueAhead": 0,
+      "liveLowestSellQty": 150,
+      "liveSellQueueAhead": 150,
+      "instantSellQuantity": 10,
+      "instantSellTotal": 481941,
+      "instantSellAveragePrice": 48194.1,
+      "instantSellFullyCovered": true,
+      "apiDataAvailable": true,
+      "liveBuyAvailable": 1,
+      "liveBuyLadder": [
+        {
+          "price": 48195,
+          "amount": 1
+        },
+        {
+          "price": 48194,
+          "amount": 101
+        },
+        {
+          "price": 48193,
+          "amount": 49
+        },
+        {
+          "price": 48192,
+          "amount": 2
+        },
+        {
+          "price": 48191,
+          "amount": 49
+        },
+        {
+          "price": 48190,
+          "amount": 3
+        },
+        {
+          "price": 48189,
+          "amount": 19
+        },
+        {
+          "price": 48188,
+          "amount": 4
+        },
+        {
+          "price": 48187,
+          "amount": 28
+        },
+        {
+          "price": 48185,
+          "amount": 36
+        },
+        {
+          "price": 48001,
+          "amount": 1
+        },
+        {
+          "price": 48000,
+          "amount": 8
+        },
+        {
+          "price": 47508,
+          "amount": 5
+        },
+        {
+          "price": 47507,
+          "amount": 103
+        },
+        {
+          "price": 47505,
+          "amount": 3
+        },
+        {
+          "price": 47501,
+          "amount": 2
+        },
+        {
+          "price": 47500,
+          "amount": 21
+        },
+        {
+          "price": 47067,
+          "amount": 1
+        },
+        {
+          "price": 47058,
+          "amount": 30
+        },
+        {
+          "price": 47050,
+          "amount": 100
+        },
+        {
+          "price": 47009,
+          "amount": 3
+        },
+        {
+          "price": 42500,
+          "amount": 87
+        },
+        {
+          "price": 41100,
+          "amount": 7
+        }
+      ],
+      "buyLadderStructure": {
+        "source": "Manual live ladder",
+        "summary": "23 visible buy levels, 663 total visible quantity",
+        "visibleQuantity": 663,
+        "topPrice": 48195,
+        "topAmount": 1,
+        "queueAhead": 0,
+        "whaleWalls": 4,
+        "recommendation": "You are above the visible top buy. This is fast, but it can start a +1gp war."
+      },
+      "yourSellPrice": 59999,
+      "minSellPrice": 0,
+      "entryPrice": 50010,
+      "plannedBuyPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-23T13:35:27.202Z",
+      "mode": "sell",
+      "id": 22516,
+      "name": "silver token",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 22516,
+        "category": "Valuables",
+        "tier": -1,
+        "wiki_name": "Silver Token"
+      },
+      "bestNpcBuy": null,
+      "currentSellOffer": 53400,
+      "currentBuyOffer": 48195,
+      "daySold": 62,
+      "monthSold": 1860,
+      "dayAverageSell": 52773,
+      "monthAverageSell": 51006,
+      "marketBoardAvailable": true,
+      "manualBuyLadderProvided": false,
+      "liveSellOffer": 53400,
+      "liveBuyOffer": 48195,
+      "liveBuyRangeLow": 0,
+      "liveBuyQueueAhead": 0,
+      "liveLowestSellQty": 150,
+      "liveSellQueueAhead": 150,
+      "instantSellQuantity": 10,
+      "instantSellTotal": 481941,
+      "instantSellAveragePrice": 48194.1,
+      "instantSellFullyCovered": true,
+      "apiDataAvailable": true,
+      "liveBuyAvailable": 1,
+      "liveBuyLadder": [
+        {
+          "price": 48195,
+          "amount": 1
+        },
+        {
+          "price": 48194,
+          "amount": 101
+        },
+        {
+          "price": 48193,
+          "amount": 49
+        },
+        {
+          "price": 48192,
+          "amount": 2
+        },
+        {
+          "price": 48191,
+          "amount": 49
+        },
+        {
+          "price": 48190,
+          "amount": 3
+        },
+        {
+          "price": 48189,
+          "amount": 19
+        },
+        {
+          "price": 48188,
+          "amount": 4
+        },
+        {
+          "price": 48187,
+          "amount": 28
+        },
+        {
+          "price": 48185,
+          "amount": 36
+        },
+        {
+          "price": 48001,
+          "amount": 1
+        },
+        {
+          "price": 48000,
+          "amount": 8
+        },
+        {
+          "price": 47508,
+          "amount": 5
+        },
+        {
+          "price": 47507,
+          "amount": 103
+        },
+        {
+          "price": 47505,
+          "amount": 3
+        },
+        {
+          "price": 47501,
+          "amount": 2
+        },
+        {
+          "price": 47500,
+          "amount": 21
+        },
+        {
+          "price": 47067,
+          "amount": 1
+        },
+        {
+          "price": 47058,
+          "amount": 30
+        },
+        {
+          "price": 47050,
+          "amount": 100
+        },
+        {
+          "price": 47009,
+          "amount": 3
+        },
+        {
+          "price": 42500,
+          "amount": 87
+        },
+        {
+          "price": 41100,
+          "amount": 7
+        }
+      ],
+      "buyLadderStructure": {
+        "source": "Manual live ladder",
+        "summary": "23 visible buy levels, 663 total visible quantity",
+        "visibleQuantity": 663,
+        "topPrice": 48195,
+        "topAmount": 1,
+        "queueAhead": 0,
+        "whaleWalls": 4,
+        "recommendation": "You are above the visible top buy. This is fast, but it can start a +1gp war."
+      },
+      "yourSellPrice": 59999,
+      "minSellPrice": 0,
+      "entryPrice": 60000,
+      "plannedBuyPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-23T13:34:35.649Z",
+      "mode": "sell",
+      "id": 3054,
+      "name": "silver amulet",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 3054,
+        "category": "Amulets",
+        "tier": -1,
+        "wiki_name": "Silver Amulet"
+      },
+      "bestNpcBuy": {
+        "name": "Yaman",
+        "location": "Mal'ouquah",
+        "price": 50
+      },
+      "currentSellOffer": 37,
+      "currentBuyOffer": 9,
+      "daySold": 0,
+      "monthSold": 19,
+      "dayAverageSell": 0,
+      "monthAverageSell": 46,
+      "marketBoardAvailable": true,
+      "manualBuyLadderProvided": false,
+      "liveSellOffer": 37,
+      "liveBuyOffer": 9,
+      "liveBuyRangeLow": 0,
+      "liveBuyQueueAhead": 0,
+      "liveLowestSellQty": 150,
+      "liveSellQueueAhead": 150,
+      "instantSellQuantity": 10,
+      "instantSellTotal": 90,
+      "instantSellAveragePrice": 9,
+      "instantSellFullyCovered": true,
+      "apiDataAvailable": true,
+      "liveBuyAvailable": 95,
+      "liveBuyLadder": [
+        {
+          "price": 9,
+          "amount": 95
+        },
+        {
+          "price": 8,
+          "amount": 46
+        }
+      ],
+      "buyLadderStructure": {
+        "source": "Manual live ladder",
+        "summary": "2 visible buy levels, 141 total visible quantity",
+        "visibleQuantity": 141,
+        "topPrice": 9,
+        "topAmount": 95,
+        "queueAhead": 0,
+        "whaleWalls": 1,
+        "recommendation": "You are above the visible top buy. This is fast, but it can start a +1gp war."
+      },
+      "yourSellPrice": 59999,
+      "minSellPrice": 0,
+      "entryPrice": 60000,
+      "plannedBuyPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-23T13:22:27.629Z",
+      "mode": "sell",
+      "id": 22516,
+      "name": "silver token",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 22516,
+        "category": "Valuables",
+        "tier": -1,
+        "wiki_name": "Silver Token"
+      },
+      "bestNpcBuy": null,
+      "currentSellOffer": 53400,
+      "currentBuyOffer": 48195,
+      "daySold": 62,
+      "monthSold": 1860,
+      "dayAverageSell": 52773,
+      "monthAverageSell": 51006,
+      "marketBoardAvailable": true,
+      "manualBuyLadderProvided": false,
+      "liveSellOffer": 60000,
+      "liveBuyOffer": 48195,
+      "liveBuyRangeLow": 0,
+      "liveBuyQueueAhead": 0,
+      "liveSellQueueAhead": 150,
+      "instantSellQuantity": 10,
+      "instantSellTotal": 481941,
+      "instantSellAveragePrice": 48194.1,
+      "instantSellFullyCovered": true,
+      "apiDataAvailable": true,
+      "liveBuyAvailable": 1,
+      "liveBuyLadder": [
+        {
+          "price": 48195,
+          "amount": 1
+        },
+        {
+          "price": 48194,
+          "amount": 101
+        },
+        {
+          "price": 48193,
+          "amount": 49
+        },
+        {
+          "price": 48192,
+          "amount": 2
+        },
+        {
+          "price": 48191,
+          "amount": 49
+        },
+        {
+          "price": 48190,
+          "amount": 3
+        },
+        {
+          "price": 48189,
+          "amount": 19
+        },
+        {
+          "price": 48188,
+          "amount": 4
+        },
+        {
+          "price": 48187,
+          "amount": 28
+        },
+        {
+          "price": 48185,
+          "amount": 36
+        },
+        {
+          "price": 48001,
+          "amount": 1
+        },
+        {
+          "price": 48000,
+          "amount": 8
+        },
+        {
+          "price": 47508,
+          "amount": 5
+        },
+        {
+          "price": 47507,
+          "amount": 103
+        },
+        {
+          "price": 47505,
+          "amount": 3
+        },
+        {
+          "price": 47501,
+          "amount": 2
+        },
+        {
+          "price": 47500,
+          "amount": 21
+        },
+        {
+          "price": 47067,
+          "amount": 1
+        },
+        {
+          "price": 47058,
+          "amount": 30
+        },
+        {
+          "price": 47050,
+          "amount": 100
+        },
+        {
+          "price": 47009,
+          "amount": 3
+        },
+        {
+          "price": 42500,
+          "amount": 87
+        },
+        {
+          "price": 41100,
+          "amount": 7
+        }
+      ],
+      "buyLadderStructure": {
+        "source": "Manual live ladder",
+        "summary": "23 visible buy levels, 663 total visible quantity",
+        "visibleQuantity": 663,
+        "topPrice": 48195,
+        "topAmount": 1,
+        "queueAhead": 0,
+        "whaleWalls": 4,
+        "recommendation": "You are above the visible top buy. This is fast, but it can start a +1gp war."
+      },
+      "yourSellPrice": 59999,
+      "minSellPrice": 0,
+      "entryPrice": 0,
+      "plannedBuyPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-23T12:23:16.876Z",
+      "mode": "sell",
+      "id": 22516,
+      "name": "silver token",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 22516,
+        "category": "Valuables",
+        "tier": -1,
+        "wiki_name": "Silver Token"
+      },
+      "bestNpcBuy": null,
+      "currentSellOffer": 53400,
+      "currentBuyOffer": 48195,
+      "daySold": 62,
+      "monthSold": 1860,
+      "dayAverageSell": 52773,
+      "monthAverageSell": 51006,
+      "marketBoardAvailable": true,
+      "manualBuyLadderProvided": false,
+      "liveSellOffer": 53400,
+      "liveBuyOffer": 48195,
+      "liveBuyRangeLow": 0,
+      "liveBuyQueueAhead": 1,
+      "liveSellQueueAhead": 2,
+      "instantSellQuantity": 10,
+      "instantSellTotal": 481941,
+      "instantSellAveragePrice": 48194.1,
+      "instantSellFullyCovered": true,
+      "apiDataAvailable": true,
+      "liveBuyAvailable": 1,
+      "liveBuyLadder": [
+        {
+          "price": 48195,
+          "amount": 1
+        },
+        {
+          "price": 48194,
+          "amount": 101
+        },
+        {
+          "price": 48193,
+          "amount": 49
+        },
+        {
+          "price": 48192,
+          "amount": 2
+        },
+        {
+          "price": 48191,
+          "amount": 49
+        },
+        {
+          "price": 48190,
+          "amount": 3
+        },
+        {
+          "price": 48189,
+          "amount": 19
+        },
+        {
+          "price": 48188,
+          "amount": 4
+        },
+        {
+          "price": 48187,
+          "amount": 28
+        },
+        {
+          "price": 48185,
+          "amount": 36
+        },
+        {
+          "price": 48001,
+          "amount": 1
+        },
+        {
+          "price": 48000,
+          "amount": 8
+        },
+        {
+          "price": 47508,
+          "amount": 5
+        },
+        {
+          "price": 47507,
+          "amount": 103
+        },
+        {
+          "price": 47505,
+          "amount": 3
+        },
+        {
+          "price": 47501,
+          "amount": 2
+        },
+        {
+          "price": 47500,
+          "amount": 21
+        },
+        {
+          "price": 47067,
+          "amount": 1
+        },
+        {
+          "price": 47058,
+          "amount": 30
+        },
+        {
+          "price": 47050,
+          "amount": 100
+        },
+        {
+          "price": 47009,
+          "amount": 3
+        },
+        {
+          "price": 42500,
+          "amount": 87
+        },
+        {
+          "price": 41100,
+          "amount": 7
+        }
+      ],
+      "buyLadderStructure": {
+        "source": "Manual live ladder",
+        "summary": "23 visible buy levels, 663 total visible quantity",
+        "visibleQuantity": 663,
+        "topPrice": 48195,
+        "topAmount": 1,
+        "queueAhead": 1,
+        "whaleWalls": 4,
+        "recommendation": "You are matching the visible top buy. Good balance if you are patient."
+      },
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0,
+      "plannedBuyPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-23T12:16:39.299Z",
+      "mode": "sell",
+      "id": 3081,
+      "name": "stone skin amulet",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 3081,
+        "category": "Amulets",
+        "tier": -1,
+        "wiki_name": "Stone Skin Amulet"
+      },
+      "bestNpcBuy": {
+        "name": "Haroun",
+        "location": "Ashta'daramai",
+        "price": 500
+      },
+      "currentSellOffer": 8990,
+      "currentBuyOffer": 8206,
+      "daySold": 23,
+      "monthSold": 681,
+      "dayAverageSell": 9153,
+      "monthAverageSell": 9404,
+      "marketBoardAvailable": true,
+      "manualBuyLadderProvided": false,
+      "liveSellOffer": 8990,
+      "liveBuyOffer": 8206,
+      "liveBuyRangeLow": 0,
+      "liveBuyQueueAhead": 5,
+      "liveSellQueueAhead": 6,
+      "instantSellQuantity": 10,
+      "instantSellTotal": 82054,
+      "instantSellAveragePrice": 8205.4,
+      "instantSellFullyCovered": true,
+      "apiDataAvailable": true,
+      "liveBuyAvailable": 5,
+      "liveBuyLadder": [
+        {
+          "price": 8206,
+          "amount": 5
+        },
+        {
+          "price": 8205,
+          "amount": 4
+        },
+        {
+          "price": 8204,
+          "amount": 8
+        },
+        {
+          "price": 8203,
+          "amount": 61
+        },
+        {
+          "price": 8202,
+          "amount": 2
+        },
+        {
+          "price": 8201,
+          "amount": 265
+        },
+        {
+          "price": 8199,
+          "amount": 10
+        }
+      ],
+      "buyLadderStructure": {
+        "source": "Manual live ladder",
+        "summary": "7 visible buy levels, 355 total visible quantity",
+        "visibleQuantity": 355,
+        "topPrice": 8206,
+        "topAmount": 5,
+        "queueAhead": 5,
+        "whaleWalls": 1,
+        "recommendation": "You are matching the visible top buy. Good balance if you are patient."
+      },
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0,
+      "plannedBuyPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-15T14:34:16.777Z",
+      "mode": "buy",
+      "id": 3081,
+      "name": "stone skin amulet",
+      "quantity": 100,
+      "itemInfo": {
+        "id": 3081,
+        "category": "Amulets",
+        "tier": -1,
+        "wiki_name": "Stone Skin Amulet"
+      },
+      "bestNpcBuy": {
+        "name": "Haroun",
+        "location": "Ashta'daramai",
+        "price": 500
+      },
+      "currentSellOffer": 9443,
+      "currentBuyOffer": 8207,
+      "daySold": 36,
+      "monthSold": 676,
+      "dayAverageSell": 10363,
+      "monthAverageSell": 9245,
+      "marketBoardAvailable": true,
+      "manualBuyLadderProvided": false,
+      "liveSellOffer": 9443,
+      "liveBuyOffer": 8215,
+      "liveBuyRangeLow": 8107,
+      "liveBuyQueueAhead": 860,
+      "liveSellQueueAhead": 69,
+      "instantSellQuantity": 100,
+      "instantSellTotal": 820602,
+      "instantSellAveragePrice": 8206.02,
+      "instantSellFullyCovered": true,
+      "apiDataAvailable": true,
+      "liveBuyAvailable": 2,
+      "liveBuyLadder": [
+        {
+          "price": 8207,
+          "amount": 2
+        },
+        {
+          "price": 8206,
+          "amount": 101
+        },
+        {
+          "price": 8205,
+          "amount": 97
+        },
+        {
+          "price": 8203,
+          "amount": 6
+        },
+        {
+          "price": 8201,
+          "amount": 1
+        },
+        {
+          "price": 8200,
+          "amount": 9
+        },
+        {
+          "price": 8136,
+          "amount": 101
+        },
+        {
+          "price": 8101,
+          "amount": 375
+        }
+      ],
+      "buyLadderStructure": {
+        "source": "Manual live ladder",
+        "summary": "8 visible buy levels, 692 total visible quantity",
+        "visibleQuantity": 692,
+        "topPrice": 8207,
+        "topAmount": 2,
+        "queueAhead": 317,
+        "whaleWalls": 4,
+        "recommendation": "Balanced market structure."
+      },
+      "plannedBuyPrice": 0,
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0
+    },
+    {
+      "liveBuyRangeLow": 8107,
+      "checkedAt": "2026-05-15T13:57:57.792Z",
+      "mode": "buy",
+      "id": 3081,
+      "name": "stone skin amulet",
+      "quantity": 100,
+      "itemInfo": {
+        "id": 3081,
+        "category": "Amulets",
+        "tier": -1,
+        "wiki_name": "Stone Skin Amulet"
+      },
+      "bestNpcBuy": {
+        "name": "Haroun",
+        "location": "Ashta'daramai",
+        "price": 500
+      },
+      "currentSellOffer": 9443,
+      "currentBuyOffer": 8207,
+      "daySold": 36,
+      "monthSold": 676,
+      "dayAverageSell": 10363,
+      "monthAverageSell": 9245,
+      "marketBoardAvailable": true,
+      "manualBuyLadderProvided": false,
+      "liveSellOffer": 9443,
+      "liveBuyOffer": 8215,
+      "liveBuyQueueAhead": 860,
+      "liveSellQueueAhead": 69,
+      "instantSellQuantity": 100,
+      "instantSellTotal": 820602,
+      "instantSellAveragePrice": 8206.02,
+      "instantSellFullyCovered": true,
+      "apiDataAvailable": true,
+      "liveBuyAvailable": 2,
+      "liveBuyLadder": [
+        {
+          "price": 8207,
+          "amount": 2
+        },
+        {
+          "price": 8206,
+          "amount": 101
+        },
+        {
+          "price": 8205,
+          "amount": 97
+        },
+        {
+          "price": 8203,
+          "amount": 6
+        },
+        {
+          "price": 8201,
+          "amount": 1
+        },
+        {
+          "price": 8200,
+          "amount": 9
+        },
+        {
+          "price": 8136,
+          "amount": 101
+        },
+        {
+          "price": 8101,
+          "amount": 375
+        }
+      ],
+      "buyLadderStructure": {
+        "source": "Manual live ladder",
+        "summary": "8 visible buy levels, 692 total visible quantity",
+        "visibleQuantity": 692,
+        "topPrice": 8207,
+        "topAmount": 2,
+        "queueAhead": 0,
+        "whaleWalls": 4,
+        "recommendation": "Balanced market structure."
+      },
+      "plannedBuyPrice": 0,
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0
+    },
+    {
+      "liveBuyRangeLow": 8107,
+      "checkedAt": "2026-05-15T13:56:35.330Z",
+      "mode": "buy",
+      "id": 3081,
+      "name": "stone skin amulet",
+      "quantity": 100,
+      "itemInfo": {
+        "id": 3081,
+        "category": "Amulets",
+        "tier": -1,
+        "wiki_name": "Stone Skin Amulet"
+      },
+      "bestNpcBuy": {
+        "name": "Haroun",
+        "location": "Ashta'daramai",
+        "price": 500
+      },
+      "currentSellOffer": 9443,
+      "currentBuyOffer": 8207,
+      "daySold": 36,
+      "monthSold": 676,
+      "dayAverageSell": 10363,
+      "monthAverageSell": 9245,
+      "marketBoardAvailable": true,
+      "manualBuyLadderProvided": false,
+      "liveSellOffer": 9443,
+      "liveBuyOffer": 8215,
+      "liveBuyQueueAhead": 860,
+      "liveSellQueueAhead": 69,
+      "instantSellQuantity": 100,
+      "instantSellTotal": 820602,
+      "instantSellAveragePrice": 8206.02,
+      "instantSellFullyCovered": true,
+      "apiDataAvailable": true,
+      "liveBuyAvailable": 2,
+      "liveBuyLadder": [
+        {
+          "price": 8207,
+          "amount": 2
+        },
+        {
+          "price": 8206,
+          "amount": 101
+        },
+        {
+          "price": 8205,
+          "amount": 97
+        },
+        {
+          "price": 8203,
+          "amount": 6
+        },
+        {
+          "price": 8201,
+          "amount": 1
+        },
+        {
+          "price": 8200,
+          "amount": 9
+        },
+        {
+          "price": 8136,
+          "amount": 101
+        },
+        {
+          "price": 8101,
+          "amount": 375
+        }
+      ],
+      "buyLadderStructure": {
+        "source": "Manual live ladder",
+        "summary": "8 visible buy levels, 692 total visible quantity",
+        "visibleQuantity": 692,
+        "topPrice": 8207,
+        "topAmount": 2,
+        "queueAhead": 0,
+        "whaleWalls": 4,
+        "recommendation": "Balanced market structure."
+      },
+      "plannedBuyPrice": 0,
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-15T13:26:04.049Z",
+      "mode": "buy",
+      "id": 3081,
+      "name": "stone skin amulet",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 3081,
+        "category": "Amulets",
+        "tier": -1,
+        "wiki_name": "Stone Skin Amulet"
+      },
+      "bestNpcBuy": {
+        "name": "Haroun",
+        "location": "Ashta'daramai",
+        "price": 500
+      },
+      "currentSellOffer": 9443,
+      "currentBuyOffer": 8207,
+      "daySold": 36,
+      "monthSold": 676,
+      "dayAverageSell": 10363,
+      "monthAverageSell": 9245,
+      "marketBoardAvailable": true,
+      "manualBuyLadderProvided": true,
+      "liveSellOffer": 8107,
+      "liveBuyOffer": 8215,
+      "liveBuyQueueAhead": 2,
+      "liveSellQueueAhead": 0,
+      "instantSellQuantity": 10,
+      "instantSellTotal": 82062,
+      "instantSellAveragePrice": 8206.2,
+      "instantSellFullyCovered": true,
+      "apiDataAvailable": true,
+      "liveBuyAvailable": 2,
+      "liveBuyLadder": [
+        {
+          "price": 8215,
+          "amount": 2
+        },
+        {
+          "price": 8214,
+          "amount": 100
+        },
+        {
+          "price": 8213,
+          "amount": 9
+        },
+        {
+          "price": 8212,
+          "amount": 8
+        },
+        {
+          "price": 8209,
+          "amount": 10
+        }
+      ],
+      "buyLadderStructure": {
+        "source": "Manual live ladder",
+        "summary": "5 visible buy levels, 129 total visible quantity",
+        "visibleQuantity": 129,
+        "topPrice": 8215,
+        "topAmount": 2,
+        "queueAhead": 2,
+        "whaleWalls": 1,
+        "recommendation": "You are matching the visible top buy. Good balance if you are patient."
+      },
+      "plannedBuyPrice": 8215,
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-15T13:23:17.601Z",
+      "mode": "sell",
+      "id": 3081,
+      "name": "stone skin amulet",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 3081,
+        "category": "Amulets",
+        "tier": -1,
+        "wiki_name": "Stone Skin Amulet"
+      },
+      "bestNpcBuy": {
+        "name": "Haroun",
+        "location": "Ashta'daramai",
+        "price": 500
+      },
+      "currentSellOffer": 9443,
+      "currentBuyOffer": 8207,
+      "daySold": 36,
+      "monthSold": 676,
+      "dayAverageSell": 10363,
+      "monthAverageSell": 9245,
+      "marketBoardAvailable": true,
+      "manualBuyLadderProvided": false,
+      "liveSellOffer": 9443,
+      "liveBuyOffer": 8207,
+      "liveBuyQueueAhead": 2,
+      "liveSellQueueAhead": 69,
+      "instantSellQuantity": 10,
+      "instantSellTotal": 82062,
+      "instantSellAveragePrice": 8206.2,
+      "instantSellFullyCovered": true,
+      "apiDataAvailable": true,
+      "liveBuyAvailable": 2,
+      "liveBuyLadder": [
+        {
+          "price": 8207,
+          "amount": 2
+        },
+        {
+          "price": 8206,
+          "amount": 101
+        },
+        {
+          "price": 8205,
+          "amount": 97
+        },
+        {
+          "price": 8203,
+          "amount": 6
+        },
+        {
+          "price": 8201,
+          "amount": 1
+        },
+        {
+          "price": 8200,
+          "amount": 9
+        },
+        {
+          "price": 8136,
+          "amount": 101
+        },
+        {
+          "price": 8101,
+          "amount": 375
+        }
+      ],
+      "buyLadderStructure": {
+        "source": "Manual live ladder",
+        "summary": "8 visible buy levels, 692 total visible quantity",
+        "visibleQuantity": 692,
+        "topPrice": 8207,
+        "topAmount": 2,
+        "queueAhead": 0,
+        "whaleWalls": 4,
+        "recommendation": "Balanced market structure."
+      },
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0,
+      "plannedBuyPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-15T13:22:38.109Z",
+      "mode": "sell",
+      "id": 2,
+      "name": "2",
+      "quantity": 1,
+      "itemInfo": null,
+      "bestNpcBuy": null,
+      "currentSellOffer": 0,
+      "currentBuyOffer": 0,
+      "daySold": 0,
+      "monthSold": 0,
+      "dayAverageSell": 0,
+      "monthAverageSell": 0,
+      "marketBoardAvailable": true,
+      "manualBuyLadderProvided": false,
+      "liveSellOffer": 0,
+      "liveBuyOffer": 0,
+      "liveBuyQueueAhead": 0,
+      "liveSellQueueAhead": 0,
+      "instantSellQuantity": 0,
+      "instantSellTotal": 0,
+      "instantSellAveragePrice": 0,
+      "instantSellFullyCovered": false,
+      "apiDataAvailable": false,
+      "liveBuyAvailable": 0,
+      "liveBuyLadder": [],
+      "buyLadderStructure": {
+        "source": "API/board fallback",
+        "summary": "No manual buy ladder was provided.",
+        "visibleQuantity": 0,
+        "topPrice": 0,
+        "topAmount": 0,
+        "queueAhead": 0,
+        "whaleWalls": 0,
+        "recommendation": "Use the live market screen if the API looks delayed."
+      },
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0,
+      "plannedBuyPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-14T23:52:11.295Z",
+      "mode": "buy",
+      "id": 22516,
+      "name": "silver token",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 22516,
+        "category": "Valuables",
+        "tier": -1,
+        "wiki_name": "Silver Token"
+      },
+      "bestNpcBuy": null,
+      "currentSellOffer": 49995,
+      "currentBuyOffer": 46023,
+      "daySold": 68,
+      "monthSold": 1859,
+      "dayAverageSell": 50357,
+      "monthAverageSell": 49413,
+      "marketBoardAvailable": true,
+      "liveSellOffer": 49995,
+      "liveBuyOffer": 50011,
+      "liveBuyQueueAhead": 0,
+      "liveSellQueueAhead": 44,
+      "instantSellQuantity": 10,
+      "instantSellTotal": 460230,
+      "instantSellAveragePrice": 46023,
+      "instantSellFullyCovered": true,
+      "apiDataAvailable": true,
+      "liveBuyAvailable": 69,
+      "liveBuyLadder": [
+        {
+          "price": 50011,
+          "amount": 69
+        },
+        {
+          "price": 50010,
+          "amount": 33
+        },
+        {
+          "price": 50008,
+          "amount": 4
+        },
+        {
+          "price": 50005,
+          "amount": 1
+        },
+        {
+          "price": 50000,
+          "amount": 20
+        }
+      ],
+      "plannedBuyPrice": 50012,
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-14T23:51:24.672Z",
+      "mode": "buy",
+      "id": 22516,
+      "name": "silver token",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 22516,
+        "category": "Valuables",
+        "tier": -1,
+        "wiki_name": "Silver Token"
+      },
+      "bestNpcBuy": null,
+      "currentSellOffer": 49995,
+      "currentBuyOffer": 46023,
+      "daySold": 68,
+      "monthSold": 1859,
+      "dayAverageSell": 50357,
+      "monthAverageSell": 49413,
+      "marketBoardAvailable": true,
+      "liveSellOffer": 49995,
+      "liveBuyOffer": 46023,
+      "liveBuyQueueAhead": 0,
+      "liveSellQueueAhead": 44,
+      "instantSellQuantity": 10,
+      "instantSellTotal": 460230,
+      "instantSellAveragePrice": 46023,
+      "instantSellFullyCovered": true,
+      "apiDataAvailable": true,
+      "liveBuyAvailable": 10,
+      "liveBuyLadder": [
+        {
+          "price": 46023,
+          "amount": 10
+        },
+        {
+          "price": 46022,
+          "amount": 101
+        },
+        {
+          "price": 46021,
+          "amount": 1
+        },
+        {
+          "price": 46019,
+          "amount": 4
+        },
+        {
+          "price": 46018,
+          "amount": 69
+        },
+        {
+          "price": 46017,
+          "amount": 3
+        },
+        {
+          "price": 46015,
+          "amount": 2
+        },
+        {
+          "price": 46012,
+          "amount": 2
+        },
+        {
+          "price": 46010,
+          "amount": 1
+        },
+        {
+          "price": 46008,
+          "amount": 2
+        },
+        {
+          "price": 46006,
+          "amount": 2
+        },
+        {
+          "price": 46003,
+          "amount": 1
+        },
+        {
+          "price": 46002,
+          "amount": 41
+        },
+        {
+          "price": 46001,
+          "amount": 2
+        },
+        {
+          "price": 45879,
+          "amount": 1
+        },
+        {
+          "price": 45878,
+          "amount": 34
+        },
+        {
+          "price": 45876,
+          "amount": 6
+        },
+        {
+          "price": 45701,
+          "amount": 2
+        },
+        {
+          "price": 45608,
+          "amount": 4
+        },
+        {
+          "price": 43123,
+          "amount": 40
+        },
+        {
+          "price": 42564,
+          "amount": 10
+        },
+        {
+          "price": 42500,
+          "amount": 100
+        },
+        {
+          "price": 41100,
+          "amount": 7
+        }
+      ],
+      "plannedBuyPrice": 50011,
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-14T23:08:45.570Z",
+      "mode": "buy",
+      "id": 22516,
+      "name": "silver token",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 22516,
+        "category": "Valuables",
+        "tier": -1,
+        "wiki_name": "Silver Token"
+      },
+      "bestNpcBuy": null,
+      "currentSellOffer": 49995,
+      "currentBuyOffer": 46023,
+      "daySold": 68,
+      "monthSold": 1859,
+      "dayAverageSell": 50357,
+      "monthAverageSell": 49413,
+      "marketBoardAvailable": true,
+      "liveSellOffer": 49995,
+      "liveBuyOffer": 46023,
+      "liveBuyQueueAhead": 0,
+      "liveSellQueueAhead": 44,
+      "liveBuyAvailable": 10,
+      "instantSellQuantity": 10,
+      "instantSellTotal": 460230,
+      "instantSellAveragePrice": 46023,
+      "instantSellFullyCovered": true,
+      "apiDataAvailable": true,
+      "liveBuyLadder": [
+        {
+          "name": "Anonymous",
+          "amount": 10,
+          "price": 46023,
+          "time": 1781090438
+        },
+        {
+          "name": "Anonymous",
+          "amount": 101,
+          "price": 46022,
+          "time": 1781087934
+        },
+        {
+          "name": "Anonymous",
+          "amount": 1,
+          "price": 46021,
+          "time": 1781044317
+        },
+        {
+          "name": "Anonymous",
+          "amount": 4,
+          "price": 46019,
+          "time": 1780977418
+        },
+        {
+          "name": "Anonymous",
+          "amount": 69,
+          "price": 46018,
+          "time": 1780965527
+        },
+        {
+          "name": "Anonymous",
+          "amount": 3,
+          "price": 46017,
+          "time": 1780959378
+        },
+        {
+          "name": "Anonymous",
+          "amount": 2,
+          "price": 46015,
+          "time": 1780947030
+        },
+        {
+          "name": "Anonymous",
+          "amount": 2,
+          "price": 46012,
+          "time": 1780922393
+        },
+        {
+          "name": "Anonymous",
+          "amount": 1,
+          "price": 46010,
+          "time": 1780882867
+        },
+        {
+          "name": "Anonymous",
+          "amount": 2,
+          "price": 46008,
+          "time": 1780876889
+        },
+        {
+          "name": "Anonymous",
+          "amount": 2,
+          "price": 46006,
+          "time": 1780858179
+        },
+        {
+          "name": "Anonymous",
+          "amount": 1,
+          "price": 46003,
+          "time": 1780821162
+        }
+      ],
+      "plannedBuyPrice": 50013,
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-14T19:19:37.279Z",
+      "mode": "buy",
+      "id": 9633,
+      "name": "bloody pincers",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 9633,
+        "category": "Creature Products",
+        "tier": -1,
+        "wiki_name": "Bloody Pincers"
+      },
+      "bestNpcBuy": {
+        "name": "Grizzly Adams",
+        "location": "Port Hope City",
+        "price": 100
+      },
+      "currentSellOffer": 11999,
+      "currentBuyOffer": 10015,
+      "daySold": 52,
+      "monthSold": 1206,
+      "dayAverageSell": 13616,
+      "monthAverageSell": 13291,
+      "marketBoardAvailable": true,
+      "liveSellOffer": 11999,
+      "liveBuyOffer": 10015,
+      "liveBuyQueueAhead": 0,
+      "liveSellQueueAhead": 2,
+      "liveBuyAvailable": 2,
+      "instantSellQuantity": 10,
+      "instantSellTotal": 100142,
+      "instantSellAveragePrice": 10014.2,
+      "instantSellFullyCovered": true,
+      "apiDataAvailable": true,
+      "liveBuyLadder": [
+        {
+          "name": "Anonymous",
+          "amount": 2,
+          "price": 10015,
+          "time": 1781092736
+        },
+        {
+          "name": "Anonymous",
+          "amount": 36,
+          "price": 10014,
+          "time": 1781055773
+        },
+        {
+          "name": "Anonymous",
+          "amount": 2,
+          "price": 10009,
+          "time": 1781046124
+        },
+        {
+          "name": "Anonymous",
+          "amount": 10,
+          "price": 10008,
+          "time": 1781036384
+        },
+        {
+          "name": "Anonymous",
+          "amount": 5,
+          "price": 10007,
+          "time": 1781034150
+        },
+        {
+          "name": "Anonymous",
+          "amount": 10,
+          "price": 10005,
+          "time": 1781022063
+        },
+        {
+          "name": "Anonymous",
+          "amount": 2,
+          "price": 10001,
+          "time": 1780998550
+        },
+        {
+          "name": "Anonymous",
+          "amount": 200,
+          "price": 10000,
+          "time": 1780996575
+        },
+        {
+          "name": "Anonymous",
+          "amount": 9,
+          "price": 9886,
+          "time": 1780992388
+        },
+        {
+          "name": "Anonymous",
+          "amount": 9,
+          "price": 9884,
+          "time": 1780977418
+        },
+        {
+          "name": "Anonymous",
+          "amount": 15,
+          "price": 9883,
+          "time": 1780977124
+        },
+        {
+          "name": "Anonymous",
+          "amount": 10,
+          "price": 9882,
+          "time": 1780976330
+        }
+      ],
+      "plannedBuyPrice": 10310,
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-14T19:16:04.424Z",
+      "mode": "buy",
+      "id": 9633,
+      "name": "bloody pincers",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 9633,
+        "category": "Creature Products",
+        "tier": -1,
+        "wiki_name": "Bloody Pincers"
+      },
+      "bestNpcBuy": {
+        "name": "Grizzly Adams",
+        "location": "Port Hope City",
+        "price": 100
+      },
+      "currentSellOffer": 11999,
+      "currentBuyOffer": 10015,
+      "daySold": 52,
+      "monthSold": 1206,
+      "dayAverageSell": 13616,
+      "monthAverageSell": 13291,
+      "marketBoardAvailable": true,
+      "liveSellOffer": 11999,
+      "liveBuyOffer": 10015,
+      "liveBuyQueueAhead": 0,
+      "liveSellQueueAhead": 2,
+      "liveBuyAvailable": 2,
+      "instantSellQuantity": 10,
+      "instantSellTotal": 100142,
+      "instantSellAveragePrice": 10014.2,
+      "instantSellFullyCovered": true,
+      "apiDataAvailable": true,
+      "liveBuyLadder": [
+        {
+          "name": "Anonymous",
+          "amount": 2,
+          "price": 10015,
+          "time": 1781092736
+        },
+        {
+          "name": "Anonymous",
+          "amount": 36,
+          "price": 10014,
+          "time": 1781055773
+        },
+        {
+          "name": "Anonymous",
+          "amount": 2,
+          "price": 10009,
+          "time": 1781046124
+        },
+        {
+          "name": "Anonymous",
+          "amount": 10,
+          "price": 10008,
+          "time": 1781036384
+        },
+        {
+          "name": "Anonymous",
+          "amount": 5,
+          "price": 10007,
+          "time": 1781034150
+        },
+        {
+          "name": "Anonymous",
+          "amount": 10,
+          "price": 10005,
+          "time": 1781022063
+        },
+        {
+          "name": "Anonymous",
+          "amount": 2,
+          "price": 10001,
+          "time": 1780998550
+        },
+        {
+          "name": "Anonymous",
+          "amount": 200,
+          "price": 10000,
+          "time": 1780996575
+        },
+        {
+          "name": "Anonymous",
+          "amount": 9,
+          "price": 9886,
+          "time": 1780992388
+        },
+        {
+          "name": "Anonymous",
+          "amount": 9,
+          "price": 9884,
+          "time": 1780977418
+        },
+        {
+          "name": "Anonymous",
+          "amount": 15,
+          "price": 9883,
+          "time": 1780977124
+        },
+        {
+          "name": "Anonymous",
+          "amount": 10,
+          "price": 9882,
+          "time": 1780976330
+        }
+      ],
+      "plannedBuyPrice": 13550,
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-14T10:20:57.843Z",
+      "mode": "sell",
+      "id": 3081,
+      "name": "stone skin amulet",
+      "quantity": 14,
+      "itemInfo": {
+        "id": 3081,
+        "category": "Amulets",
+        "tier": -1,
+        "wiki_name": "Stone Skin Amulet"
+      },
+      "bestNpcBuy": {
+        "name": "Haroun",
+        "location": "Ashta'daramai",
+        "price": 500
+      },
+      "currentSellOffer": 9443,
+      "currentBuyOffer": 8207,
+      "daySold": 36,
+      "monthSold": 676,
+      "dayAverageSell": 10363,
+      "monthAverageSell": 9245,
+      "marketBoardAvailable": true,
+      "liveSellOffer": 9443,
+      "liveBuyOffer": 8207,
+      "liveBuyQueueAhead": 2,
+      "liveSellQueueAhead": 69,
+      "liveBuyAvailable": 2,
+      "instantSellQuantity": 14,
+      "instantSellTotal": 114886,
+      "instantSellAveragePrice": 8206.142857142857,
+      "instantSellFullyCovered": true,
+      "apiDataAvailable": true,
+      "liveBuyLadder": [
+        {
+          "name": "Anonymous",
+          "amount": 2,
+          "price": 8207,
+          "time": 1781090178
+        },
+        {
+          "name": "Anonymous",
+          "amount": 101,
+          "price": 8206,
+          "time": 1781088012
+        },
+        {
+          "name": "Anonymous",
+          "amount": 97,
+          "price": 8205,
+          "time": 1780965583
+        },
+        {
+          "name": "Anonymous",
+          "amount": 6,
+          "price": 8203,
+          "time": 1780950385
+        },
+        {
+          "name": "Anonymous",
+          "amount": 1,
+          "price": 8201,
+          "time": 1780937204
+        },
+        {
+          "name": "Anonymous",
+          "amount": 9,
+          "price": 8200,
+          "time": 1780928790
+        },
+        {
+          "name": "Anonymous",
+          "amount": 101,
+          "price": 8136,
+          "time": 1780928332
+        },
+        {
+          "name": "Anonymous",
+          "amount": 375,
+          "price": 8101,
+          "time": 1780607805
+        }
+      ],
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0,
+      "plannedBuyPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-14T10:13:04.542Z",
+      "mode": "buy",
+      "id": 9633,
+      "name": "bloody pincers",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 9633,
+        "category": "Creature Products",
+        "tier": -1,
+        "wiki_name": "Bloody Pincers"
+      },
+      "bestNpcBuy": {
+        "name": "Grizzly Adams",
+        "location": "Port Hope City",
+        "price": 100
+      },
+      "currentSellOffer": 11999,
+      "currentBuyOffer": 10015,
+      "daySold": 52,
+      "monthSold": 1206,
+      "dayAverageSell": 13616,
+      "monthAverageSell": 13291,
+      "marketBoardAvailable": true,
+      "liveSellOffer": 11999,
+      "liveBuyOffer": 10015,
+      "liveBuyQueueAhead": 0,
+      "liveSellQueueAhead": 2,
+      "liveBuyAvailable": 2,
+      "instantSellQuantity": 10,
+      "instantSellTotal": 100142,
+      "instantSellAveragePrice": 10014.2,
+      "instantSellFullyCovered": true,
+      "apiDataAvailable": true,
+      "liveBuyLadder": [
+        {
+          "name": "Anonymous",
+          "amount": 2,
+          "price": 10015,
+          "time": 1781092736
+        },
+        {
+          "name": "Anonymous",
+          "amount": 36,
+          "price": 10014,
+          "time": 1781055773
+        },
+        {
+          "name": "Anonymous",
+          "amount": 2,
+          "price": 10009,
+          "time": 1781046124
+        },
+        {
+          "name": "Anonymous",
+          "amount": 10,
+          "price": 10008,
+          "time": 1781036384
+        },
+        {
+          "name": "Anonymous",
+          "amount": 5,
+          "price": 10007,
+          "time": 1781034150
+        },
+        {
+          "name": "Anonymous",
+          "amount": 10,
+          "price": 10005,
+          "time": 1781022063
+        },
+        {
+          "name": "Anonymous",
+          "amount": 2,
+          "price": 10001,
+          "time": 1780998550
+        },
+        {
+          "name": "Anonymous",
+          "amount": 200,
+          "price": 10000,
+          "time": 1780996575
+        },
+        {
+          "name": "Anonymous",
+          "amount": 9,
+          "price": 9886,
+          "time": 1780992388
+        },
+        {
+          "name": "Anonymous",
+          "amount": 9,
+          "price": 9884,
+          "time": 1780977418
+        },
+        {
+          "name": "Anonymous",
+          "amount": 15,
+          "price": 9883,
+          "time": 1780977124
+        },
+        {
+          "name": "Anonymous",
+          "amount": 10,
+          "price": 9882,
+          "time": 1780976330
+        }
+      ],
+      "plannedBuyPrice": 10100,
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-14T10:12:58.143Z",
+      "mode": "buy",
+      "id": 9633,
+      "name": "bloody pincers",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 9633,
+        "category": "Creature Products",
+        "tier": -1,
+        "wiki_name": "Bloody Pincers"
+      },
+      "bestNpcBuy": {
+        "name": "Grizzly Adams",
+        "location": "Port Hope City",
+        "price": 100
+      },
+      "currentSellOffer": 11999,
+      "currentBuyOffer": 10015,
+      "daySold": 52,
+      "monthSold": 1206,
+      "dayAverageSell": 13616,
+      "monthAverageSell": 13291,
+      "marketBoardAvailable": true,
+      "liveSellOffer": 11999,
+      "liveBuyOffer": 10015,
+      "liveBuyQueueAhead": 0,
+      "liveSellQueueAhead": 2,
+      "liveBuyAvailable": 2,
+      "instantSellQuantity": 10,
+      "instantSellTotal": 100142,
+      "instantSellAveragePrice": 10014.2,
+      "instantSellFullyCovered": true,
+      "apiDataAvailable": true,
+      "liveBuyLadder": [
+        {
+          "name": "Anonymous",
+          "amount": 2,
+          "price": 10015,
+          "time": 1781092736
+        },
+        {
+          "name": "Anonymous",
+          "amount": 36,
+          "price": 10014,
+          "time": 1781055773
+        },
+        {
+          "name": "Anonymous",
+          "amount": 2,
+          "price": 10009,
+          "time": 1781046124
+        },
+        {
+          "name": "Anonymous",
+          "amount": 10,
+          "price": 10008,
+          "time": 1781036384
+        },
+        {
+          "name": "Anonymous",
+          "amount": 5,
+          "price": 10007,
+          "time": 1781034150
+        },
+        {
+          "name": "Anonymous",
+          "amount": 10,
+          "price": 10005,
+          "time": 1781022063
+        },
+        {
+          "name": "Anonymous",
+          "amount": 2,
+          "price": 10001,
+          "time": 1780998550
+        },
+        {
+          "name": "Anonymous",
+          "amount": 200,
+          "price": 10000,
+          "time": 1780996575
+        },
+        {
+          "name": "Anonymous",
+          "amount": 9,
+          "price": 9886,
+          "time": 1780992388
+        },
+        {
+          "name": "Anonymous",
+          "amount": 9,
+          "price": 9884,
+          "time": 1780977418
+        },
+        {
+          "name": "Anonymous",
+          "amount": 15,
+          "price": 9883,
+          "time": 1780977124
+        },
+        {
+          "name": "Anonymous",
+          "amount": 10,
+          "price": 9882,
+          "time": 1780976330
+        }
+      ],
+      "plannedBuyPrice": 10100,
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-14T10:12:41.807Z",
+      "mode": "sell",
+      "id": 3081,
+      "name": "stone skin amulet",
+      "quantity": 14,
+      "itemInfo": {
+        "id": 3081,
+        "category": "Amulets",
+        "tier": -1,
+        "wiki_name": "Stone Skin Amulet"
+      },
+      "bestNpcBuy": {
+        "name": "Haroun",
+        "location": "Ashta'daramai",
+        "price": 500
+      },
+      "currentSellOffer": 9443,
+      "currentBuyOffer": 8207,
+      "daySold": 36,
+      "monthSold": 676,
+      "dayAverageSell": 10363,
+      "monthAverageSell": 9245,
+      "marketBoardAvailable": true,
+      "liveSellOffer": 9443,
+      "liveBuyOffer": 8207,
+      "liveBuyQueueAhead": 2,
+      "liveSellQueueAhead": 69,
+      "liveBuyAvailable": 2,
+      "instantSellQuantity": 14,
+      "instantSellTotal": 114886,
+      "instantSellAveragePrice": 8206.142857142857,
+      "instantSellFullyCovered": true,
+      "apiDataAvailable": true,
+      "liveBuyLadder": [
+        {
+          "name": "Anonymous",
+          "amount": 2,
+          "price": 8207,
+          "time": 1781090178
+        },
+        {
+          "name": "Anonymous",
+          "amount": 101,
+          "price": 8206,
+          "time": 1781088012
+        },
+        {
+          "name": "Anonymous",
+          "amount": 97,
+          "price": 8205,
+          "time": 1780965583
+        },
+        {
+          "name": "Anonymous",
+          "amount": 6,
+          "price": 8203,
+          "time": 1780950385
+        },
+        {
+          "name": "Anonymous",
+          "amount": 1,
+          "price": 8201,
+          "time": 1780937204
+        },
+        {
+          "name": "Anonymous",
+          "amount": 9,
+          "price": 8200,
+          "time": 1780928790
+        },
+        {
+          "name": "Anonymous",
+          "amount": 101,
+          "price": 8136,
+          "time": 1780928332
+        },
+        {
+          "name": "Anonymous",
+          "amount": 375,
+          "price": 8101,
+          "time": 1780607805
+        }
+      ],
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0,
+      "plannedBuyPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-14T00:28:22.393Z",
+      "mode": "buy",
+      "id": 22721,
+      "name": "gold token",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 22721,
+        "category": "Valuables",
+        "tier": -1,
+        "wiki_name": "Gold Token"
+      },
+      "bestNpcBuy": null,
+      "currentSellOffer": 46899,
+      "currentBuyOffer": 43515,
+      "daySold": 29,
+      "monthSold": 1074,
+      "dayAverageSell": 46851,
+      "monthAverageSell": 47753,
+      "liveSellOffer": 123,
+      "liveBuyOffer": 0,
+      "liveBuyQueueAhead": 0,
+      "liveSellQueueAhead": 0,
+      "liveBuyAvailable": 0,
+      "apiDataAvailable": true,
+      "liveBuyLadder": [],
+      "plannedBuyPrice": 240,
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-14T00:20:15.270Z",
+      "mode": "buy",
+      "id": 22721,
+      "name": "gold token",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 22721,
+        "category": "Valuables",
+        "tier": -1,
+        "wiki_name": "Gold Token"
+      },
+      "bestNpcBuy": null,
+      "currentSellOffer": 46899,
+      "currentBuyOffer": 43515,
+      "daySold": 29,
+      "monthSold": 1074,
+      "dayAverageSell": 46851,
+      "monthAverageSell": 47753,
+      "liveSellOffer": 43620,
+      "liveBuyOffer": 0,
+      "liveBuyQueueAhead": 0,
+      "liveSellQueueAhead": 0,
+      "liveBuyAvailable": 0,
+      "apiDataAvailable": true,
+      "liveBuyLadder": [
+        {
+          "price": 43620,
+          "amount": 5
+        },
+        {
+          "price": 43615,
+          "amount": 51
+        },
+        {
+          "price": 43614,
+          "amount": 81
+        },
+        {
+          "price": 43612,
+          "amount": 91
+        },
+        {
+          "price": 43609,
+          "amount": 4
+        }
+      ],
+      "plannedBuyPrice": 43620,
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-14T00:01:07.449Z",
+      "mode": "buy",
+      "id": 22721,
+      "name": "gold token",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 22721,
+        "category": "Valuables",
+        "tier": -1,
+        "wiki_name": "Gold Token"
+      },
+      "bestNpcBuy": null,
+      "currentSellOffer": 46899,
+      "currentBuyOffer": 43515,
+      "daySold": 29,
+      "monthSold": 1074,
+      "dayAverageSell": 46851,
+      "monthAverageSell": 47753,
+      "liveSellOffer": 43268,
+      "liveBuyOffer": 43620,
+      "liveBuyQueueAhead": 0,
+      "liveSellQueueAhead": 0,
+      "liveBuyAvailable": 0,
+      "apiDataAvailable": true,
+      "plannedBuyPrice": 43621,
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-13T23:03:04.110Z",
+      "mode": "buy",
+      "id": 22721,
+      "name": "gold token",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 22721,
+        "category": "Valuables",
+        "tier": -1,
+        "wiki_name": "Gold Token"
+      },
+      "bestNpcBuy": null,
+      "currentSellOffer": 46899,
+      "currentBuyOffer": 43515,
+      "daySold": 29,
+      "monthSold": 1074,
+      "dayAverageSell": 46851,
+      "monthAverageSell": 47753,
+      "liveSellOffer": 0,
+      "liveBuyOffer": 0,
+      "liveBuyQueueAhead": 0,
+      "liveSellQueueAhead": 0,
+      "liveBuyAvailable": 0,
+      "apiDataAvailable": true,
+      "plannedBuyPrice": 43621,
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-13T13:43:52.541Z",
+      "mode": "sell",
+      "id": 3081,
+      "name": "stone skin amulet",
+      "quantity": 14,
+      "itemInfo": {
+        "id": 3081,
+        "category": "Amulets",
+        "tier": -1,
+        "wiki_name": "Stone Skin Amulet"
+      },
+      "bestNpcBuy": {
+        "name": "Haroun",
+        "location": "Ashta'daramai",
+        "price": 500
+      },
+      "currentSellOffer": 9443,
+      "currentBuyOffer": 8207,
+      "daySold": 36,
+      "monthSold": 676,
+      "dayAverageSell": 10363,
+      "monthAverageSell": 9245,
+      "liveSellOffer": 9233,
+      "liveBuyOffer": 8222,
+      "liveBuyQueueAhead": 0,
+      "liveSellQueueAhead": 220,
+      "liveBuyAvailable": 9,
+      "apiDataAvailable": true,
+      "yourSellPrice": 9233,
+      "minSellPrice": 0,
+      "entryPrice": 0,
+      "plannedBuyPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-13T13:00:49.840Z",
+      "mode": "sell",
+      "id": 3324,
+      "name": "skull staff",
+      "quantity": 13,
+      "itemInfo": {
+        "id": 3324,
+        "category": "Clubs",
+        "tier": 2,
+        "wiki_name": "Skull Staff"
+      },
+      "bestNpcBuy": {
+        "name": "Alesar",
+        "location": "Mal'ouquah",
+        "price": 6000
+      },
+      "currentSellOffer": 5989,
+      "currentBuyOffer": 5706,
+      "daySold": 0,
+      "monthSold": 94,
+      "dayAverageSell": 0,
+      "monthAverageSell": 5823,
+      "liveSellOffer": 5989,
+      "liveBuyOffer": 5705,
+      "liveBuyQueueAhead": 0,
+      "apiDataAvailable": true,
+      "yourSellPrice": 5988,
+      "minSellPrice": 5988,
+      "entryPrice": 0,
+      "plannedBuyPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-13T12:49:34.094Z",
+      "mode": "sell",
+      "id": 3324,
+      "name": "skull staff",
+      "quantity": 13,
+      "itemInfo": {
+        "id": 3324,
+        "category": "Clubs",
+        "tier": 2,
+        "wiki_name": "Skull Staff"
+      },
+      "bestNpcBuy": {
+        "name": "Alesar",
+        "location": "Mal'ouquah",
+        "price": 6000
+      },
+      "currentSellOffer": 5989,
+      "currentBuyOffer": 5706,
+      "daySold": 0,
+      "monthSold": 94,
+      "dayAverageSell": 0,
+      "monthAverageSell": 5823,
+      "liveSellOffer": 5989,
+      "liveBuyOffer": 6000,
+      "liveBuyQueueAhead": 0,
+      "apiDataAvailable": true,
+      "yourSellPrice": 5988,
+      "minSellPrice": 5989,
+      "entryPrice": 0,
+      "plannedBuyPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-13T12:47:24.676Z",
+      "mode": "sell",
+      "id": 3324,
+      "name": "skull staff",
+      "quantity": 13,
+      "itemInfo": {
+        "id": 3324,
+        "category": "Clubs",
+        "tier": 2,
+        "wiki_name": "Skull Staff"
+      },
+      "bestNpcBuy": {
+        "name": "Alesar",
+        "location": "Mal'ouquah",
+        "price": 6000
+      },
+      "currentSellOffer": 5989,
+      "currentBuyOffer": 5706,
+      "daySold": 0,
+      "monthSold": 94,
+      "dayAverageSell": 0,
+      "monthAverageSell": 5823,
+      "liveSellOffer": 5989,
+      "liveBuyOffer": 5980,
+      "liveBuyQueueAhead": 0,
+      "apiDataAvailable": true,
+      "yourSellPrice": 5705,
+      "minSellPrice": 0,
+      "entryPrice": 0,
+      "plannedBuyPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-13T12:45:06.328Z",
+      "mode": "buy",
+      "id": 9633,
+      "name": "bloody pincers",
+      "quantity": 50,
+      "itemInfo": {
+        "id": 9633,
+        "category": "Creature Products",
+        "tier": -1,
+        "wiki_name": "Bloody Pincers"
+      },
+      "bestNpcBuy": {
+        "name": "Grizzly Adams",
+        "location": "Port Hope City",
+        "price": 100
+      },
+      "currentSellOffer": 11999,
+      "currentBuyOffer": 10015,
+      "daySold": 52,
+      "monthSold": 1206,
+      "dayAverageSell": 13616,
+      "monthAverageSell": 13291,
+      "liveSellOffer": 7025,
+      "liveBuyOffer": 10218,
+      "liveBuyQueueAhead": 0,
+      "apiDataAvailable": true,
+      "plannedBuyPrice": 10217,
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-13T08:23:29.006Z",
+      "mode": "buy",
+      "id": 9633,
+      "name": "bloody pincers",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 9633,
+        "category": "Creature Products",
+        "tier": -1,
+        "wiki_name": "Bloody Pincers"
+      },
+      "bestNpcBuy": {
+        "name": "Grizzly Adams",
+        "location": "Port Hope City",
+        "price": 100
+      },
+      "currentSellOffer": 11999,
+      "currentBuyOffer": 10015,
+      "daySold": 52,
+      "monthSold": 1206,
+      "dayAverageSell": 13616,
+      "monthAverageSell": 13291,
+      "liveSellOffer": 7025,
+      "liveBuyOffer": 10208,
+      "liveBuyQueueAhead": 200,
+      "apiDataAvailable": true,
+      "plannedBuyPrice": 10100,
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-13T08:22:46.599Z",
+      "mode": "buy",
+      "id": 9633,
+      "name": "bloody pincers",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 9633,
+        "category": "Creature Products",
+        "tier": -1,
+        "wiki_name": "Bloody Pincers"
+      },
+      "bestNpcBuy": {
+        "name": "Grizzly Adams",
+        "location": "Port Hope City",
+        "price": 100
+      },
+      "currentSellOffer": 11999,
+      "currentBuyOffer": 10015,
+      "daySold": 52,
+      "monthSold": 1206,
+      "dayAverageSell": 13616,
+      "monthAverageSell": 13291,
+      "liveSellOffer": 7025,
+      "liveBuyOffer": 10208,
+      "liveBuyQueueAhead": 200,
+      "apiDataAvailable": true,
+      "plannedBuyPrice": 10100,
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-13T08:21:56.677Z",
+      "mode": "buy",
+      "id": 9633,
+      "name": "bloody pincers",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 9633,
+        "category": "Creature Products",
+        "tier": -1,
+        "wiki_name": "Bloody Pincers"
+      },
+      "bestNpcBuy": {
+        "name": "Grizzly Adams",
+        "location": "Port Hope City",
+        "price": 100
+      },
+      "currentSellOffer": 11999,
+      "currentBuyOffer": 10015,
+      "daySold": 52,
+      "monthSold": 1206,
+      "dayAverageSell": 13616,
+      "monthAverageSell": 13291,
+      "liveSellOffer": 7025,
+      "liveBuyOffer": 10208,
+      "liveBuyQueueAhead": 200,
+      "apiDataAvailable": true,
+      "plannedBuyPrice": 10100,
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-13T08:19:51.935Z",
+      "mode": "buy",
+      "id": 9633,
+      "name": "bloody pincers",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 9633,
+        "category": "Creature Products",
+        "tier": -1,
+        "wiki_name": "Bloody Pincers"
+      },
+      "bestNpcBuy": {
+        "name": "Grizzly Adams",
+        "location": "Port Hope City",
+        "price": 100
+      },
+      "currentSellOffer": 11999,
+      "currentBuyOffer": 10015,
+      "daySold": 52,
+      "monthSold": 1206,
+      "dayAverageSell": 13616,
+      "monthAverageSell": 13291,
+      "liveSellOffer": 7025,
+      "liveBuyOffer": 10208,
+      "liveBuyQueueAhead": 200,
+      "apiDataAvailable": true,
+      "plannedBuyPrice": 10100,
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-13T08:16:45.181Z",
+      "mode": "buy",
+      "id": 9633,
+      "name": "bloody pincers",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 9633,
+        "category": "Creature Products",
+        "tier": -1,
+        "wiki_name": "Bloody Pincers"
+      },
+      "bestNpcBuy": {
+        "name": "Grizzly Adams",
+        "location": "Port Hope City",
+        "price": 100
+      },
+      "currentSellOffer": 11999,
+      "currentBuyOffer": 10015,
+      "daySold": 52,
+      "monthSold": 1206,
+      "dayAverageSell": 13616,
+      "monthAverageSell": 13291,
+      "liveSellOffer": 7025,
+      "liveBuyOffer": 10208,
+      "liveBuyQueueAhead": 200,
+      "apiDataAvailable": true,
+      "plannedBuyPrice": 10100,
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-13T08:14:23.482Z",
+      "mode": "buy",
+      "id": 9633,
+      "name": "bloody pincers",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 9633,
+        "category": "Creature Products",
+        "tier": -1,
+        "wiki_name": "Bloody Pincers"
+      },
+      "bestNpcBuy": {
+        "name": "Grizzly Adams",
+        "location": "Port Hope City",
+        "price": 100
+      },
+      "currentSellOffer": 11999,
+      "currentBuyOffer": 10015,
+      "daySold": 52,
+      "monthSold": 1206,
+      "dayAverageSell": 13616,
+      "monthAverageSell": 13291,
+      "liveSellOffer": 7025,
+      "liveBuyOffer": 10208,
+      "liveBuyQueueAhead": 200,
+      "apiDataAvailable": true,
+      "plannedBuyPrice": 10100,
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-13T08:12:45.823Z",
+      "mode": "buy",
+      "id": 9633,
+      "name": "bloody pincers",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 9633,
+        "category": "Creature Products",
+        "tier": -1,
+        "wiki_name": "Bloody Pincers"
+      },
+      "bestNpcBuy": {
+        "name": "Grizzly Adams",
+        "location": "Port Hope City",
+        "price": 100
+      },
+      "currentSellOffer": 11999,
+      "currentBuyOffer": 10015,
+      "daySold": 52,
+      "monthSold": 1206,
+      "dayAverageSell": 13616,
+      "monthAverageSell": 13291,
+      "liveSellOffer": 7025,
+      "liveBuyOffer": 10208,
+      "liveBuyQueueAhead": 200,
+      "apiDataAvailable": true,
+      "plannedBuyPrice": 10100,
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-13T08:04:46.057Z",
+      "mode": "buy",
+      "id": 9633,
+      "name": "bloody pincers",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 9633,
+        "category": "Creature Products",
+        "tier": -1,
+        "wiki_name": "Bloody Pincers"
+      },
+      "bestNpcBuy": {
+        "name": "Grizzly Adams",
+        "location": "Port Hope City",
+        "price": 100
+      },
+      "currentSellOffer": 11999,
+      "currentBuyOffer": 10015,
+      "daySold": 52,
+      "monthSold": 1206,
+      "dayAverageSell": 13616,
+      "monthAverageSell": 13291,
+      "liveSellOffer": 7025,
+      "liveBuyOffer": 10208,
+      "liveBuyQueueAhead": 200,
+      "apiDataAvailable": true,
+      "plannedBuyPrice": 10100,
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-13T08:03:26.531Z",
+      "mode": "buy",
+      "id": 9633,
+      "name": "bloody pincers",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 9633,
+        "category": "Creature Products",
+        "tier": -1,
+        "wiki_name": "Bloody Pincers"
+      },
+      "bestNpcBuy": {
+        "name": "Grizzly Adams",
+        "location": "Port Hope City",
+        "price": 100
+      },
+      "currentSellOffer": 11999,
+      "currentBuyOffer": 10015,
+      "daySold": 52,
+      "monthSold": 1206,
+      "dayAverageSell": 13616,
+      "monthAverageSell": 13291,
+      "liveSellOffer": 7025,
+      "liveBuyOffer": 10208,
+      "liveBuyQueueAhead": 200,
+      "apiDataAvailable": true,
+      "plannedBuyPrice": 10100,
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-13T07:38:57.368Z",
+      "mode": "buy",
+      "id": 9633,
+      "name": "bloody pincers",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 9633,
+        "category": "Creature Products",
+        "tier": -1,
+        "wiki_name": "Bloody Pincers"
+      },
+      "bestNpcBuy": {
+        "name": "Grizzly Adams",
+        "location": "Port Hope City",
+        "price": 100
+      },
+      "currentSellOffer": 11999,
+      "currentBuyOffer": 10015,
+      "daySold": 52,
+      "monthSold": 1206,
+      "dayAverageSell": 13616,
+      "monthAverageSell": 13291,
+      "liveSellOffer": 7025,
+      "liveBuyOffer": 10208,
+      "liveBuyQueueAhead": 200,
+      "apiDataAvailable": true,
+      "plannedBuyPrice": 10100,
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-13T01:32:38.609Z",
+      "mode": "buy",
+      "id": 9633,
+      "name": "bloody pincers",
+      "quantity": 10,
+      "itemInfo": {
+        "id": 9633,
+        "category": "Creature Products",
+        "tier": -1,
+        "wiki_name": "Bloody Pincers"
+      },
+      "bestNpcBuy": {
+        "name": "Grizzly Adams",
+        "location": "Port Hope City",
+        "price": 100
+      },
+      "currentSellOffer": 11999,
+      "currentBuyOffer": 10015,
+      "daySold": 52,
+      "monthSold": 1206,
+      "dayAverageSell": 13616,
+      "monthAverageSell": 13291,
+      "liveSellOffer": 7025,
+      "liveBuyOffer": 10208,
+      "apiDataAvailable": true,
+      "plannedBuyPrice": 10100,
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-12T06:34:56.304Z",
+      "mode": "sell",
+      "id": 3081,
+      "name": "stone skin amulet",
+      "quantity": 5,
+      "itemInfo": {
+        "id": 3081,
+        "category": "Amulets",
+        "tier": -1,
+        "wiki_name": "Stone Skin Amulet"
+      },
+      "bestNpcBuy": {
+        "name": "Haroun",
+        "location": "Ashta'daramai",
+        "price": 500
+      },
+      "currentSellOffer": 9443,
+      "currentBuyOffer": 8207,
+      "daySold": 36,
+      "monthSold": 676,
+      "dayAverageSell": 10363,
+      "monthAverageSell": 9245,
+      "liveSellOffer": 9233,
+      "liveBuyOffer": 8222,
+      "apiDataAvailable": true,
+      "yourSellPrice": 9200,
+      "minSellPrice": 0,
+      "entryPrice": 0,
+      "plannedBuyPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-12T05:27:31.857Z",
+      "mode": "sell",
+      "id": 3081,
+      "name": "stone skin amulet",
+      "quantity": 5,
+      "itemInfo": {
+        "id": 3081,
+        "category": "Amulets",
+        "tier": -1,
+        "wiki_name": "Stone Skin Amulet"
+      },
+      "bestNpcBuy": {
+        "name": "Haroun",
+        "location": "Ashta'daramai",
+        "price": 500
+      },
+      "currentSellOffer": 9443,
+      "currentBuyOffer": 8207,
+      "daySold": 36,
+      "monthSold": 676,
+      "dayAverageSell": 10363,
+      "monthAverageSell": 9245,
+      "apiDataAvailable": true,
+      "yourSellPrice": 9200,
+      "minSellPrice": 0,
+      "entryPrice": 0,
+      "plannedBuyPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-12T05:27:06.394Z",
+      "mode": "buy",
+      "id": 9631,
+      "name": "scarab pincers",
+      "quantity": 100,
+      "itemInfo": {
+        "id": 9631,
+        "category": "Creature Products",
+        "tier": -1,
+        "wiki_name": "Scarab Pincers"
+      },
+      "bestNpcBuy": {
+        "name": "Grizzly Adams",
+        "location": "Port Hope City",
+        "price": 280
+      },
+      "currentSellOffer": 1996,
+      "currentBuyOffer": 711,
+      "daySold": 2,
+      "monthSold": 226,
+      "dayAverageSell": 1998,
+      "monthAverageSell": 4473,
+      "apiDataAvailable": true,
+      "plannedBuyPrice": 1998,
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-11T13:49:38.173Z",
+      "mode": "buy",
+      "id": 9631,
+      "name": "scarab pincers",
+      "quantity": 100,
+      "currentSellOffer": 3584,
+      "currentBuyOffer": 3113,
+      "daySold": 0,
+      "monthSold": 284,
+      "dayAverageSell": 0,
+      "monthAverageSell": 4666,
+      "apiDataAvailable": true,
+      "plannedBuyPrice": 1998,
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-11T13:44:18.214Z",
+      "mode": "buy",
+      "id": 9631,
+      "name": "scarab pincers",
+      "quantity": 100,
+      "currentSellOffer": 3584,
+      "currentBuyOffer": 3113,
+      "daySold": 0,
+      "monthSold": 284,
+      "dayAverageSell": 0,
+      "monthAverageSell": 4666,
+      "apiDataAvailable": true,
+      "plannedBuyPrice": 1998,
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-11T13:39:02.269Z",
+      "mode": "buy",
+      "id": 9631,
+      "name": "scarab pincers",
+      "quantity": 100,
+      "currentSellOffer": 3584,
+      "currentBuyOffer": 3113,
+      "daySold": 0,
+      "monthSold": 284,
+      "dayAverageSell": 0,
+      "monthAverageSell": 4666,
+      "apiDataAvailable": true,
+      "plannedBuyPrice": 1998,
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-11T10:03:15.260Z",
+      "mode": "buy",
+      "id": 9631,
+      "name": "scarab pincers",
+      "quantity": 100,
+      "currentSellOffer": 3584,
+      "currentBuyOffer": 3113,
+      "daySold": 0,
+      "monthSold": 284,
+      "dayAverageSell": 0,
+      "monthAverageSell": 4666,
+      "apiDataAvailable": true,
+      "plannedBuyPrice": 1998,
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-11T10:01:46.147Z",
+      "mode": "buy",
+      "id": 9631,
+      "name": "scarab pincers",
+      "quantity": 100,
+      "currentSellOffer": 3584,
+      "currentBuyOffer": 3113,
+      "daySold": 0,
+      "monthSold": 284,
+      "dayAverageSell": 0,
+      "monthAverageSell": 4666,
+      "apiDataAvailable": true,
+      "plannedBuyPrice": 1998,
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-11T09:34:01.577Z",
+      "mode": "buy",
+      "id": 3081,
+      "name": "stone skin amulet",
+      "quantity": 15,
+      "currentSellOffer": 9200,
+      "currentBuyOffer": 8115,
+      "daySold": 50,
+      "monthSold": 678,
+      "dayAverageSell": 9213,
+      "monthAverageSell": 9095,
+      "apiDataAvailable": true,
+      "plannedBuyPrice": 8150,
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-11T09:29:16.585Z",
+      "mode": "buy",
+      "id": 3081,
+      "name": "stone skin amulet",
+      "quantity": 15,
+      "currentSellOffer": 9200,
+      "currentBuyOffer": 8115,
+      "daySold": 50,
+      "monthSold": 678,
+      "dayAverageSell": 9213,
+      "monthAverageSell": 9095,
+      "apiDataAvailable": true,
+      "plannedBuyPrice": 8150,
+      "yourSellPrice": 0,
+      "minSellPrice": 0,
+      "entryPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-11T09:29:08.830Z",
+      "mode": "sell",
+      "id": 3081,
+      "name": "stone skin amulet",
+      "quantity": 5,
+      "currentSellOffer": 9200,
+      "currentBuyOffer": 8115,
+      "daySold": 50,
+      "monthSold": 678,
+      "dayAverageSell": 9213,
+      "monthAverageSell": 9095,
+      "apiDataAvailable": true,
+      "yourSellPrice": 9200,
+      "minSellPrice": 0,
+      "entryPrice": 0,
+      "plannedBuyPrice": 0
+    },
+    {
+      "checkedAt": "2026-05-11T09:22:54.859Z",
+      "mode": "sell",
+      "id": 7438,
+      "name": "elvish bow",
+      "quantity": 1,
+      "currentSellOffer": 2099,
+      "currentBuyOffer": 1675,
+      "daySold": 0,
+      "monthSold": 26,
+      "dayAverageSell": 0,
+      "monthAverageSell": 2572,
+      "apiDataAvailable": true,
+      "yourSellPrice": 1000000,
+      "minSellPrice": 0,
+      "entryPrice": 0,
+      "plannedBuyPrice": 0
+    }
+  ]
+}

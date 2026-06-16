@@ -1,232 +1,103 @@
-
-import fs from "node:fs";
-import { createInterface } from "node:readline/promises";
+import readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
+import { loadState } from "./lib/state.js";
 import { addTrackedItem } from "./lib/trackedItemsWriter.js";
+import { getItemMap } from "./lib/market.js";
 
 function formatGp(value) {
-  return Math.round(Number(value || 0)).toLocaleString("en-US");
+  return Math.round(Number(value || 0)).toLocaleString();
 }
 
-function readJson(path, fallback) {
-  if (!fs.existsSync(path)) return fallback;
-
-  try {
-    return JSON.parse(fs.readFileSync(path, "utf8"));
-  } catch {
-    return fallback;
-  }
+function avg(values) {
+  const clean = values.map(Number).filter(Number.isFinite);
+  return clean.length ? clean.reduce((a, b) => a + b, 0) / clean.length : 0;
 }
 
-function getTrackedPath() {
-  if (fs.existsSync("./data/tracked-items.json")) return "./data/tracked-items.json";
-  return "./tracked-items.json";
+function getSnapshots(record) {
+  if (Array.isArray(record.snapshots)) return record.snapshots;
+  if (Array.isArray(record.runs)) return record.runs;
+  if (Array.isArray(record.history)) return record.history;
+  return [];
 }
 
-function uniqueNumbers(values = []) {
-  return [...new Set(values.map(Number).filter((n) => Number.isFinite(n) && n > 0))];
+function isGoodSnapshot(snapshot) {
+  if (snapshot.good === true || snapshot.isGood === true) return true;
+  const profit = Number(snapshot.profit ?? snapshot.netProfit ?? snapshot.expectedProfit ?? 0);
+  const roi = Number(snapshot.roi ?? snapshot.roiPercent ?? snapshot.profitPercent ?? 0);
+  return profit >= Number(process.env.DISCOVERY_PROMOTE_MIN_AVG_PROFIT || 1000) && roi >= Number(process.env.DISCOVERY_PROMOTE_MIN_AVG_ROI || 5);
 }
 
-function getAlreadyTrackedIds() {
-  const tracked = readJson(getTrackedPath(), {});
-
-  return new Set(
-    uniqueNumbers([
-      ...(tracked.core || []),
-      ...(tracked.watch || []),
-      ...(tracked.scanner?.safe || []),
-      ...(tracked.scanner?.watch || []),
-      ...(tracked.scanner?.experimental || []),
-    ]).map(String),
-  );
+function chooseBucket(candidate) {
+  if (candidate.good >= 5 && candidate.avgProfit >= 2500 && candidate.avgRoi >= 7) return "safe";
+  if (candidate.good >= 3 && candidate.avgProfit >= 1500 && candidate.avgRoi >= 5) return "watch";
+  return "experimental";
 }
 
-function getPromotableCandidates() {
-  const state = readJson("./state.json", {});
-  const history = state.discovery?.history || {};
-  const alreadyTracked = getAlreadyTrackedIds();
+const state = loadState();
+const itemMap = getItemMap();
+const minGood = Number(process.env.DISCOVERY_PROMOTE_MIN_GOOD || 2);
+const minProfit = Number(process.env.DISCOVERY_PROMOTE_MIN_AVG_PROFIT || 1000);
+const minRoi = Number(process.env.DISCOVERY_PROMOTE_MIN_AVG_ROI || 5);
 
-  const minGoodSnapshots = Number(process.env.DISCOVERY_PROMOTE_MIN_GOOD || 2);
-  const minAvgProfit = Number(process.env.DISCOVERY_PROMOTE_MIN_AVG_PROFIT || 1000);
-  const minAvgRoi = Number(process.env.DISCOVERY_PROMOTE_MIN_AVG_ROI || 5);
+const records = Object.entries(state.discovery?.history || {}).map(([id, record]) => {
+  const snapshots = getSnapshots(record);
+  const good = snapshots.filter(isGoodSnapshot).length || Number(record.goodCount || record.goodSnapshots || 0);
+  const profits = snapshots.map((s) => s.profit ?? s.netProfit ?? s.expectedProfit).filter((v) => Number.isFinite(Number(v)));
+  const rois = snapshots.map((s) => s.roi ?? s.roiPercent ?? s.profitPercent).filter((v) => Number.isFinite(Number(v)));
+  const candidate = {
+    id: Number(id),
+    name: record.name || itemMap[Number(id)] || `Unknown Item (${id})`,
+    snapshots: snapshots.length,
+    good,
+    avgProfit: avg(profits),
+    avgRoi: avg(rois),
+    lastSeen: record.lastSeen || record.lastSeenAt || record.updatedAt || snapshots.at(-1)?.time || snapshots.at(-1)?.at || "unknown",
+  };
+  candidate.bucket = chooseBucket(candidate);
+  return candidate;
+}).filter((candidate) => candidate.good >= minGood && candidate.avgProfit >= minProfit && candidate.avgRoi >= minRoi)
+  .sort((a, b) => b.good - a.good || b.avgProfit - a.avgProfit || b.avgRoi - a.avgRoi);
 
-  return Object.values(history)
-    .filter((entry) => entry && entry.id)
-    .filter((entry) => !alreadyTracked.has(String(entry.id)))
-    .filter((entry) => String(entry.stability || "").toUpperCase() !== "DEAD")
-    .filter((entry) => Number(entry.goodSnapshots || 0) >= minGoodSnapshots)
-    .filter((entry) => Number(entry.avgNetProfit || 0) >= minAvgProfit)
-    .filter((entry) => Number(entry.avgRoi || 0) >= minAvgRoi)
-    .map((entry) => {
-      const good = Number(entry.goodSnapshots || 0);
-      const scans = Number(entry.scans || 0);
-      const avgProfit = Number(entry.avgNetProfit || 0);
-      const avgRoi = Number(entry.avgRoi || 0);
-      const stability = String(entry.stability || "UNKNOWN");
+console.log("\nDISCOVERY PROMOTION\n");
 
-      let section = "experimental";
-
-      if (
-        stability === "STABLE" &&
-        good >= 4 &&
-        avgProfit >= 3000 &&
-        avgRoi >= 7
-      ) {
-        section = "watch";
-      }
-
-      if (
-        stability === "STABLE" &&
-        good >= 6 &&
-        avgProfit >= 6000 &&
-        avgRoi >= 9
-      ) {
-        section = "safe";
-      }
-
-      const score =
-        good * 25 +
-        scans * 2 +
-        Math.min(avgProfit / 200, 50) +
-        Math.min(avgRoi * 3, 45) +
-        (stability === "STABLE" ? 35 : 0) -
-        Number(entry.badSnapshots || 0) * 10;
-
-      return {
-        ...entry,
-        good,
-        scans,
-        avgProfit,
-        avgRoi,
-        stability,
-        section,
-        score,
-      };
-    })
-    .sort((a, b) => b.score - a.score);
+if (records.length === 0) {
+  console.log("No promotion candidates found.");
+  console.log(`Need: ${minGood}+ good snapshots, avg profit ${formatGp(minProfit)}+ gp, avg ROI ${minRoi}%+.`);
+  process.exit(0);
 }
 
-function printCandidate(candidate, index) {
-  console.log(
-    "#" + (index + 1) + " " + candidate.name + " (" + candidate.id + ")\n" +
-      "Suggested bucket: " + candidate.section + "\n" +
-      "Stability: " + candidate.stability +
-      " | good: " + candidate.goodSnapshots +
-      "/" + candidate.scans +
-      " | bad: " + Number(candidate.badSnapshots || 0) + "\n" +
-      "Avg profit: ~" + formatGp(candidate.avgProfit) + " gp" +
-      " | Avg ROI: " + candidate.avgRoi.toFixed(2) + "%\n" +
-      "Last seen: " + (candidate.lastSeenAt || "unknown") + "\n",
-  );
-}
-
-function parseSelection(answer, max) {
-  const cleaned = String(answer || "").trim().toLowerCase();
-
-  if (!cleaned) return [];
-  if (cleaned === "all") return Array.from({ length: max }, (_, i) => i);
-
-  return [
-    ...new Set(
-      cleaned
-        .split(/[,\s]+/)
-        .map((part) => Number(part) - 1)
-        .filter((index) => Number.isInteger(index) && index >= 0 && index < max),
-    ),
-  ];
-}
-
-async function main() {
-  const candidates = getPromotableCandidates();
-
-  console.log("\nDISCOVERY PROMOTION\n");
-
-  if (candidates.length === 0) {
-    console.log("No promotion-ready Discovery candidates yet.");
-    console.log("");
-    console.log("This is normal if Discovery has not seen the same good item enough times.");
-    console.log("Run Discovery a few more times, then come back here.");
-    console.log("");
-    console.log("Current thresholds:");
-    console.log("- min good snapshots:", process.env.DISCOVERY_PROMOTE_MIN_GOOD || 2);
-    console.log("- min avg profit:", process.env.DISCOVERY_PROMOTE_MIN_AVG_PROFIT || 1000);
-    console.log("- min avg ROI:", process.env.DISCOVERY_PROMOTE_MIN_AVG_ROI || 5);
-    return;
-  }
-
-  candidates.slice(0, 20).forEach(printCandidate);
-
-  const rl = createInterface({ input, output });
-
-  try {
-    const answer = await rl.question(
-      "Choose numbers to promote, comma-separated, 'all', or Enter to cancel: ",
-    );
-
-    const indexes = parseSelection(answer, Math.min(candidates.length, 20));
-
-    if (indexes.length === 0) {
-      console.log("\nCancelled. Nothing changed.");
-      return;
-    }
-
-    console.log("\nYou selected:\n");
-
-    for (const index of indexes) {
-      const candidate = candidates[index];
-      console.log(
-        "- " +
-          candidate.name +
-          " (" +
-          candidate.id +
-          ") → " +
-          candidate.section,
-      );
-    }
-
-    const confirm = await rl.question("\nAdd these to tracked-items.json? Y/N: ");
-
-    if (String(confirm).trim().toLowerCase() !== "y") {
-      console.log("\nCancelled. Nothing changed.");
-      return;
-    }
-
-    console.log("");
-
-    for (const index of indexes) {
-      const candidate = candidates[index];
-      const result = addTrackedItem(candidate.id, candidate.section);
-
-      if (result.added) {
-        console.log(
-          "Added " +
-            candidate.name +
-            " (" +
-            candidate.id +
-            ") to " +
-            result.section +
-            " in " +
-            result.filePath,
-        );
-      } else {
-        console.log(
-          "Skipped " +
-            candidate.name +
-            " (" +
-            candidate.id +
-            "): " +
-            result.reason,
-        );
-      }
-    }
-
-    console.log("\nDone. Review tracked-items.json, then commit + push.");
-  } finally {
-    rl.close();
-  }
-}
-
-main().catch((error) => {
-  console.error("Discovery promotion failed:", error);
-  process.exit(1);
+records.slice(0, 20).forEach((candidate, index) => {
+  console.log(`#${index + 1} ${candidate.name} (${candidate.id})`);
+  console.log(`Suggested bucket: ${candidate.bucket}`);
+  console.log(`Good snapshots: ${candidate.good}/${candidate.snapshots}`);
+  console.log(`Avg profit: ~${formatGp(candidate.avgProfit)} gp | Avg ROI: ${candidate.avgRoi.toFixed(2)}%`);
+  console.log(`Last seen: ${candidate.lastSeen}`);
+  console.log("");
 });
+
+const rl = readline.createInterface({ input, output });
+const answer = await rl.question("Choose number to promote, `all` to promote all, or Enter to cancel: ");
+rl.close();
+
+if (!answer.trim()) {
+  console.log("Cancelled. Nothing changed.");
+  process.exit(0);
+}
+
+const chosen = answer.trim().toLowerCase() === "all"
+  ? records
+  : [records[Number(answer.trim()) - 1]].filter(Boolean);
+
+if (chosen.length === 0) {
+  console.log("Invalid choice. Nothing changed.");
+  process.exit(1);
+}
+
+for (const candidate of chosen) {
+  const result = addTrackedItem(candidate.id, candidate.bucket);
+  if (result.added) {
+    console.log(`Added ${candidate.name} (${candidate.id}) to ${result.section} in ${result.filePath}`);
+  } else {
+    console.log(`Skipped ${candidate.name} (${candidate.id}): ${result.reason}`);
+  }
+}

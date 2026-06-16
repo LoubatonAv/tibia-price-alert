@@ -1,4 +1,4 @@
-import axios from "axios";
+﻿import axios from "axios";
 import fs from "fs";
 import "dotenv/config";
 import { clamp, formatGp } from "./lib/utils.js";
@@ -237,7 +237,7 @@ function getOpenExposureSummary(item) {
   }, 0);
   const combined = existingCapital + newCapital;
   const capWarning = combined > FLIPPER_MAX_ITEM_CAPITAL
-    ? `\n⚠️ Combined item capital is above cap (${formatGp(FLIPPER_MAX_ITEM_CAPITAL)} gp).`
+    ? `\nâš ï¸ Combined item capital is above cap (${formatGp(FLIPPER_MAX_ITEM_CAPITAL)} gp).`
     : "";
 
   return {
@@ -256,7 +256,7 @@ function buildBuyActionText(item) {
   if (item.signalClass === "BUY_CANDIDATE") {
     return (
       "**RESEARCH / SMALL TEST ONLY**\n" +
-      `Entry range: **${formatGp(lower)}–${formatGp(buy)} gp**\n` +
+      `Entry range: **${formatGp(lower)}â€“${formatGp(buy)} gp**\n` +
       `Hard max: **${formatGp(buy)} gp**\n` +
       "Do not chase. Use tiny quantity only after manual market check."
     );
@@ -264,7 +264,7 @@ function buildBuyActionText(item) {
 
   return (
     "**WORTH BUY OFFER**\n" +
-    `Entry range: **${formatGp(lower)}–${formatGp(buy)} gp**\n` +
+    `Entry range: **${formatGp(lower)}â€“${formatGp(buy)} gp**\n` +
     `Hard max: **${formatGp(buy)} gp**\n` +
     `Current top buy/reference: ${formatGp(topBuy)} gp.`
   );
@@ -300,9 +300,9 @@ function getExpectedFillSpeed(item) {
   const pace = Math.max(daySold, avgDaily);
 
   if (pace >= 60) return { label: "VERY FAST", days: "<1", score: 95 };
-  if (pace >= 25) return { label: "FAST", days: "1–2", score: 82 };
-  if (pace >= 8) return { label: "NORMAL", days: "2–4", score: 65 };
-  if (pace >= 3) return { label: "SLOW", days: "4–8", score: 42 };
+  if (pace >= 25) return { label: "FAST", days: "1â€“2", score: 82 };
+  if (pace >= 8) return { label: "NORMAL", days: "2â€“4", score: 65 };
+  if (pace >= 3) return { label: "SLOW", days: "4â€“8", score: 42 };
   if (pace > 0) return { label: "VERY SLOW", days: "8+", score: 20 };
   return { label: "UNKNOWN", days: "?", score: 0 };
 }
@@ -707,7 +707,7 @@ function shouldSendSellAlert(state, item) {
   if (becameMoreUrgent) {
     return {
       shouldSend: true,
-      sellAlertReason: `SELL became more urgent: ${lastSellAlert.sellLevel} → ${item.sellLevel}.`,
+      sellAlertReason: `SELL became more urgent: ${lastSellAlert.sellLevel} â†’ ${item.sellLevel}.`,
     };
   }
 
@@ -776,18 +776,18 @@ function markSellAlertSent(state, item) {
 
 function buildSimpleBuyTitle(item) {
   if (item.signalClass === "BUY_CANDIDATE") {
-    return `🟡 BUY CANDIDATE — ${item.name} — RESEARCH`;
+    return `ðŸŸ¡ BUY CANDIDATE â€” ${item.name} â€” RESEARCH`;
   }
 
   if (item.signalConfidence >= 88 || item.brainScore >= 90) {
-    return `🟢 BUY — ${item.name} — VERY STRONG`;
+    return `ðŸŸ¢ BUY â€” ${item.name} â€” VERY STRONG`;
   }
 
   if (item.signalConfidence >= 76 || item.brainScore >= 75) {
-    return `🟢 BUY — ${item.name} — STRONG`;
+    return `ðŸŸ¢ BUY â€” ${item.name} â€” STRONG`;
   }
 
-  return `🟡 BUY — ${item.name} — GOOD`;
+  return `ðŸŸ¡ BUY â€” ${item.name} â€” GOOD`;
 }
 
 function getReadableTradeQuality(conviction) {
@@ -811,13 +811,13 @@ function getReadableTradeQuality(conviction) {
 }
 
 function buildSimpleSellTitle(item) {
-  if (item.sellLevel === "PANIC") return `🚨 SELL — ${item.name} — EXIT`;
+  if (item.sellLevel === "PANIC") return `ðŸš¨ SELL â€” ${item.name} â€” EXIT`;
   if (item.sellLevel === "SELL_NOW")
-    return `🟢 SELL — ${item.name} — TARGET HIT`;
+    return `ðŸŸ¢ SELL â€” ${item.name} â€” TARGET HIT`;
   if (item.sellLevel === "TAKE_PROFIT") {
-    return `🟠 SELL — ${item.name} — TAKE PROFIT`;
+    return `ðŸŸ  SELL â€” ${item.name} â€” TAKE PROFIT`;
   }
-  return `🟠 SELL — ${item.name} — WARNING`;
+  return `ðŸŸ  SELL â€” ${item.name} â€” WARNING`;
 }
 
 function buildRejectionSummary(items) {
@@ -844,7 +844,7 @@ function buildRejectionSummary(items) {
       const reasons = (item.rejectionReasons || ["unknown"])
         .slice(0, 3)
         .join(", ");
-      return `${index + 1}. **${item.name}** — Brain ${item.brainScore}, Tradeability ${item.tradeabilityScore}, Profit ${formatGp(item.profit)} gp (${item.profitPercent.toFixed(2)}%) — ${reasons}`;
+      return `${index + 1}. **${item.name}** â€” Brain ${item.brainScore}, Tradeability ${item.tradeabilityScore}, Profit ${formatGp(item.profit)} gp (${item.profitPercent.toFixed(2)}%) â€” ${reasons}`;
     })
     .join("\n");
 }
@@ -985,7 +985,7 @@ async function sendDiscordBuyAlerts(buySignals, state) {
     item.alertReason = alertCheck.alertReason;
 
     if (!alertCheck.shouldSend) {
-      console.log(item.name + ": " + alertCheck.alertReason);
+      console.log(`${item.name}: ${alertCheck.alertReason}`);
     }
 
     return alertCheck.shouldSend;
@@ -996,116 +996,138 @@ async function sendDiscordBuyAlerts(buySignals, state) {
     return;
   }
 
-  const visibleAlerts = alertable.slice(0, 5);
-  const hiddenCount = Math.max(0, alertable.length - visibleAlerts.length);
-
-  function getCompactWarning(item) {
-    const warnings = [
-      item.signalClass === "BUY_CANDIDATE" ? "Manual check first. Not automatic BUY." : null,
-      item.marketPressureLevel && item.marketPressureLevel !== "LOW"
-        ? "Market pressure: " + item.marketPressureLevel
-        : null,
-      getNumber(item.fakeSpreadRisk, 0) >= 25
-        ? "Fake spread risk: " + getNumber(item.fakeSpreadRisk, 0) + "/100"
-        : null,
-      getNumber(item.volumeRatio, 0) < 0.8
-        ? "Volume a bit weak: " + getNumber(item.volumeRatio, 0).toFixed(2) + "x"
-        : null,
-      Array.isArray(item.tradeWarnings) && item.tradeWarnings.length
-        ? item.tradeWarnings[0]
-        : null,
-      Array.isArray(item.marketPressureReasons) && item.marketPressureReasons.length
-        ? item.marketPressureReasons[0]
-        : null,
-    ].filter(Boolean);
-
-    return warnings.slice(0, 3).join("\n") || "No major warning.";
-  }
-
-  function getHiddenAcceptCommand(item) {
-    const projectPath =
-      process.env.ACCEPT_BUY_PROJECT_PATH ||
-      "C:\\Users\\Avner\\Desktop\\Projects\\tibia-price-alert";
-
-    const fence = String.fromCharCode(96).repeat(3);
-
-    const command =
-      "cd " + quotePowerShellArg(projectPath) + "\n" +
-      getAcceptBuyCommand(item);
-
-    return "Click to reveal:\n||" + fence + "powershell\n" + command + "\n" + fence + "||";
-  }
-
-  const embeds = visibleAlerts.map((item, index) => ({
-    title: buildSimpleBuyTitle(item),
-    color: getColor(item.brainScore),
-    fields: [
-      {
-        name: "👉 DO THIS",
-        value:
-          (item.signalClass === "BUY_CANDIDATE" ? "**RESEARCH / TINY TEST ONLY**" : "**PLACE BUY OFFER**") + "\n" +
-          "Buy max: **" + formatGp(getSignalBuyPrice(item)) + " gp**\n" +
-          "Qty: **" + getSignalQuantity(item) + "** | Target: **" + formatGp(getSignalTargetSell(item)) + " gp**",
-        inline: false,
-      },
-      {
-        name: "💰 EXPECTED",
-        value:
-          "Profit: ~**" + formatGp(Math.round(getNumber(item.realisticProfit, item.profit) * getSignalQuantity(item))) + " gp** total\n" +
-          "ROI: **" + getNumber(item.realisticProfitPercent, item.profitPercent).toFixed(2) + "%**",
-        inline: true,
-      },
-      {
-        name: "⚠️ CHECK",
-        value:
-          "Confidence: **" + getNumber(item.signalConfidence, 0) + "/100** | Brain: **" + getNumber(item.brainScore, 0) + "/100**\n" +
-          getCompactWarning(item),
-        inline: false,
-      },
-      {
-        name: "📋 ACCEPT COMMAND",
-        value: getHiddenAcceptCommand(item),
-        inline: false,
-      },
-    ],
-    footer: {
-      text:
-        "Item ID: " + item.id +
-        " | " + (index + 1) + "/" + visibleAlerts.length +
-        (hiddenCount ? " | " + hiddenCount + " more hidden this run" : ""),
-    },
-  }));
-
-  for (let i = 0; i < embeds.length; i++) {
-    const buyPayload = {
-      content:
-        i === 0
-          ? "🟢 Tibia BUY signals on **" + SERVER + "** — showing " + visibleAlerts.length + "/" + alertable.length
-          : "🟢 BUY signal " + (i + 1) + "/" + visibleAlerts.length + " on **" + SERVER + "**",
-      embeds: [embeds[i]],
-      allowed_mentions: { parse: [] },
-    };
-
-    try {
-      await axios.post(DISCORD_WEBHOOK_URL, buyPayload, {
-        headers: { "Content-Type": "application/json" },
-      });
-    } catch (err) {
-      console.error("Discord BUY webhook failed");
-      console.error("Status:", err.response?.status);
-      console.error("Response:", JSON.stringify(err.response?.data, null, 2));
-      console.error("Payload summary:", {
-        contentLength: buyPayload.content?.length ?? 0,
-        embedsCount: buyPayload.embeds?.length ?? 0,
-        payloadLength: JSON.stringify(buyPayload).length,
-      });
-      throw err;
+  function getHumanTradeRead(item) {
+    if (
+      item.tradeLabels?.includes("OVEREXTENDED") &&
+      item.tradeLabels?.includes("EASY EXIT")
+    ) {
+      return "Easy to resell, but current price already looks high.";
     }
+
+    if (
+      item.tradeLabels?.includes("UNDERCUT WAR") ||
+      item.marketPressureLevel === "HIGH"
+    ) {
+      return "Too much seller pressure right now.";
+    }
+
+    if (
+      item.tradeLabels?.includes("TRUSTWORTHY SPREAD") &&
+      item.volumeRatio >= 1
+    ) {
+      return "Market looks healthy and active.";
+    }
+
+    if (item.fakeSpreadRisk >= 40) {
+      return "Spread may be misleading or unstable.";
+    }
+
+    if (item.volumeRatio < 0.6) {
+      return "Could be hard to resell quickly.";
+    }
+
+    if (item.brainScore >= 85) {
+      return "Strong setup overall, but still watch the market closely.";
+    }
+
+    return "Mixed signals. Worth watching carefully.";
   }
 
-  visibleAlerts.forEach((item) => markBuyAlertSent(state, item));
+  const embeds = alertable.slice(0, 5).map((item) => {
+    const exposure = getOpenExposureSummary(item);
 
-  console.log("Discord compact BUY alerts with hidden accept commands sent.");
+    return {
+      title: buildSimpleBuyTitle(item),
+      color: getColor(item.brainScore),
+      fields: [
+        {
+          name: "ðŸ‘‰ ACTION",
+          value: buildBuyActionText(item),
+          inline: false,
+        },
+        {
+          name: "ðŸŽšï¸ QUALITY PLAN",
+          value: buildQualityPlanText(item),
+          inline: false,
+        },
+        {
+          name: "ðŸ’¼ CAPITAL",
+          value: buildCapitalText(item),
+          inline: true,
+        },
+        {
+          name: "ðŸ§¯ EXPOSURE GUARD",
+          value: exposure.text,
+          inline: false,
+        },
+        {
+          name: "ðŸ“‹ COPY-PASTE ACCEPT COMMAND",
+          value: getAcceptBuyDiscordValue(item),
+          inline: false,
+        },
+        {
+          name: "ðŸŽ¯ SELL TARGET",
+          value: `Realistic exit around **${formatGp(item.realisticExit || item.targetSell)} gp**. Desired margin: ${item.desiredMarginPercent?.toFixed?.(1) || "?"}%.`,
+          inline: false,
+        },
+        {
+          name: "ðŸ§  BRAIN",
+          value:
+            `Score: **${item.brainScore}/100**\n` +
+            `Strength: **${item.strength}**\n` +
+            `Risk: **${item.riskLevel}**`,
+          inline: true,
+        },
+        {
+          name: "ðŸ“ˆ TRADE READ",
+          value: getHumanTradeRead(item),
+          inline: false,
+        },
+        {
+          name: "ðŸ’° REALISTIC PROFIT",
+          value:
+            `Expected: **${formatGp(item.realisticProfit)} gp** each\n` +
+            `Percent: **${item.realisticProfitPercent.toFixed(2)}%**`,
+          inline: true,
+        },
+        {
+          name: "ðŸ“Š WHY",
+          value:
+            `${item.reason}\n` +
+            `${item.recommendation}\n` +
+            `Trend: ${item.dayVsMonthSell.toFixed(2)}% | Volume: ${item.volumeRatio.toFixed(2)}x\n` +
+            `Fake spread risk: ${item.fakeSpreadRisk}/100`,
+          inline: false,
+        },
+        {
+          name: "ðŸŒŠ MARKET PRESSURE",
+          value:
+            `Level: **${item.marketPressureLevel}**\n` +
+            `Score: **${item.marketPressure}/100**\n` +
+            `${item.marketPressureReasons.slice(0, 2).join("\n") || "No major pressure detected."}\n` +
+            `${(item.tradeWarnings || []).slice(0, 2).join("\n")}`,
+          inline: false,
+        },
+        {
+          name: "ðŸ›‘ SAFETY",
+          value: `If price drops hard, consider exiting around **${formatGp(item.stopLoss)} gp**.`,
+          inline: false,
+        },
+      ],
+      footer: {
+        text: `Item ID: ${item.id} | Tax included | Simple BUY/SELL mode`,
+      },
+    };
+  });
+
+  await axios.post(DISCORD_WEBHOOK_URL, {
+    content: `ðŸŸ¢ Tibia Flipper BUY signals on **${SERVER}** (${alertable.length} alert${alertable.length === 1 ? "" : "s"})`,
+    embeds,
+  });
+
+  alertable.forEach((item) => markBuyAlertSent(state, item));
+
+  console.log("Discord simple BUY alert sent.");
 }
 
 async function sendDiscordSellAlerts(sellSignals, state) {
@@ -1130,19 +1152,19 @@ async function sendDiscordSellAlerts(sellSignals, state) {
     color: getSellColor(item.sellLevel),
     fields: [
       {
-        name: "👉 ACTION",
+        name: "ðŸ‘‰ ACTION",
         value: `**${item.sellAction}**`,
         inline: false,
       },
       {
-        name: "🎯 TARGET",
+        name: "ðŸŽ¯ TARGET",
         value:
           `Target: **${formatGp(item.trackedTargetSell)} gp**\n` +
           `Current sell price: **${formatGp(item.sellOffer)} gp**`,
         inline: true,
       },
       {
-        name: "🧠 BRAIN",
+        name: "ðŸ§  BRAIN",
         value:
           `Previous: **${item.previousBrainScore}/100**\n` +
           `Now: **${item.brainScore}/100**\n` +
@@ -1150,7 +1172,7 @@ async function sendDiscordSellAlerts(sellSignals, state) {
         inline: true,
       },
       {
-        name: "📊 WHY",
+        name: "ðŸ“Š WHY",
         value:
           `${item.sellReason}\n` +
           `Momentum: ${item.sellMomentumSignal}\n` +
@@ -1159,7 +1181,7 @@ async function sendDiscordSellAlerts(sellSignals, state) {
         inline: false,
       },
       {
-        name: "📦 POSITION",
+        name: "ðŸ“¦ POSITION",
         value:
           `Based on OPEN position in positions.json.\n` +
           `Entry: **${formatGp(item.entryPrice)} gp**\n` +
@@ -1175,7 +1197,7 @@ async function sendDiscordSellAlerts(sellSignals, state) {
   }));
 
   await axios.post(DISCORD_WEBHOOK_URL, {
-    content: `🔴 Tibia Flipper SELL signals on **${SERVER}**`,
+    content: `ðŸ”´ Tibia Flipper SELL signals on **${SERVER}**`,
     embeds,
   });
 
@@ -1265,17 +1287,17 @@ async function sendDiscordScannerReport(analyzedItems, volatility, runAdvice) {
 
   if (topItems.length === 0) {
     await axios.post(DISCORD_WEBHOOK_URL, {
-      content: `🔎 Tibia Flipper scanner checked **${SERVER}** but found no items.`,
+      content: `ðŸ”Ž Tibia Flipper scanner checked **${SERVER}** but found no items.`,
     });
     return;
   }
 
   const embeds = topItems.slice(0, 10).map((item, index) => ({
-    title: `#${index + 1} ${item.name} — ${item.scannerTier} / ${item.marketClass}`,
+    title: `#${index + 1} ${item.name} â€” ${item.scannerTier} / ${item.marketClass}`,
     color: getScannerColor(item.scannerTier),
     fields: [
       {
-        name: "🧠 Scanner",
+        name: "ðŸ§  Scanner",
         value:
           `Score: **${item.scannerScore}/100**\n` +
           `Brain: **${item.brainScore}/100**\n` +
@@ -1284,15 +1306,15 @@ async function sendDiscordScannerReport(analyzedItems, volatility, runAdvice) {
         inline: true,
       },
       {
-        name: "💰 Profit",
+        name: "ðŸ’° Profit",
         value:
           `Expected: **${formatGp(item.profit)} gp**\n` +
           `Percent: **${item.profitPercent.toFixed(2)}%**\n` +
-          `Buy/Sell: **${formatGp(item.buyOffer)} → ${formatGp(item.sellOffer)}**`,
+          `Buy/Sell: **${formatGp(item.buyOffer)} â†’ ${formatGp(item.sellOffer)}**`,
         inline: true,
       },
       {
-        name: "📊 Liquidity / Volume",
+        name: "ðŸ“Š Liquidity / Volume",
         value:
           `Today sold: **${formatGp(item.daySold)}**\n` +
           `Month sold: **${formatGp(item.monthSold)}**\n` +
@@ -1300,7 +1322,7 @@ async function sendDiscordScannerReport(analyzedItems, volatility, runAdvice) {
         inline: true,
       },
       {
-        name: "📈 Stability / Value",
+        name: "ðŸ“ˆ Stability / Value",
         value:
           `Day vs month avg: **${item.dayVsMonthSell.toFixed(2)}%**\n` +
           `Undervalued vs month avg: **${item.undervaluedPercent.toFixed(2)}%**\n` +
@@ -1308,7 +1330,7 @@ async function sendDiscordScannerReport(analyzedItems, volatility, runAdvice) {
         inline: false,
       },
       {
-        name: "📝 Notes",
+        name: "ðŸ“ Notes",
         value: item.scannerNotes.slice(0, 900),
         inline: false,
       },
@@ -1328,11 +1350,11 @@ async function sendDiscordScannerReport(analyzedItems, volatility, runAdvice) {
 
   await axios.post(DISCORD_WEBHOOK_URL, {
     content:
-      `🔎 **Top Flippable Items Scanner** on **${SERVER}**\n` +
-      `Mode: research only — no BUY/SELL alerts sent.\n` +
+      `ðŸ”Ž **Top Flippable Items Scanner** on **${SERVER}**\n` +
+      `Mode: research only â€” no BUY/SELL alerts sent.\n` +
       `Pool: **${SCANNER_POOL}** | Checked: **${analyzedItems.length}** items\n` +
       `Market: **${runAdvice.level}** | Volatility: **${volatility}**\n` +
-      `Top ${topItems.length}: 🟢 SAFE ${tierCounts.SAFE || 0} | 🟡 WATCH ${tierCounts.WATCH || 0} | 🟠 SPECULATIVE ${tierCounts.SPECULATIVE || 0} | 🔴 AVOID ${tierCounts.AVOID || 0}`,
+      `Top ${topItems.length}: ðŸŸ¢ SAFE ${tierCounts.SAFE || 0} | ðŸŸ¡ WATCH ${tierCounts.WATCH || 0} | ðŸŸ  SPECULATIVE ${tierCounts.SPECULATIVE || 0} | ðŸ”´ AVOID ${tierCounts.AVOID || 0}`,
     embeds,
   });
 
@@ -1521,7 +1543,7 @@ async function main() {
   ) {
     await axios.post(DISCORD_WEBHOOK_URL, {
       content:
-        `⚪ Tibia Flipper checked **${SERVER}**\n` +
+        `âšª Tibia Flipper checked **${SERVER}**\n` +
         `No BUY or SELL signal right now.\n` +
         `Market: ${runAdvice.level} | Volatility: ${volatility}`,
     });
@@ -1538,3 +1560,4 @@ main().catch(async (err) => {
   await sendDiscordErrorAlert(err);
   process.exit(1);
 });
+

@@ -159,14 +159,32 @@ echo    FIND TRADES / MARKET TOOLS
 echo ============================
 echo.
 echo 1. Run Flipper check - BUY/SELL alerts
+echo    - What is worth buying or selling right now from tracked items.
+echo.
 echo 2. Run Scanner - research tracked pool
+echo    - Research view: what might be worth adding, watching, or testing.
+echo.
 echo 3. Promote Scanner candidates to Flipper
+echo    - Add good Scanner finds into tracked-items so Flipper can alert on them.
+echo.
 echo 4. Run Discovery scanner - find new items
+echo    - Search wider item pool for new flip candidates not already tracked.
+echo.
 echo 5. Promote Discovery candidates to Flipper
+echo    - Add repeated good Discovery finds into tracked-items.
+echo.
 echo 6. Clean old Discovery candidates
+echo    - Remove weak or old Discovery noise so promotion stays clean.
+echo.
 echo 7. Sell price advisor
+echo    - Helps choose a listing price before you place a sell offer.
+echo.
 echo 8. Buy price advisor
+echo    - Helps choose a buy offer price before you place a buy offer.
+echo.
 echo 9. Quick profit check
+echo    - Manual profit/ROI check for one item and one sell price.
+echo.
 echo 0. Back
 echo.
 set /p toolchoice=Choose option: 
@@ -206,6 +224,13 @@ goto markettools
 cls
 set SCANNER_MODE=discovery
 call npm run scanner
+echo.
+echo ============================
+echo Discovery scan finished.
+echo ============================
+echo.
+set /p runPromo=Run Discovery Promotion now? Y/N: 
+if /I "%runPromo%"=="Y" call npm run promote-discovery
 pause
 goto markettools
 

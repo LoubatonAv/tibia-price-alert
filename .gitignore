@@ -1,8 +1,5 @@
 node_modules/
 .env
-data/items.json
-positions.json
-inventory.json
-state.json
 *.bak*
 *.zip
+*.tmp

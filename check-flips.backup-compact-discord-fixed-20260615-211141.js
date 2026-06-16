@@ -985,7 +985,7 @@ async function sendDiscordBuyAlerts(buySignals, state) {
     item.alertReason = alertCheck.alertReason;
 
     if (!alertCheck.shouldSend) {
-      console.log(item.name + ": " + alertCheck.alertReason);
+      console.log(`${item.name}: ${alertCheck.alertReason}`);
     }
 
     return alertCheck.shouldSend;
@@ -996,92 +996,139 @@ async function sendDiscordBuyAlerts(buySignals, state) {
     return;
   }
 
-  const visibleAlerts = alertable.slice(0, 5);
-  const hiddenCount = Math.max(0, alertable.length - visibleAlerts.length);
+  function getHumanTradeRead(item) {
+    if (
+      item.tradeLabels?.includes("OVEREXTENDED") &&
+      item.tradeLabels?.includes("EASY EXIT")
+    ) {
+      return "Easy to resell, but current price already looks high.";
+    }
 
-  function getCompactWarning(item) {
-    const warnings = [
-      item.signalClass === "BUY_CANDIDATE" ? "Manual check first. Not automatic BUY." : null,
-      item.marketPressureLevel && item.marketPressureLevel !== "LOW"
-        ? "Market pressure: " + item.marketPressureLevel
-        : null,
-      getNumber(item.fakeSpreadRisk, 0) >= 25
-        ? "Fake spread risk: " + getNumber(item.fakeSpreadRisk, 0) + "/100"
-        : null,
-      getNumber(item.volumeRatio, 0) < 0.8
-        ? "Volume a bit weak: " + getNumber(item.volumeRatio, 0).toFixed(2) + "x"
-        : null,
-      Array.isArray(item.tradeWarnings) && item.tradeWarnings.length
-        ? item.tradeWarnings[0]
-        : null,
-      Array.isArray(item.marketPressureReasons) && item.marketPressureReasons.length
-        ? item.marketPressureReasons[0]
-        : null,
-    ].filter(Boolean);
+    if (
+      item.tradeLabels?.includes("UNDERCUT WAR") ||
+      item.marketPressureLevel === "HIGH"
+    ) {
+      return "Too much seller pressure right now.";
+    }
 
-    return warnings.slice(0, 3).join("\n") || "No major warning.";
+    if (
+      item.tradeLabels?.includes("TRUSTWORTHY SPREAD") &&
+      item.volumeRatio >= 1
+    ) {
+      return "Market looks healthy and active.";
+    }
+
+    if (item.fakeSpreadRisk >= 40) {
+      return "Spread may be misleading or unstable.";
+    }
+
+    if (item.volumeRatio < 0.6) {
+      return "Could be hard to resell quickly.";
+    }
+
+    if (item.brainScore >= 85) {
+      return "Strong setup overall, but still watch the market closely.";
+    }
+
+    return "Mixed signals. Worth watching carefully.";
   }
 
-  function getHiddenAcceptCommand(item) {
-    const projectPath =
-      process.env.ACCEPT_BUY_PROJECT_PATH ||
-      "C:\\Users\\Avner\\Desktop\\Projects\\tibia-price-alert";
+  const embeds = alertable.slice(0, 5).map((item) => {
+    const exposure = getOpenExposureSummary(item);
 
-    const fence = String.fromCharCode(96).repeat(3);
+    return {
+      title: buildSimpleBuyTitle(item),
+      color: getColor(item.brainScore),
+      fields: [
+        {
+          name: "👉 ACTION",
+          value: buildBuyActionText(item),
+          inline: false,
+        },
+        {
+          name: "🎚️ QUALITY PLAN",
+          value: buildQualityPlanText(item),
+          inline: false,
+        },
+        {
+          name: "💼 CAPITAL",
+          value: buildCapitalText(item),
+          inline: true,
+        },
+        {
+          name: "🧯 EXPOSURE GUARD",
+          value: exposure.text,
+          inline: false,
+        },
+        {
+          name: "📋 COPY-PASTE ACCEPT COMMAND",
+          value: String(getAcceptBuyDiscordValue(item)).slice(0, 900),
+          inline: false,
+        },
+        {
+          name: "🎯 SELL TARGET",
+          value: `Realistic exit around **${formatGp(item.realisticExit || item.targetSell)} gp**. Desired margin: ${item.desiredMarginPercent?.toFixed?.(1) || "?"}%.`,
+          inline: false,
+        },
+        {
+          name: "🧠 BRAIN",
+          value:
+            `Score: **${item.brainScore}/100**\n` +
+            `Strength: **${item.strength}**\n` +
+            `Risk: **${item.riskLevel}**`,
+          inline: true,
+        },
+        {
+          name: "📈 TRADE READ",
+          value: getHumanTradeRead(item),
+          inline: false,
+        },
+        {
+          name: "💰 REALISTIC PROFIT",
+          value:
+            `Expected: **${formatGp(item.realisticProfit)} gp** each\n` +
+            `Percent: **${item.realisticProfitPercent.toFixed(2)}%**`,
+          inline: true,
+        },
+        {
+          name: "📊 WHY",
+          value:
+            `${item.reason}\n` +
+            `${item.recommendation}\n` +
+            `Trend: ${item.dayVsMonthSell.toFixed(2)}% | Volume: ${item.volumeRatio.toFixed(2)}x\n` +
+            `Fake spread risk: ${item.fakeSpreadRisk}/100`,
+          inline: false,
+        },
+        {
+          name: "🌊 MARKET PRESSURE",
+          value:
+            `Level: **${item.marketPressureLevel}**\n` +
+            `Score: **${item.marketPressure}/100**\n` +
+            `${item.marketPressureReasons.slice(0, 2).join("\n") || "No major pressure detected."}\n` +
+            `${(item.tradeWarnings || []).slice(0, 2).join("\n")}`,
+          inline: false,
+        },
+        {
+          name: "🛑 SAFETY",
+          value: `If price drops hard, consider exiting around **${formatGp(item.stopLoss)} gp**.`,
+          inline: false,
+        },
+      ],
+      footer: {
+        text: `Item ID: ${item.id} | Tax included | Simple BUY/SELL mode`,
+      },
+    };
+  });
 
-    const command =
-      "cd " + quotePowerShellArg(projectPath) + "\n" +
-      getAcceptBuyCommand(item);
-
-    return "Click to reveal:\n||" + fence + "powershell\n" + command + "\n" + fence + "||";
-  }
-
-  const embeds = visibleAlerts.map((item, index) => ({
-    title: buildSimpleBuyTitle(item),
-    color: getColor(item.brainScore),
-    fields: [
-      {
-        name: "👉 DO THIS",
-        value:
-          (item.signalClass === "BUY_CANDIDATE" ? "**RESEARCH / TINY TEST ONLY**" : "**PLACE BUY OFFER**") + "\n" +
-          "Buy max: **" + formatGp(getSignalBuyPrice(item)) + " gp**\n" +
-          "Qty: **" + getSignalQuantity(item) + "** | Target: **" + formatGp(getSignalTargetSell(item)) + " gp**",
-        inline: false,
-      },
-      {
-        name: "💰 EXPECTED",
-        value:
-          "Profit: ~**" + formatGp(Math.round(getNumber(item.realisticProfit, item.profit) * getSignalQuantity(item))) + " gp** total\n" +
-          "ROI: **" + getNumber(item.realisticProfitPercent, item.profitPercent).toFixed(2) + "%**",
-        inline: true,
-      },
-      {
-        name: "⚠️ CHECK",
-        value:
-          "Confidence: **" + getNumber(item.signalConfidence, 0) + "/100** | Brain: **" + getNumber(item.brainScore, 0) + "/100**\n" +
-          getCompactWarning(item),
-        inline: false,
-      },
-      {
-        name: "📋 ACCEPT COMMAND",
-        value: getHiddenAcceptCommand(item),
-        inline: false,
-      },
-    ],
-    footer: {
-      text:
-        "Item ID: " + item.id +
-        " | " + (index + 1) + "/" + visibleAlerts.length +
-        (hiddenCount ? " | " + hiddenCount + " more hidden this run" : ""),
-    },
-  }));
+  const visibleAlertCount = embeds.length;
+  const hiddenAlertCount = Math.max(0, alertable.length - visibleAlertCount);
 
   for (let i = 0; i < embeds.length; i++) {
     const buyPayload = {
       content:
         i === 0
-          ? "🟢 Tibia BUY signals on **" + SERVER + "** — showing " + visibleAlerts.length + "/" + alertable.length
-          : "🟢 BUY signal " + (i + 1) + "/" + visibleAlerts.length + " on **" + SERVER + "**",
+          ? `🟢 Tibia Flipper BUY signals on **${SERVER}** (${alertable.length} alert${alertable.length === 1 ? "" : "s"})${hiddenAlertCount ? ` — showing top ${visibleAlertCount}, hidden ${hiddenAlertCount}` : ""}`
+          : `🟢 BUY signal ${i + 1}/${visibleAlertCount} on **${SERVER}**`,
       embeds: [embeds[i]],
       allowed_mentions: { parse: [] },
     };
@@ -1103,9 +1150,9 @@ async function sendDiscordBuyAlerts(buySignals, state) {
     }
   }
 
-  visibleAlerts.forEach((item) => markBuyAlertSent(state, item));
+  alertable.forEach((item) => markBuyAlertSent(state, item));
 
-  console.log("Discord compact BUY alerts with hidden accept commands sent.");
+  console.log("Discord simple BUY alert sent.");
 }
 
 async function sendDiscordSellAlerts(sellSignals, state) {

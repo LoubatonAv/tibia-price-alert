@@ -1022,20 +1022,6 @@ async function sendDiscordBuyAlerts(buySignals, state) {
     return warnings.slice(0, 3).join("\n") || "No major warning.";
   }
 
-  function getHiddenAcceptCommand(item) {
-    const projectPath =
-      process.env.ACCEPT_BUY_PROJECT_PATH ||
-      "C:\\Users\\Avner\\Desktop\\Projects\\tibia-price-alert";
-
-    const fence = String.fromCharCode(96).repeat(3);
-
-    const command =
-      "cd " + quotePowerShellArg(projectPath) + "\n" +
-      getAcceptBuyCommand(item);
-
-    return "Click to reveal:\n||" + fence + "powershell\n" + command + "\n" + fence + "||";
-  }
-
   const embeds = visibleAlerts.map((item, index) => ({
     title: buildSimpleBuyTitle(item),
     color: getColor(item.brainScore),
@@ -1063,8 +1049,8 @@ async function sendDiscordBuyAlerts(buySignals, state) {
         inline: false,
       },
       {
-        name: "📋 ACCEPT COMMAND",
-        value: getHiddenAcceptCommand(item),
+        name: "✅ AFTER BUYING",
+        value: "After placing the Buy Offer in Tibia, run: **npm run pending-buy**",
         inline: false,
       },
     ],
@@ -1105,7 +1091,7 @@ async function sendDiscordBuyAlerts(buySignals, state) {
 
   visibleAlerts.forEach((item) => markBuyAlertSent(state, item));
 
-  console.log("Discord compact BUY alerts with hidden accept commands sent.");
+  console.log("Discord compact BUY alerts sent.");
 }
 
 async function sendDiscordSellAlerts(sellSignals, state) {

@@ -100,6 +100,103 @@ function formatGpRange(low, high) {
   return `${formatGp(cleanLow)}–${formatGp(cleanHigh)} gp`;
 }
 
+
+const SCANNER_PROMOTION_FILE =
+  process.env.SCANNER_PROMOTION_FILE || "./scanner-candidates.json";
+const SCANNER_PROMOTION_SAVE_LIMIT = Number(
+  process.env.SCANNER_PROMOTION_SAVE_LIMIT || SCANNER_TOP_LIMIT || 20,
+);
+
+function getScannerPromotionBucket(item) {
+  if (
+    item.scannerTier === "SAFE" &&
+    item.conviction === "HIGH CONVICTION TRADE" &&
+    Number(item.brainScore || 0) >= 82 &&
+    Number(item.profitPercent || 0) >= 7
+  ) {
+    return "safe";
+  }
+
+  if (["SAFE", "WATCH"].includes(item.scannerTier)) return "watch";
+  return "experimental";
+}
+
+function cleanScannerPromotionNumber(value) {
+  const number = Number(value || 0);
+  if (!Number.isFinite(number)) return 0;
+  return Math.round(number * 100) / 100;
+}
+
+function saveScannerPromotionCandidates(rankedItems, meta = {}) {
+  const now = new Date().toISOString();
+  const candidates = rankedItems
+    .filter((item) => item.scannerTier !== "AVOID")
+    .slice(0, Math.max(1, SCANNER_PROMOTION_SAVE_LIMIT))
+    .map((item, index) => {
+      const actionPlan = buildScannerActionPlan(item);
+      const moneyPlan = actionPlan.moneyPlan || item.moneyPlan || {};
+
+      return {
+        id: Number(item.id),
+        itemId: Number(item.id),
+        name: item.name,
+        rank: index + 1,
+        source: "scanner",
+        seenAt: now,
+        scannerTier: item.scannerTier,
+        qualityTier: item.qualityTier || "WEAK",
+        conviction: item.conviction || "UNKNOWN",
+        suggestedBucket: getScannerPromotionBucket(item),
+        scannerScore: cleanScannerPromotionNumber(item.scannerScore),
+        brainScore: cleanScannerPromotionNumber(item.brainScore),
+        tradeabilityScore: cleanScannerPromotionNumber(item.tradeabilityScore),
+        moneyEdgeScore: cleanScannerPromotionNumber(moneyPlan.edgeScore),
+        moneyEdgeLabel: moneyPlan.edgeLabel || "UNKNOWN",
+        directAction: moneyPlan.directAction || "UNKNOWN",
+        directReason: moneyPlan.directReason || "",
+        recommendedQty: Number(moneyPlan.recommendedQty || 1),
+        quantityLabel: moneyPlan.quantityLabel || "UNKNOWN",
+        buyOffer: Math.round(Number(item.buyOffer || 0)),
+        sellOffer: Math.round(Number(item.sellOffer || 0)),
+        profit: Math.round(Number(item.profit || 0)),
+        profitPercent: cleanScannerPromotionNumber(item.profitPercent),
+        buyRange: actionPlan.buyRange,
+        hardMaxBuy: actionPlan.maxChase,
+        sellRange: actionPlan.sellRange,
+        exitNote: actionPlan.exitNote,
+        exitConfidence: item.exitConfidence || "UNKNOWN",
+        fakeSpreadRisk: cleanScannerPromotionNumber(item.fakeSpreadRisk),
+        volumeRatio: cleanScannerPromotionNumber(item.volumeRatio),
+        daySold: cleanScannerPromotionNumber(item.daySold),
+        monthSold: cleanScannerPromotionNumber(item.monthSold),
+        marketPressure: cleanScannerPromotionNumber(item.marketPressure),
+        marketPressureLevel: item.marketPressureLevel || "UNKNOWN",
+        warnings: Array.isArray(item.tradeWarnings) ? item.tradeWarnings.slice(0, 5) : [],
+        notes: Array.isArray(item.scannerNotes) ? item.scannerNotes.slice(0, 8) : [],
+      };
+    });
+
+  const payload = {
+    updatedAt: now,
+    server: SERVER,
+    source: "scanner",
+    checked: meta.checked || 0,
+    market: {
+      volatility: meta.volatility,
+      level: meta.runAdvice?.level,
+      message: meta.runAdvice?.message,
+    },
+    candidates,
+  };
+
+  const tempPath = SCANNER_PROMOTION_FILE + ".tmp";
+  fs.writeFileSync(tempPath, JSON.stringify(payload, null, 2));
+  fs.renameSync(tempPath, SCANNER_PROMOTION_FILE);
+  console.log(
+    "Saved " + candidates.length + " scanner promotion candidates to " + SCANNER_PROMOTION_FILE + ".",
+  );
+}
+
 function buildScannerActionPlan(item) {
   const moneyPlan = buildMoneyPlan(item);
   const hasHardTrap =
@@ -935,6 +1032,12 @@ function buildScannerReportItems(analyzedItems) {
 async function sendDiscordScannerReport(analyzedItems, volatility, runAdvice) {
   const rankedItems = buildScannerReportItems(analyzedItems);
   const topItems = rankedItems.slice(0, SCANNER_TOP_LIMIT);
+
+  saveScannerPromotionCandidates(topItems, {
+    checked: analyzedItems.length,
+    volatility,
+    runAdvice,
+  });
 
   if (topItems.length === 0) {
     await axios.post(DISCORD_WEBHOOK_URL, {
