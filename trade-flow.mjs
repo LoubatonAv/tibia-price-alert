@@ -355,6 +355,53 @@ async function runSold() {
   console.log(`Remaining owned: ${position.quantity} | Remaining listed: ${position.listedQuantity}`);
 }
 
+async function runCancelListing() {
+  const data = loadPositions();
+  const rows = activeListings(data);
+
+  const position = await chooseFromList(rows, "CANCEL / REMOVE LISTED SELL OFFER", (row, index) => {
+    console.log(
+      `${index + 1}) ${row.name} (${row.id}) | listed ${row.listedQuantity} @ ${formatGp(row.lastListPrice)} gp | flow ${row.flow || "UNKNOWN"} | age ${formatAge(row.lastListedAt)}`,
+    );
+  });
+
+  if (!position) return;
+
+  const listedQty = Number(position.listedQuantity || 0);
+  const qtyAnswer = await question(`Quantity removed from Tibia Market [${listedQty}]: `);
+  const cancelQty = qtyAnswer ? Number(qtyAnswer) : listedQty;
+
+  if (!Number.isFinite(cancelQty) || cancelQty <= 0 || cancelQty > listedQty) {
+    console.log("Invalid quantity.");
+    return;
+  }
+
+  const confirmed = await yesNo("Did you actually cancel/remove this sell offer in Tibia Market? Y/N:");
+  if (!confirmed) {
+    console.log("Cancelled. Nothing saved.");
+    return;
+  }
+
+  position.listedQuantity = Math.max(0, Number(position.listedQuantity || 0) - cancelQty);
+  position.status = position.listedQuantity > 0 ? "PARTIALLY_LISTED" : "ITEMS_RECEIVED";
+  position.lastListingCancelledAt = new Date().toISOString();
+
+  addEvent(position, "LISTING_CANCELLED", {
+    quantity: cancelQty,
+    previousListPrice: Number(position.lastListPrice || 0),
+    note: "Sell offer was removed from Tibia Market. Original listing fee is already paid/lost.",
+  });
+
+  savePositions(data);
+
+  console.log("\nLISTING CANCELLED / REMOVED");
+  console.log(`${position.name}: removed ${cancelQty} from listed offers.`);
+  console.log(`Still listed: ${position.listedQuantity}`);
+  console.log(`Owned / ready to list: ${Math.max(0, Number(position.quantity || 0) - Number(position.listedQuantity || 0))}`);
+  console.log("\nUse List ready items for sale when you want to relist at a new price.");
+}
+
+
 async function runAddLoot() {
   console.log("\nADD LOOT / EXTERNAL ITEMS\n");
   const itemInput = await question("Item name or ID: ");
@@ -470,6 +517,7 @@ try {
   if (action === "receive") await runReceive();
   else if (action === "list") await runList();
   else if (action === "sold") await runSold();
+  else if (action === "cancel-listing") await runCancelListing();
   else if (action === "add-loot") await runAddLoot();
   else if (action === "cancel") await runCancelOrExpire("cancel");
   else if (action === "expire") await runCancelOrExpire("expire");
@@ -479,6 +527,7 @@ Usage:
   node trade-flow.mjs receive
   node trade-flow.mjs list
   node trade-flow.mjs sold
+  node trade-flow.mjs cancel-listing
   node trade-flow.mjs add-loot
   node trade-flow.mjs cancel
   node trade-flow.mjs expire

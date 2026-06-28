@@ -663,7 +663,7 @@
       "quantity": 10,
       "orderedQuantity": 10,
       "receivedQuantity": 10,
-      "listedQuantity": 10,
+      "listedQuantity": 0,
       "soldQuantity": 0,
       "totalListedQuantity": 10,
       "buyOfferFeePaid": 0,
@@ -671,7 +671,7 @@
       "targetSell": 8049,
       "desiredMargin": 0.06,
       "entryBrainScore": null,
-      "status": "LISTED_FOR_SALE",
+      "status": "ITEMS_RECEIVED",
       "events": [
         {
           "type": "BUY_ORDER_PLACED",
@@ -695,10 +695,18 @@
           "quantity": 10,
           "listPrice": 15992,
           "offerFeePaid": 3198.4
+        },
+        {
+          "type": "LISTING_CANCELLED",
+          "at": "2026-06-28T12:15:29.963Z",
+          "quantity": 10,
+          "previousListPrice": 15992,
+          "note": "Sell offer was removed from Tibia Market. Original listing fee is already paid/lost."
         }
       ],
       "lastListPrice": 15992,
-      "lastListedAt": "2026-06-14T23:44:18.789Z"
+      "lastListedAt": "2026-06-14T23:44:18.789Z",
+      "lastListingCancelledAt": "2026-06-28T12:15:29.963Z"
     },
     {
       "id": 3081,
@@ -712,7 +720,7 @@
       "quantity": 9,
       "orderedQuantity": 9,
       "receivedQuantity": 9,
-      "listedQuantity": 9,
+      "listedQuantity": 0,
       "soldQuantity": 0,
       "totalListedQuantity": 9,
       "buyOfferFeePaid": 0,
@@ -720,7 +728,7 @@
       "targetSell": null,
       "desiredMargin": 0,
       "entryBrainScore": null,
-      "status": "LISTED_FOR_SALE",
+      "status": "ITEMS_RECEIVED",
       "events": [
         {
           "type": "LOOT_OR_EXTERNAL_POSITION_CREATED_FROM_LISTING",
@@ -736,10 +744,18 @@
           "quantity": 9,
           "listPrice": 15992,
           "offerFeePaid": 2878.56
+        },
+        {
+          "type": "LISTING_CANCELLED",
+          "at": "2026-06-28T12:15:40.247Z",
+          "quantity": 9,
+          "previousListPrice": 15992,
+          "note": "Sell offer was removed from Tibia Market. Original listing fee is already paid/lost."
         }
       ],
       "lastListPrice": 15992,
-      "lastListedAt": "2026-06-14T23:54:25.757Z"
+      "lastListedAt": "2026-06-14T23:54:25.757Z",
+      "lastListingCancelledAt": "2026-06-28T12:15:40.246Z"
     },
     {
       "id": 5892,

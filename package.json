@@ -18,7 +18,8 @@
     "flow-sold": "node trade-flow.mjs sold",
     "flow-add-loot": "node trade-flow.mjs add-loot",
     "flow-cancel-order": "node trade-flow.mjs cancel",
-    "flow-expire-order": "node trade-flow.mjs expire"
+    "flow-expire-order": "node trade-flow.mjs expire",
+    "flow-cancel-listing": "node trade-flow.mjs cancel-listing"
   },
   "keywords": [],
   "author": "",

@@ -11,7 +11,7 @@ echo.
 echo 1. Dashboard / What should I do now
 echo 2. Receive filled buy order
 echo 3. List ready items for sale
-echo 4. Mark listed items as sold
+echo 4. Listed items - sold / cancel
 echo 5. Add loot / external items
 echo 6. Buy orders / signals
 echo 7. Find trades / market tools
@@ -53,9 +53,26 @@ goto menu
 
 :soldlisting
 cls
-call npm run flow-sold
+echo ============================
+echo        LISTED ITEMS
+echo ============================
+echo.
+echo 1. Mark listed item as SOLD
+echo    - Use after someone bought your sell offer.
+echo.
+echo 2. Cancel / remove listed sell offer
+echo    - Use after you cancel a listing in Tibia Market.
+echo    - Item becomes ready to list again at a new price.
+echo.
+echo 0. Back
+echo.
+set /p listedchoice=Choose option: 
+
+if "%listedchoice%"=="1" call npm run flow-sold
+if "%listedchoice%"=="2" call npm run flow-cancel-listing
+if "%listedchoice%"=="0" goto menu
 pause
-goto menu
+goto soldlisting
 
 :addloot
 cls
