@@ -740,6 +740,39 @@
       ],
       "lastListPrice": 15992,
       "lastListedAt": "2026-06-14T23:54:25.757Z"
+    },
+    {
+      "id": 5892,
+      "name": "huge chunk of crude iron",
+      "createdAt": "2026-06-22T11:04:39.986Z",
+      "openedAt": "2026-06-22T11:04:39.986Z",
+      "flow": "BUY_ORDER_FLOW",
+      "entryPrice": 8000,
+      "averageEntryPrice": 8000,
+      "originalQuantity": 10,
+      "quantity": 0,
+      "orderedQuantity": 10,
+      "receivedQuantity": 0,
+      "listedQuantity": 0,
+      "soldQuantity": 0,
+      "totalListedQuantity": 0,
+      "buyOfferFeePaid": 0,
+      "sellOfferFeePaid": 0,
+      "targetSell": 15000,
+      "desiredMargin": 0.06,
+      "entryBrainScore": null,
+      "status": "BUY_ORDER_PLACED",
+      "events": [
+        {
+          "type": "BUY_ORDER_PLACED",
+          "at": "2026-06-22T11:04:39.986Z",
+          "entryPrice": 8000,
+          "quantity": 10,
+          "targetSell": 15000,
+          "offerFeePaid": 1600,
+          "brainScore": null
+        }
+      ]
     }
   ]
 }
