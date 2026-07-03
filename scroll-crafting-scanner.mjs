@@ -164,23 +164,6 @@ function getMonthSold(row) {
   return Number(row?.month_sold || 0);
 }
 
-function classifyDemand(daySold, monthSold) {
-  if (daySold >= 2 || monthSold >= 20) return "HIGH";
-  if (daySold >= 1 || monthSold >= 7) return "MEDIUM";
-  if (monthSold > 0) return "LOW";
-  return "UNKNOWN";
-}
-
-function classifyRisk({ missing, daySold, monthSold, outputBuy, breakEvenSell }) {
-  if (missing.length > 0) return "UNKNOWN";
-  if (monthSold <= 0 && daySold <= 0 && outputBuy <= 0) return "HIGH";
-
-  const buySupport = breakEvenSell > 0 ? outputBuy / breakEvenSell : 0;
-  if (monthSold < 3 && buySupport < 0.7) return "HIGH";
-  if (monthSold < 10 && buySupport < 0.9) return "MEDIUM";
-  return "LOW";
-}
-
 function effectiveBlankCost(blankMarketSell, npcCap) {
   const cap = Number(npcCap || 25000);
   const market = Number(blankMarketSell || 0);
@@ -197,6 +180,20 @@ function decide(row) {
   if (row.profit >= 40000 && row.roi >= 8) return "WATCH";
   return "LOW EDGE";
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 function classifyDemand(row) {
@@ -246,12 +243,13 @@ function classifyRisk(row) {
 }
 
 function enrichScrollLiquidity(row) {
-  row.demand = classifyDemand(row);
-  row.buySupport = classifyBuySupport(row);
-  row.risk = classifyRisk(row);
-  return row;
+  return {
+    ...row,
+    demand: classifyDemand(row),
+    buySupport: classifyBuySupport(row),
+    risk: classifyRisk(row),
+  };
 }
-
 
 function buildDiscordPayload(rows) {
   const top = rows.slice(0, 8);
@@ -269,7 +267,7 @@ function buildDiscordPayload(rows) {
             "Profit: **" + formatGp(row.profit) + "** | ROI: **" + formatPercent(row.roi) + "**\n" +
             "Break-even sell: **" + formatGp(row.breakEvenSell) + "**\n" +
             "Volume: **" + formatGp(row.daySold) + "/day | " + formatGp(row.monthSold) + "/month**\n" +
-            "Highest buy: **" + formatGp(row.outputBuy) + "** | Demand: **" + row.demandLevel + "** | Risk: **" + row.riskLevel + "**\n" +
+            "Highest buy: **" + formatGp(row.outputBuy) + " gp** | Demand: **" + row.demand + "** | Buy support: **" + row.buySupport + "** | Risk: **" + row.risk + "**\n" +
             "Blank: **" + formatGp(row.blankCost) + "** | Missing: **" + row.missing.length + "**",
         })),
         footer: {
@@ -446,16 +444,24 @@ async function main() {
 
     return {
       ...row,
-      demandLevel: classifyDemand(daySold, monthSold),
-      riskLevel: classifyRisk(row),
       action: decide(row),
     };
   });
 
-  const sortedRows = [...rows].sort((a, b) => b.profit - a.profit);
-  const filtered = sortedRows.filter((row) => row.profit >= minProfit);
+  const enrichedRows = rows.map(enrichScrollLiquidity);
 
-  fs.writeFileSync(RESULTS_FILE, JSON.stringify({ updatedAt: new Date().toISOString(), server: SERVER, rows: sortedRows }, null, 2));
+  const sortedRows = [...enrichedRows].sort((a, b) => b.profit - a.profit);
+  const filtered = sortedRows
+    .filter((row) => row.profit >= minProfit);
+
+  fs.writeFileSync(
+    RESULTS_FILE,
+    JSON.stringify({
+      updatedAt: new Date().toISOString(),
+      server: SERVER,
+      rows: sortedRows,
+    }, null, 2),
+  );
 
   console.log("\nSCROLL CRAFTING SCANNER — " + SERVER);
   console.log("Recipes checked: " + resolvedRecipes.length);
@@ -469,7 +475,7 @@ async function main() {
   const shown = filtered.slice(0, limit);
 
   const printMissingPriceSummary = () => {
-    const missingRows = rows.filter((row) => row.missing.length > 0);
+    const missingRows = enrichedRows.filter((row) => row.missing.length > 0);
     if (missingRows.length === 0) return;
 
     console.log("Missing price summary:");
@@ -495,7 +501,7 @@ async function main() {
     console.log("Profit: ~" + formatGp(row.profit) + " gp | ROI: " + formatPercent(row.roi));
     console.log("Break-even sell: " + formatGp(row.breakEvenSell) + " gp");
     console.log("Volume: " + formatGp(row.daySold) + " sold today | " + formatGp(row.monthSold) + " sold month");
-    console.log("Highest buy: " + formatGp(row.outputBuy) + " gp | Demand: " + row.demandLevel + " | Risk: " + row.riskLevel);
+    console.log("Highest buy: " + formatGp(row.outputBuy) + " gp | Demand: " + row.demand + " | Buy support: " + row.buySupport + " | Risk: " + row.risk);
 
     if (row.missing.length > 0) {
       console.log("Missing prices: " + row.missing.join(", "));
