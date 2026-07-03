@@ -19,7 +19,11 @@
     "flow-add-loot": "node trade-flow.mjs add-loot",
     "flow-cancel-order": "node trade-flow.mjs cancel",
     "flow-expire-order": "node trade-flow.mjs expire",
-    "flow-cancel-listing": "node trade-flow.mjs cancel-listing"
+    "flow-cancel-listing": "node trade-flow.mjs cancel-listing",
+    "scrolls": "node scroll-crafting-scanner.mjs --tier powerful --limit 10",
+    "scrolls-all": "node scroll-crafting-scanner.mjs --tier powerful --limit 999",
+    "scrolls-discord": "node scroll-crafting-scanner.mjs --tier powerful --limit 8 --discord",
+    "scrolls-top": "node scroll-crafting-scanner.mjs --tier powerful --limit 10"
   },
   "keywords": [],
   "author": "",

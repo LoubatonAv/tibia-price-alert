@@ -202,6 +202,9 @@ echo.
 echo 9. Quick profit check
 echo    - Manual profit/ROI check for one item and one sell price.
 echo.
+echo 10. Scroll Crafting Scanner
+echo     - Finds profitable Powerful imbuement scrolls.
+echo.
 echo 0. Back
 echo.
 set /p toolchoice=Choose option: 
@@ -214,6 +217,7 @@ if "%toolchoice%"=="6" goto cleandiscovery
 if "%toolchoice%"=="7" goto selladvisor
 if "%toolchoice%"=="8" goto buyadvisor
 if "%toolchoice%"=="9" goto quickcheck
+if "%toolchoice%"=="10" goto scrollcraft
 if "%toolchoice%"=="0" goto menu
 goto markettools
 
@@ -327,3 +331,25 @@ git push
 pause
 goto menu
 
+
+:scrollcraft
+cls
+echo ============================
+echo    SCROLL CRAFTING SCANNER
+echo ============================
+echo.
+echo 1. Best Powerful scrolls
+echo    - Scans all enabled Powerful scrolls and shows the best by profit.
+echo.
+echo 2. All Powerful scrolls
+echo    - Scans all enabled Powerful scrolls and shows the full list.
+echo.
+echo 0. Back
+echo.
+set /p scrollchoice=Choose option:
+
+if "%scrollchoice%"=="1" call npm run scrolls
+if "%scrollchoice%"=="2" call npm run scrolls-all
+if "%scrollchoice%"=="0" goto markettools
+pause
+goto scrollcraft

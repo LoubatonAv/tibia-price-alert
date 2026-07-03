@@ -1,0 +1,20 @@
+{
+  "recipes": [
+    { "outputName": "Powerful Epiphany Scroll", "tier": "powerful", "imbuement": "Epiphany", "ingredients": [{ "name": "Elvish Talisman", "qty": 25 }, { "name": "Broken Shamanic Staff", "qty": 15 }, { "name": "Strand of Medusa Hair", "qty": 15 }] },
+    { "outputName": "Powerful Vampirism Scroll", "tier": "powerful", "imbuement": "Vampirism", "ingredients": [{ "name": "Vampire Teeth", "qty": 25 }, { "name": "Bloody Pincers", "qty": 15 }, { "name": "Piece of Dead Brain", "qty": 5 }] },
+    { "outputName": "Powerful Void Scroll", "tier": "powerful", "imbuement": "Void", "ingredients": [{ "name": "Rope Belt", "qty": 25 }, { "name": "Silencer Claws", "qty": 25 }, { "name": "Some Grimeleech Wings", "qty": 5 }] },
+    { "outputName": "Powerful Strike Scroll", "tier": "powerful", "imbuement": "Strike", "ingredients": [{ "name": "Protective Charm", "qty": 20 }, { "name": "Sabretooth", "qty": 25 }, { "name": "Vexclaw Talon", "qty": 5 }] },
+    { "outputName": "Powerful Precision Scroll", "tier": "powerful", "imbuement": "Precision", "ingredients": [{ "name": "Elven Scouting Glass", "qty": 25 }, { "name": "Elven Hoof", "qty": 20 }, { "name": "Metal Spike", "qty": 10 }] },
+    { "outputName": "Powerful Bash Scroll", "tier": "powerful", "imbuement": "Bash", "ingredients": [{ "name": "Cyclops Toe", "qty": 20 }, { "name": "Ogre Nose Ring", "qty": 15 }, { "name": "Warmaster's Wristguards", "qty": 10 }] },
+    { "outputName": "Powerful Slash Scroll", "tier": "powerful", "imbuement": "Slash", "ingredients": [{ "name": "Lion's Mane", "qty": 25 }, { "name": "Mooh'tah Shell", "qty": 25 }, { "name": "War Crystal", "qty": 5 }] },
+    { "outputName": "Powerful Chop Scroll", "tier": "powerful", "imbuement": "Chop", "ingredients": [{ "name": "Orc Tooth", "qty": 20 }, { "name": "Battle Stone", "qty": 25 }, { "name": "Moohtant Horn", "qty": 20 }] },
+    { "outputName": "Powerful Blockade Scroll", "tier": "powerful", "imbuement": "Blockade", "ingredients": [{ "name": "Piece of Scarab Shell", "qty": 20 }, { "name": "Brimstone Shell", "qty": 25 }, { "name": "Frazzle Skin", "qty": 25 }] },
+    { "outputName": "Powerful Dragon Hide Scroll", "tier": "powerful", "imbuement": "Dragon Hide", "ingredients": [{ "name": "Green Dragon Leather", "qty": 20 }, { "name": "Blazing Bone", "qty": 10 }, { "name": "Draken Sulphur", "qty": 5 }] },
+    { "outputName": "Powerful Quara Scale Scroll", "tier": "powerful", "imbuement": "Quara Scale", "ingredients": [{ "name": "Winter Wolf Fur", "qty": 25 }, { "name": "Thick Fur", "qty": 15 }, { "name": "Deepling Warts", "qty": 10 }] },
+    { "outputName": "Powerful Cloud Fabric Scroll", "tier": "powerful", "imbuement": "Cloud Fabric", "ingredients": [{ "name": "Wyvern Talisman", "qty": 20 }, { "name": "Crawler Head Plating", "qty": 15 }, { "name": "Wyrm Scale", "qty": 10 }] },
+    { "outputName": "Powerful Lich Shroud Scroll", "tier": "powerful", "imbuement": "Lich Shroud", "ingredients": [{ "name": "Flask of Embalming Fluid", "qty": 25 }, { "name": "Gloom Wolf Fur", "qty": 20 }, { "name": "Mystical Hourglass", "qty": 5 }] },
+    { "outputName": "Powerful Snake Skin Scroll", "tier": "powerful", "imbuement": "Snake Skin", "ingredients": [{ "name": "Piece of Swampling Wood", "qty": 25 }, { "name": "Snake Skin", "qty": 20 }, { "name": "Brimstone Fangs", "qty": 10 }] },
+    { "outputName": "Powerful Featherweight Scroll", "tier": "powerful", "imbuement": "Featherweight", "ingredients": [{ "name": "Fairy Wings", "qty": 20 }, { "name": "Little Bowl of Myrrh", "qty": 10 }, { "name": "Goosebump Leather", "qty": 5 }] },
+    { "outputName": "Powerful Demon Presence Scroll", "tier": "powerful", "imbuement": "Demon Presence", "ingredients": [{ "name": "Cultish Robe", "qty": 25 }, { "name": "Cultish Mask", "qty": 25 }, { "name": "Hellspawn Tail", "qty": 20 }] }
+  ]
+}
