@@ -344,12 +344,16 @@ echo.
 echo 2. All Powerful scrolls
 echo    - Scans all enabled Powerful scrolls and shows the full list.
 echo.
+echo 3. Send best Powerful scrolls to Discord
+echo    - Scans Powerful scrolls and sends the best results to Discord.
+echo.
 echo 0. Back
 echo.
 set /p scrollchoice=Choose option:
 
 if "%scrollchoice%"=="1" call npm run scrolls
 if "%scrollchoice%"=="2" call npm run scrolls-all
+if "%scrollchoice%"=="3" call npm run scrolls-discord
 if "%scrollchoice%"=="0" goto markettools
 pause
 goto scrollcraft

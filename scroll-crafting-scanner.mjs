@@ -287,7 +287,7 @@ async function maybeSendDiscord(rows, flags) {
     process.env.DISCORD_WEBHOOK_URL;
 
   if (!webhook) {
-    console.log("Discord skipped: missing TIBIA_SCROLLS_WEBHOOK_URL / TIBIA_SCANNER_WEBHOOK_URL.");
+    console.log("Discord skipped: missing TIBIA_SCROLLS_WEBHOOK_URL / TIBIA_SCANNER_WEBHOOK_URL / DISCORD_WEBHOOK_URL");
     return;
   }
 
