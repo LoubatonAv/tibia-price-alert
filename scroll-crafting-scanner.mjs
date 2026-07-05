@@ -829,8 +829,7 @@ function buildDiscordPayloadLegacy(rows) {
 
 function buildDiscordPayload(rows) {
   const top = [...rows]
-    .sort(comparePracticalRank)
-    .slice(0, 8);
+    .sort(comparePracticalRank);
 
   return {
     embeds: [{
@@ -839,37 +838,28 @@ function buildDiscordPayload(rows) {
       color: 0x9966ff,
       fields: top.map((row, index) => {
         const profit = (row.profitNow >= 0 ? "+" : "") + formatCompactGp(row.profitNow);
+        const avgProfit = (row.avgProfit >= 0 ? "+" : "") + formatCompactGp(row.avgProfit);
         const safe = (row.safeScore >= 0 ? "+" : "") + formatCompactGp(row.safeScore);
         const queue = Number.isFinite(row.estimatedQueueDays)
           ? "~" + row.estimatedQueueDays.toFixed(1) + "d"
           : "Inf";
-        const recipe = Array.isArray(row.ingredients)
-          ? row.ingredients
-              .filter((ingredient) => !/^Blank(?: Imbuement)? Scroll$/i.test(String(ingredient.name || "")))
-              .map((ingredient) => ingredient.qty + "x " + ingredient.name)
-              .join(" - ")
-          : "";
         const details = [];
         if (row.risk === "HIGH" || row.action !== "CRAFT" || row.profitNow < 100000) {
           details.push("Break-even " + formatCompactGp(row.breakEvenSell, { round: true }));
         }
         if (row.missing.length > 0) details.push("Missing " + row.missing.length);
         if (row.priceSpikeRisk === "HIGH") {
-          details.push("⚠ Spike: current sell far above avg; avg profit negative");
+          details.push("⚠ Current sell is far above average. This is speculative.");
         }
+        if (row.avgProfit < 0) details.push("Avg profit negative at monthly average price.");
 
         return {
-          name: "#" + (index + 1) + " " + cleanScrollName(row.outputName) + " - " + row.action,
+          name: "#" + (index + 1) + " " + cleanScrollName(row.outputName) + " — " + row.action,
           value:
-            "Profit " + profit + " | Safe " + safe + " | ROI " + row.roiNow.toFixed(1) + "%\n" +
-            "Sell " + formatCompactGp(row.currentLowestSell, { round: true }) + " | Avg " + formatCompactGp(row.avgSellPrice, { round: true }) + " | Sold " + formatCompactGp(row.monthSold) + "/mo\n" +
-            "Realism " + (row.priceRealismFactor * 100).toFixed(0) + "% | Queue " + queue + " | Support " + row.buySupport + " | Risk " + row.risk +
-            (details.length > 0 ? "\n" + details.join(" | ") : "") +
-            (recipe ? "\n\nNeed: " + recipe : "") +
-            "\n\n```cmd\n" +
-            "cd /d C:\\Users\\Avner\\Desktop\\Projects\\tibia-price-alert\n" +
-            "npm run accept-scroll -- --scroll \"" + row.outputName + "\" --qty 1\n" +
-            "```\n\u200B",
+            "Action **" + row.action + "** | ProfitNow " + profit + " | AvgProfit " + avgProfit + " | SafeScore " + safe + "\n" +
+            "Sold " + formatCompactGp(row.monthSold) + "/mo | Realism " + (row.priceRealismFactor * 100).toFixed(0) + "% | Queue " + queue + "\n" +
+            "FillRisk " + row.ingredientFillRisk + " | SpikeRisk " + row.priceSpikeRisk +
+            (details.length > 0 ? "\n" + details.join("\n") : ""),
           inline: false,
         };
       }),
