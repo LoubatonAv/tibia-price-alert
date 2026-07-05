@@ -22,6 +22,7 @@
     "flow-cancel-listing": "node trade-flow.mjs cancel-listing",
     "scrolls": "node scroll-crafting-scanner.mjs --tier powerful --limit 10",
     "scrolls-all": "node scroll-crafting-scanner.mjs --tier powerful --limit 999",
+    "scrolls-audit": "node scroll-crafting-scanner.mjs --tier powerful --audit",
     "scrolls-discord": "node scroll-crafting-scanner.mjs --tier powerful --limit 8 --discord",
     "scrolls-top": "node scroll-crafting-scanner.mjs --tier powerful --limit 10"
   },
