@@ -548,11 +548,14 @@ function decide(row) {
   if (row.outputSell <= 0 && !row.hasSellStats) return "NO SCROLL SELL PRICE";
   const rawProfit = Number(row.profitNow ?? row.rawProfit ?? row.profit ?? 0);
   const craftEV = Number(row.safeScore ?? row.craftEV ?? 0);
+  const avgProfit = Number(row.avgProfit || 0);
   const monthSold = Number(row.monthSold || 0);
   const estimatedQueueDays = Number(row.estimatedQueueDays);
+  const priceRealismFactor = Number(row.priceRealismFactor || 0);
 
   if (rawProfit <= 0) return "AVOID";
   if (row.priceSpikeRisk === "HIGH") return "SPECULATIVE";
+
   if (
     rawProfit >= 100000 &&
     craftEV >= 100000 &&
@@ -564,15 +567,17 @@ function decide(row) {
   ) {
     return "CRAFT";
   }
+
   if (
     rawProfit >= 100000 &&
-    craftEV >= 50000 &&
-    monthSold >= 25 &&
-    row.priceSpikeRisk !== "HIGH" &&
+    craftEV >= 60000 &&
+    monthSold >= 40 &&
+    row.priceSpikeRisk === "LOW" &&
     ["LOW", "MEDIUM"].includes(row.ingredientFillRisk)
   ) {
     return "TEST 1x";
   }
+
   if (rawProfit < 100000 && monthSold >= 100 && craftEV > 0) return "LOW MARGIN";
   return "WATCH";
 }
@@ -827,7 +832,7 @@ function buildDiscordPayloadLegacy(rows) {
   };
 }
 
-function buildDiscordPayload(rows) {
+function buildDiscordPayloadVerboseLegacy(rows) {
   const top = [...rows]
     .sort(comparePracticalRank);
 
@@ -870,6 +875,104 @@ function buildDiscordPayload(rows) {
   };
 }
 
+function buildDiscordPayload(rows, flags = {}) {
+  const includeAvoid = Boolean(flags["include-avoid"]);
+  const maxRows = includeAvoid ? 999 : 6;
+
+  const bySafeScore = (a, b) => Number(b.safeScore || 0) - Number(a.safeScore || 0);
+  const isStrongSpeculative = (row) =>
+    row.action === "SPECULATIVE" &&
+    (Number(row.profitNow || 0) >= 100000 || Number(row.safeScore || 0) >= 50000);
+
+  const testRows = rows.filter((row) => row.action === "TEST 1x").sort(bySafeScore);
+  const speculativeRows = rows.filter(isStrongSpeculative).sort(bySafeScore);
+  const watchRows = rows.filter((row) => row.action === "WATCH").sort(bySafeScore);
+  const avoidRows = rows.filter((row) => row.action === "AVOID").sort(bySafeScore);
+
+  const visibleRows = includeAvoid
+    ? [...testRows, ...speculativeRows, ...watchRows, ...avoidRows]
+    : [...testRows, ...speculativeRows, ...watchRows].slice(0, maxRows);
+
+  const visibleSet = new Set(visibleRows);
+  const hiddenAvoidCount = includeAvoid ? 0 : avoidRows.length;
+  const hiddenWeakSpeculativeCount = rows.filter((row) => row.action === "SPECULATIVE" && !isStrongSpeculative(row)).length;
+  const hiddenLowPriorityWatchCount = includeAvoid ? 0 : watchRows.filter((row) => !visibleSet.has(row)).length;
+
+  const queueText = (row) =>
+    Number.isFinite(row.estimatedQueueDays) ? row.estimatedQueueDays.toFixed(1) + "d" : "Inf";
+
+  const rowTitle = (row, index) =>
+    "#" + (index + 1) + " " + cleanScrollName(row.outputName) + " - " + row.action;
+
+  const profitLine = (row) => {
+    const profit = (row.profitNow >= 0 ? "+" : "") + formatCompactGp(row.profitNow);
+    const avgProfit = (row.avgProfit >= 0 ? "+" : "") + formatCompactGp(row.avgProfit);
+    const safe = (row.safeScore >= 0 ? "+" : "") + formatCompactGp(row.safeScore);
+    return "Profit " + profit + " | Avg " + avgProfit + " | Safe " + safe;
+  };
+
+  const fullValue = (row) => {
+    let value =
+      profitLine(row) + "\n" +
+      formatCompactGp(row.monthSold) + "/mo | Queue " + queueText(row) +
+      " | Realism " + (row.priceRealismFactor * 100).toFixed(0) + "% | Fill " + row.ingredientFillRisk +
+      "\nSpike " + row.priceSpikeRisk;
+
+    if (row.priceSpikeRisk === "HIGH") {
+      value += "\nWarning: current sell far above average. Do not treat as normal craft.";
+    }
+    if (row.avgProfit < 0) value += "\nAvg profit negative at monthly average price.";
+    return value;
+  };
+
+  const compactValue = (row) =>
+    profitLine(row) + " | " + formatCompactGp(row.monthSold) + "/mo | Queue " + queueText(row) +
+    " | Realism " + (row.priceRealismFactor * 100).toFixed(0) + "%";
+
+  const addSection = (fields, title, sectionRows, compact = false) => {
+    if (sectionRows.length === 0) return;
+    const value = sectionRows
+      .map((row, index) => rowTitle(row, index) + "\n" + (compact ? compactValue(row) : fullValue(row)))
+      .join("\n\n");
+    fields.push({ name: title, value, inline: false });
+  };
+
+  const fields = [];
+  addSection(fields, "Test 1x candidates", visibleRows.filter((row) => row.action === "TEST 1x"));
+  addSection(fields, "Speculative, not normal craft", visibleRows.filter((row) => row.action === "SPECULATIVE"));
+  addSection(fields, "Watch", visibleRows.filter((row) => row.action === "WATCH"), true);
+  if (includeAvoid) addSection(fields, "Avoid", visibleRows.filter((row) => row.action === "AVOID"), true);
+
+  if (fields.length === 0) {
+    fields.push({
+      name: "No actionable scrolls",
+      value: "No TEST 1x, strong SPECULATIVE, or WATCH rows passed the default Discord filter.",
+      inline: false,
+    });
+  }
+
+  const hiddenParts = [];
+  if (hiddenAvoidCount > 0) hiddenParts.push(hiddenAvoidCount + " AVOID");
+  if (hiddenWeakSpeculativeCount > 0) hiddenParts.push(hiddenWeakSpeculativeCount + " weak speculative");
+  if (hiddenLowPriorityWatchCount > 0) hiddenParts.push(hiddenLowPriorityWatchCount + " low-priority watch");
+
+  return {
+    embeds: [{
+      title: "Powerful Scroll Crafting - " + SERVER,
+      description: "Tax included | Blank capped at NPC 25k",
+      color: 0x9966ff,
+      fields,
+      footer: {
+        text:
+          (includeAvoid
+            ? "Showing AVOID rows (--include-avoid)."
+            : "Hidden: " + (hiddenParts.length ? hiddenParts.join(" | ") : "none") + ". Use --include-avoid to show AVOID.") +
+          "\nProfit = current lowest sell | Avg = monthly average | Safe = adjusted risk score",
+      },
+    }],
+  };
+}
+
 async function maybeSendDiscord(rows, flags) {
   if (!flags.discord) return;
 
@@ -883,7 +986,7 @@ async function maybeSendDiscord(rows, flags) {
     return;
   }
 
-  await axios.post(webhook, buildDiscordPayload(rows));
+  await axios.post(webhook, buildDiscordPayload(rows, flags));
   console.log("Discord scroll crafting report sent.");
 }
 
@@ -977,7 +1080,7 @@ async function main() {
     boardRequests.push(
       getMarketBoardWithRetry(itemId, { maxAttempts: 1 }).then((board) => {
         ingredientBoards.set(itemId, board);
-        if (!board) {
+        if (!board && flags.verbose) {
           console.log("Ingredient market_board unavailable for item " + itemId + "; using market_values fallback.");
         }
       }),
