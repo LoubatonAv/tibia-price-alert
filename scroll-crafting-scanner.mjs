@@ -875,6 +875,17 @@ function buildDiscordPayloadVerboseLegacy(rows) {
   };
 }
 
+function buildDiscordAcceptCommand(row) {
+  const projectDirectory = process.env.TIBIA_LOCAL_PROJECT_DIR ||
+    (process.env.GITHUB_ACTIONS === "true" ? "<SET_TIBIA_LOCAL_PROJECT_DIR>" : process.cwd());
+  return "cd /d \"" + projectDirectory + "\" && npm run accept-scroll -- --scroll \"" +
+    row.outputName + "\" --qty 1";
+}
+
+function hasDiscordProjectDirPlaceholder() {
+  return process.env.GITHUB_ACTIONS === "true" && !process.env.TIBIA_LOCAL_PROJECT_DIR;
+}
+
 function buildDiscordPayload(rows, flags = {}) {
   const includeAvoid = Boolean(flags["include-avoid"]);
   const includeWatchCommands = Boolean(flags["include-watch-commands"]);
@@ -912,20 +923,17 @@ function buildDiscordPayload(rows, flags = {}) {
     return "Profit " + profit + " | Avg " + avgProfit + " | Safe " + safe;
   };
 
-  const acceptCommand = (row) =>
-    "npm run accept-scroll -- --scroll \"" + row.outputName + "\" --qty 1";
-
   const commandText = (row) => {
     if (row.action === "TEST 1x") {
-      return "\nCMD:\n`" + acceptCommand(row) + "`" +
+      return "\nCMD:\n`" + buildDiscordAcceptCommand(row) + "`" +
         "\nTip: change --qty 1 to --qty 2 if crafting two.";
     }
     if (row.action === "SPECULATIVE") {
-      return "\nCMD risky:\n`" + acceptCommand(row) + "`" +
+      return "\nCMD risky:\n`" + buildDiscordAcceptCommand(row) + "`" +
         "\nKeep speculative default qty at 1.";
     }
     if (row.action === "WATCH" && includeWatchCommands) {
-      return "\nCMD watch:\n`" + acceptCommand(row) + "`" +
+      return "\nCMD watch:\n`" + buildDiscordAcceptCommand(row) + "`" +
         "\nWatch command shown because --include-watch-commands was passed.";
     }
     return "";
@@ -951,10 +959,32 @@ function buildDiscordPayload(rows, flags = {}) {
 
   const addSection = (fields, title, sectionRows, compact = false) => {
     if (sectionRows.length === 0) return;
-    const value = sectionRows
-      .map((row, index) => rowTitle(row, index) + "\n" + (compact ? compactValue(row) : fullValue(row)))
-      .join("\n\n");
-    fields.push({ name: title, value, inline: false });
+    const maxFieldValueLength = 1000;
+    const values = sectionRows
+      .map((row, index) => rowTitle(row, index) + "\n" + (compact ? compactValue(row) : fullValue(row)));
+    let chunk = "";
+    let chunkIndex = 1;
+
+    const pushChunk = () => {
+      if (!chunk) return;
+      fields.push({
+        name: chunkIndex === 1 ? title : title + " " + chunkIndex,
+        value: chunk,
+        inline: false,
+      });
+      chunk = "";
+      chunkIndex++;
+    };
+
+    for (const value of values) {
+      const separator = chunk ? "\n\n" : "";
+      if (chunk && chunk.length + separator.length + value.length > maxFieldValueLength) {
+        pushChunk();
+      }
+      chunk += (chunk ? "\n\n" : "") + value;
+    }
+
+    pushChunk();
   };
 
   const fields = [];
@@ -975,6 +1005,9 @@ function buildDiscordPayload(rows, flags = {}) {
   if (hiddenAvoidCount > 0) hiddenParts.push(hiddenAvoidCount + " AVOID");
   if (hiddenWeakSpeculativeCount > 0) hiddenParts.push(hiddenWeakSpeculativeCount + " weak speculative");
   if (hiddenLowPriorityWatchCount > 0) hiddenParts.push(hiddenLowPriorityWatchCount + " low-priority watch");
+  const commandPathWarning = hasDiscordProjectDirPlaceholder()
+    ? "\nCMD path warning: set GitHub variable TIBIA_LOCAL_PROJECT_DIR to your Windows project folder."
+    : "";
 
   return {
     embeds: [{
@@ -987,7 +1020,8 @@ function buildDiscordPayload(rows, flags = {}) {
           (includeAvoid
             ? "Showing AVOID rows (--include-avoid)."
             : "Hidden: " + (hiddenParts.length ? hiddenParts.join(" | ") : "none") + ". Use --include-avoid to show AVOID.") +
-          "\nProfit = current lowest sell | Avg = monthly average | Safe = adjusted risk score",
+          "\nProfit = current lowest sell | Avg = monthly average | Safe = adjusted risk score" +
+          commandPathWarning,
       },
     }],
   };

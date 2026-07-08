@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
+import { calculateSellOfferFee } from "./lib/trades.js";
 
 const RECIPES_FILE = "./data/scroll-recipes.json";
 const RESULTS_FILE = "./scroll-crafting-results.json";
@@ -66,6 +67,10 @@ function formatGp(value) {
   return Math.round(Number(value || 0)).toLocaleString("en-US") + " gp";
 }
 
+function yesAnswer(value) {
+  return ["y", "yes"].includes(String(value || "").trim().toLowerCase());
+}
+
 async function askPrice(rl, prompt, requiredQty, supplied, defaultTotal = null) {
   let answer = supplied;
   if (answer == null) {
@@ -75,6 +80,54 @@ async function askPrice(rl, prompt, requiredQty, supplied, defaultTotal = null) 
   }
   if (!String(answer).trim()) throw new Error(`${prompt} is required.`);
   return parsePriceValue(answer, requiredQty, prompt);
+}
+
+async function askMoney(rl, prompt, supplied, defaultValue = null) {
+  let answer = supplied;
+  if (answer == null) {
+    const suffix = defaultValue == null ? "" : ` [${Math.round(defaultValue)}]`;
+    answer = await rl.question(`${prompt}${suffix}: `);
+    if (!String(answer).trim() && defaultValue != null) answer = String(defaultValue);
+  }
+  if (!String(answer).trim()) throw new Error(`${prompt} is required.`);
+  const value = parseMoney(answer, prompt);
+  if (value <= 0) throw new Error(`${prompt} must be greater than zero.`);
+  return value;
+}
+
+function findOpenScrollPosition(data, wantedName) {
+  const wanted = normalizeName(wantedName);
+  return (data.positions || [])
+    .filter((position) =>
+      normalizeName(position.name) === wanted &&
+      String(position.flow || "") === "SCROLL_CRAFT_FLOW" &&
+      !["CLOSED", "SOLD", "CANCELLED", "CANCELED"].includes(String(position.status || "").toUpperCase()) &&
+      Number(position.quantity || 0) > Number(position.listedQuantity || 0))
+    .sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")))[0] || null;
+}
+
+function applyListedForSale(position, listQty, listPrice, now = new Date().toISOString()) {
+  const fee = calculateSellOfferFee(listPrice, listQty);
+  if (!Array.isArray(position.events)) position.events = [];
+
+  position.listedQuantity = Number(position.listedQuantity || 0) + listQty;
+  position.totalListedQuantity = Number(position.totalListedQuantity || 0) + listQty;
+  position.sellOfferFeePaid = Number(position.sellOfferFeePaid || 0) + fee;
+  position.lastListPrice = listPrice;
+  position.lastListedAt = now;
+  position.status = position.listedQuantity >= Number(position.quantity || 0)
+    ? "LISTED_FOR_SALE"
+    : "PARTIALLY_LISTED";
+  position.events.push({
+    type: "LISTED_FOR_SALE",
+    at: now,
+    quantity: listQty,
+    listPrice,
+    offerFeePaid: fee,
+    source: "ACCEPTED_SCROLL_CRAFT",
+  });
+
+  return fee;
 }
 
 async function main() {
@@ -90,6 +143,57 @@ async function main() {
 
   const result = (loadJson(RESULTS_FILE, { rows: [] }).rows || [])
     .find((row) => normalizeName(row.outputName) === wanted) || {};
+
+  if (flags["mark-listed"]) {
+    const data = loadJson(POSITIONS_FILE, { positions: [] });
+    if (!Array.isArray(data.positions)) data.positions = [];
+    const position = findOpenScrollPosition(data, flags.scroll);
+    if (!position) throw new Error(`No open unlisted scroll craft position found for: ${flags.scroll}`);
+
+    const available = Math.max(0, Number(position.quantity || 0) - Number(position.listedQuantity || 0));
+    const listQty = flags.qty == null ? available : qty;
+    if (listQty > available) throw new Error(`Cannot list ${listQty}; only ${available} unlisted scroll(s) available.`);
+
+    const rl = readline.createInterface({ input, output });
+    try {
+      const defaultListPrice = Number(position.lastListPrice || position.targetSell || position.craft?.intendedListingPricePerScroll || 0) || null;
+      const listPrice = await askMoney(rl, "Actual listing price per scroll", flags["list-price"], defaultListPrice);
+      const fee = calculateSellOfferFee(listPrice, listQty);
+
+      console.log("\nLIST EXISTING SCROLL POSITION");
+      console.log(`${listQty}x ${position.name} @ ${formatGp(listPrice)} each`);
+      console.log(`Sell offer fee: ${formatGp(fee)}`);
+
+      if (flags["dry-run"]) {
+        const preview = JSON.parse(JSON.stringify(position));
+        applyListedForSale(preview, listQty, listPrice, "DRY_RUN_TIMESTAMP");
+        console.log("Dry run: existing position would be marked listed; nothing saved.");
+        console.log(JSON.stringify({
+          status: preview.status,
+          listedQuantity: preview.listedQuantity,
+          totalListedQuantity: preview.totalListedQuantity,
+          lastListPrice: preview.lastListPrice,
+          lastListedAt: preview.lastListedAt,
+          lastEvent: preview.events[preview.events.length - 1],
+        }, null, 2));
+        return;
+      }
+
+      const confirmed = await rl.question("Confirm mark as listed? yes/no: ");
+      if (!yesAnswer(confirmed)) {
+        console.log("Cancelled. Nothing saved.");
+        return;
+      }
+
+      applyListedForSale(position, listQty, listPrice);
+      saveJson(POSITIONS_FILE, data);
+      console.log(`Marked ${listQty}x ${position.name} as listed. It will now appear in flow-sold.`);
+      return;
+    } finally {
+      rl.close();
+    }
+  }
+
   const craftFeeEach = Number(result.fixedGoldCost || 250000);
   const craftFeeTotal = craftFeeEach * qty;
   const requiredIngredients = recipe.ingredients.map((ingredient) => ({
@@ -144,6 +248,12 @@ async function main() {
       ? parseMoney(await rl.question("Intended listing price per scroll: "), "Intended listing price")
       : parseMoney(flags["list-price"], "--list-price");
     if (listPrice <= 0) throw new Error("Intended listing price must be greater than zero.");
+    const alreadyListed = flags.listed == null
+      ? yesAnswer(await rl.question("Did you already list this scroll in Tibia Market? yes/no: "))
+      : yesAnswer(flags.listed);
+    const actualListPrice = alreadyListed
+      ? await askMoney(rl, "Actual listing price per scroll", flags["actual-list-price"], listPrice)
+      : null;
 
     const ingredientCostTotal = actualIngredients.reduce((sum, ingredient) => sum + ingredient.actualTotalPaid, 0);
     const actualCraftCostTotal = craftFeeTotal + blankPaid.total + ingredientCostTotal;
@@ -178,6 +288,11 @@ async function main() {
     }
 
     if (flags["dry-run"]) {
+      console.log(`Already listed in Tibia Market: ${alreadyListed ? "yes" : "no"}`);
+      if (alreadyListed) {
+        console.log(`Actual listing price per scroll: ${formatGp(actualListPrice)}`);
+        console.log(`Would save status: ${qty > 0 ? "LISTED_FOR_SALE" : "ITEMS_RECEIVED"}`);
+      }
       console.log("Dry run: actual costs calculated; nothing saved.");
       return;
     }
@@ -214,12 +329,15 @@ async function main() {
       events: [{ type: "SCROLLS_CRAFTED", at: now, quantity: qty, entryPrice: actualCraftCostPerScroll,
         totalCraftCost: actualCraftCostTotal, multiScroll: qty > 1, actualCostDetails, source: "ACCEPTED_SCROLL_CRAFT" }],
     };
+    if (alreadyListed) {
+      applyListedForSale(position, qty, actualListPrice, now);
+    }
     if (!Number.isFinite(position.id) || position.id <= 0) throw new Error("Scanner result has no valid output item ID.");
     const data = loadJson(POSITIONS_FILE, { positions: [] });
     if (!Array.isArray(data.positions)) data.positions = [];
     data.positions.push(position);
     saveJson(POSITIONS_FILE, data);
-    console.log(`Saved ${qty > 1 ? "multi-scroll " : ""}craft position with actual costs. Status: ITEMS_RECEIVED.`);
+    console.log(`Saved ${qty > 1 ? "multi-scroll " : ""}craft position with actual costs. Status: ${position.status}.`);
   } finally {
     rl.close();
   }
