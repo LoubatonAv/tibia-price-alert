@@ -877,6 +877,7 @@ function buildDiscordPayloadVerboseLegacy(rows) {
 
 function buildDiscordPayload(rows, flags = {}) {
   const includeAvoid = Boolean(flags["include-avoid"]);
+  const includeWatchCommands = Boolean(flags["include-watch-commands"]);
   const maxRows = includeAvoid ? 999 : 6;
 
   const bySafeScore = (a, b) => Number(b.safeScore || 0) - Number(a.safeScore || 0);
@@ -911,6 +912,25 @@ function buildDiscordPayload(rows, flags = {}) {
     return "Profit " + profit + " | Avg " + avgProfit + " | Safe " + safe;
   };
 
+  const acceptCommand = (row) =>
+    "npm run accept-scroll -- --scroll \"" + row.outputName + "\" --qty 1";
+
+  const commandText = (row) => {
+    if (row.action === "TEST 1x") {
+      return "\nCMD:\n`" + acceptCommand(row) + "`" +
+        "\nTip: change --qty 1 to --qty 2 if crafting two.";
+    }
+    if (row.action === "SPECULATIVE") {
+      return "\nCMD risky:\n`" + acceptCommand(row) + "`" +
+        "\nKeep speculative default qty at 1.";
+    }
+    if (row.action === "WATCH" && includeWatchCommands) {
+      return "\nCMD watch:\n`" + acceptCommand(row) + "`" +
+        "\nWatch command shown because --include-watch-commands was passed.";
+    }
+    return "";
+  };
+
   const fullValue = (row) => {
     let value =
       profitLine(row) + "\n" +
@@ -922,12 +942,12 @@ function buildDiscordPayload(rows, flags = {}) {
       value += "\nWarning: current sell far above average. Do not treat as normal craft.";
     }
     if (row.avgProfit < 0) value += "\nAvg profit negative at monthly average price.";
-    return value;
+    return value + commandText(row);
   };
 
   const compactValue = (row) =>
     profitLine(row) + " | " + formatCompactGp(row.monthSold) + "/mo | Queue " + queueText(row) +
-    " | Realism " + (row.priceRealismFactor * 100).toFixed(0) + "%";
+    " | Realism " + (row.priceRealismFactor * 100).toFixed(0) + "%" + commandText(row);
 
   const addSection = (fields, title, sectionRows, compact = false) => {
     if (sectionRows.length === 0) return;

@@ -9,6 +9,7 @@
     "trade": "node trade.js",
     "inventory": "node inventory.js",
     "accept-buy": "node accept-buy-signal.mjs",
+    "accept-scroll": "node accept-scroll-craft.mjs",
     "pending-buy": "node pending-buy-signals.mjs",
     "promote-discovery": "node promote-discovery.mjs",
     "clean-discovery": "node clean-discovery.mjs",
