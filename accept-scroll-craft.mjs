@@ -8,10 +8,9 @@ const RESULTS_FILE = "./scroll-crafting-results.json";
 const POSITIONS_FILE = "./positions.json";
 const BLANK_SCROLL_NAME = "Blank Imbuement Scroll";
 const BLANK_NPC_PRICE = 25000;
-const MARKET_TAX_RATE = 0.02;
 
 function parseFlags(argv) {
-  const flags = { price: [] };
+  const flags = { price: [], "price-total": [] };
   for (let i = 0; i < argv.length; i++) {
     const token = argv[i];
     if (!token.startsWith("--")) continue;
@@ -20,6 +19,7 @@ function parseFlags(argv) {
     const value = !next || next.startsWith("--") ? true : next;
     if (value !== true) i++;
     if (key === "price") flags.price.push(value);
+    else if (key === "price-total") flags["price-total"].push(value);
     else flags[key] = value;
   }
   return flags;
@@ -48,17 +48,32 @@ function parseMoney(value, label) {
 function parsePriceValue(value, requiredQty, label) {
   const text = String(value).trim();
   const unitMatch = text.match(/^(?:u|unit)\s*[:=]\s*(.+)$/i);
-  if (unitMatch) return { total: parseMoney(unitMatch[1], label) * requiredQty, inputMode: "unit" };
-  return { total: parseMoney(text, label), inputMode: "total" };
+  if (unitMatch) {
+    const unitPrice = parseMoney(unitMatch[1], label);
+    return { total: unitPrice * requiredQty, unitPrice, inputMode: "unit" };
+  }
+  const totalMatch = text.match(/^total\s*[:=]\s*(.+)$/i);
+  if (totalMatch) {
+    const total = parseMoney(totalMatch[1], label);
+    return { total, unitPrice: requiredQty > 0 ? total / requiredQty : 0, inputMode: "total" };
+  }
+  const unitPrice = parseMoney(text, label);
+  return { total: unitPrice * requiredQty, unitPrice, inputMode: "unit" };
 }
 
-function parsePriceFlags(values) {
+function parsePriceFlags(unitValues, totalValues = []) {
   const prices = new Map();
-  for (const value of values) {
+  for (const value of unitValues) {
     const separator = String(value).indexOf("=");
-    if (separator < 1) throw new Error(`Invalid --price value: ${value}. Use "Item Name=total" or "Item Name=unit:price".`);
+    if (separator < 1) throw new Error(`Invalid --price value: ${value}. Use "Item Name=unitPrice" or "Item Name=total:price".`);
     const name = String(value).slice(0, separator).trim();
     prices.set(normalizeName(name), String(value).slice(separator + 1).trim());
+  }
+  for (const value of totalValues) {
+    const separator = String(value).indexOf("=");
+    if (separator < 1) throw new Error(`Invalid --price-total value: ${value}. Use "Item Name=total".`);
+    const name = String(value).slice(0, separator).trim();
+    prices.set(normalizeName(name), "total:" + String(value).slice(separator + 1).trim());
   }
   return prices;
 }
@@ -71,15 +86,18 @@ function yesAnswer(value) {
   return ["y", "yes"].includes(String(value || "").trim().toLowerCase());
 }
 
-async function askPrice(rl, prompt, requiredQty, supplied, defaultTotal = null) {
+async function askPrice(rl, name, requiredQty, supplied, defaultUnit = null) {
   let answer = supplied;
   if (answer == null) {
-    const suffix = defaultTotal == null ? "" : ` [${Math.round(defaultTotal)}]`;
-    answer = await rl.question(`${prompt}${suffix} (total, or unit:PRICE): `);
-    if (!String(answer).trim() && defaultTotal != null) answer = String(defaultTotal);
+    console.log(`${name} - required ${requiredQty}`);
+    const suffix = defaultUnit == null ? "" : ` [${Math.round(defaultUnit)}]`;
+    answer = await rl.question(`Unit price paid${suffix}, or total:VALUE: `);
+    if (!String(answer).trim() && defaultUnit != null) answer = String(defaultUnit);
   }
-  if (!String(answer).trim()) throw new Error(`${prompt} is required.`);
-  return parsePriceValue(answer, requiredQty, prompt);
+  if (!String(answer).trim()) throw new Error(`${name} price is required.`);
+  const parsed = parsePriceValue(answer, requiredQty, name);
+  console.log(`${name}: ${requiredQty} x ${formatGp(parsed.unitPrice).replace(" gp", "")} = ${formatGp(parsed.total)}`);
+  return parsed;
 }
 
 async function askMoney(rl, prompt, supplied, defaultValue = null) {
@@ -212,14 +230,12 @@ async function main() {
     if (qty > 1) console.log("WARNING: Multiple speculative scrolls increase exposure. Quantity is not blocked.");
   }
 
-  const suppliedPrices = parsePriceFlags(flags.price);
-  if (flags["dry-run"] && !flags["list-price"] && suppliedPrices.size === 0) {
+  const suppliedPrices = parsePriceFlags(flags.price, flags["price-total"]);
+  if (flags["dry-run"] && suppliedPrices.size === 0 && flags["blank-cost"] == null) {
     console.log("\nActual-cost prompts that would be asked:");
     requiredIngredients.forEach((ingredient) =>
-      console.log(`- Actual total paid for ${ingredient.name}: (total, or unit:PRICE)`));
-    console.log(`- Actual total paid for Blank Imbuement Scrolls [${qty * BLANK_NPC_PRICE}]:`);
-    console.log("- Intended listing price per scroll:");
-    console.log("- Confirm save? yes/no");
+      console.log(`- ${ingredient.name} - required ${ingredient.quantity}\n  Unit price paid, or total:VALUE:`));
+    console.log(`- ${BLANK_SCROLL_NAME} - required ${qty}\n  Unit price paid [${BLANK_NPC_PRICE}], or total:VALUE:`);
     console.log("\nDry run: recipe and quantity resolved; nothing saved.");
     return;
   }
@@ -230,37 +246,24 @@ async function main() {
     for (const ingredient of requiredIngredients) {
       const paid = await askPrice(
         rl,
-        `Actual total paid for ${ingredient.name}`,
+        ingredient.name,
         ingredient.quantity,
         suppliedPrices.get(normalizeName(ingredient.name)),
       );
-      actualIngredients.push({ ...ingredient, actualTotalPaid: paid.total, inputMode: paid.inputMode });
+      actualIngredients.push({ ...ingredient, actualTotalPaid: paid.total, unitPricePaid: paid.unitPrice, inputMode: paid.inputMode });
     }
 
     const blankPaid = await askPrice(
       rl,
-      "Actual total paid for Blank Imbuement Scrolls",
+      BLANK_SCROLL_NAME,
       qty,
       flags["blank-cost"],
-      qty * BLANK_NPC_PRICE,
+      BLANK_NPC_PRICE,
     );
-    const listPrice = flags["list-price"] == null
-      ? parseMoney(await rl.question("Intended listing price per scroll: "), "Intended listing price")
-      : parseMoney(flags["list-price"], "--list-price");
-    if (listPrice <= 0) throw new Error("Intended listing price must be greater than zero.");
-    const alreadyListed = flags.listed == null
-      ? yesAnswer(await rl.question("Did you already list this scroll in Tibia Market? yes/no: "))
-      : yesAnswer(flags.listed);
-    const actualListPrice = alreadyListed
-      ? await askMoney(rl, "Actual listing price per scroll", flags["actual-list-price"], listPrice)
-      : null;
 
     const ingredientCostTotal = actualIngredients.reduce((sum, ingredient) => sum + ingredient.actualTotalPaid, 0);
     const actualCraftCostTotal = craftFeeTotal + blankPaid.total + ingredientCostTotal;
     const actualCraftCostPerScroll = actualCraftCostTotal / qty;
-    const expectedNetPerScroll = listPrice * (1 - MARKET_TAX_RATE);
-    const expectedProfitTotal = expectedNetPerScroll * qty - actualCraftCostTotal;
-    const breakEvenListPrice = actualCraftCostPerScroll / (1 - MARKET_TAX_RATE);
     const scannerEstimatedCostTotal = Number(result.totalCraftCost || 0) * qty;
 
     console.log("\nACTUAL COST SUMMARY");
@@ -269,30 +272,15 @@ async function main() {
     console.log(`Craft fee: ${formatGp(craftFeeTotal)}`);
     console.log(`Actual total craft cost: ${formatGp(actualCraftCostTotal)}`);
     console.log(`Actual craft cost per scroll: ${formatGp(actualCraftCostPerScroll)}`);
-    console.log(`Intended listing price per scroll: ${formatGp(listPrice)}`);
-    console.log(`Expected profit after 2% tax: ${formatGp(expectedProfitTotal)}`);
+    console.log("Status to save: ITEMS_RECEIVED");
 
     if (scannerEstimatedCostTotal > 0 && actualCraftCostTotal > scannerEstimatedCostTotal * 1.05) {
       const percent = ((actualCraftCostTotal / scannerEstimatedCostTotal - 1) * 100).toFixed(1);
       console.log(`WARNING: Actual craft cost is ${percent}% above the scanner estimate.`);
     }
-    if (listPrice < breakEvenListPrice) {
-      console.log(`WARNING: Listing price is below break-even (${formatGp(breakEvenListPrice)}).`);
-      if (!flags["dry-run"]) {
-        const belowBreakEven = await rl.question("Explicitly continue below break-even? yes/no: ");
-        if (!["y", "yes"].includes(belowBreakEven.trim().toLowerCase())) {
-          console.log("Cancelled. Nothing saved.");
-          return;
-        }
-      }
-    }
 
     if (flags["dry-run"]) {
-      console.log(`Already listed in Tibia Market: ${alreadyListed ? "yes" : "no"}`);
-      if (alreadyListed) {
-        console.log(`Actual listing price per scroll: ${formatGp(actualListPrice)}`);
-        console.log(`Would save status: ${qty > 0 ? "LISTED_FOR_SALE" : "ITEMS_RECEIVED"}`);
-      }
+      console.log("Would save listedQuantity: 0");
       console.log("Dry run: actual costs calculated; nothing saved.");
       return;
     }
@@ -308,14 +296,11 @@ async function main() {
       quantity: qty,
       multiScroll: qty > 1,
       craftFeeTotal,
-      blankScroll: { name: BLANK_SCROLL_NAME, quantity: qty, actualTotalPaid: blankPaid.total, inputMode: blankPaid.inputMode },
+      blankScroll: { name: BLANK_SCROLL_NAME, quantity: qty, actualTotalPaid: blankPaid.total, unitPricePaid: blankPaid.unitPrice, inputMode: blankPaid.inputMode },
       ingredients: actualIngredients,
       ingredientCostTotal,
       actualCraftCostTotal,
       actualCraftCostPerScroll,
-      intendedListingPricePerScroll: listPrice,
-      expectedNetPerScroll,
-      expectedProfitTotal,
       scannerEstimatedCostTotal: scannerEstimatedCostTotal || null,
     };
     const position = {
@@ -324,14 +309,11 @@ async function main() {
       entryPrice: actualCraftCostPerScroll, averageEntryPrice: actualCraftCostPerScroll,
       originalQuantity: qty, quantity: qty, orderedQuantity: qty, receivedQuantity: qty,
       listedQuantity: 0, soldQuantity: 0, totalListedQuantity: 0,
-      buyOfferFeePaid: 0, sellOfferFeePaid: 0, targetSell: listPrice, desiredMargin: 0.06,
+      buyOfferFeePaid: 0, sellOfferFeePaid: 0, targetSell: null, desiredMargin: 0.06,
       status: "ITEMS_RECEIVED", craft: actualCostDetails,
       events: [{ type: "SCROLLS_CRAFTED", at: now, quantity: qty, entryPrice: actualCraftCostPerScroll,
         totalCraftCost: actualCraftCostTotal, multiScroll: qty > 1, actualCostDetails, source: "ACCEPTED_SCROLL_CRAFT" }],
     };
-    if (alreadyListed) {
-      applyListedForSale(position, qty, actualListPrice, now);
-    }
     if (!Number.isFinite(position.id) || position.id <= 0) throw new Error("Scanner result has no valid output item ID.");
     const data = loadJson(POSITIONS_FILE, { positions: [] });
     if (!Array.isArray(data.positions)) data.positions = [];

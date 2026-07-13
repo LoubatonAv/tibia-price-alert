@@ -12,6 +12,10 @@ import {
 } from "./lib/trades.js";
 
 const POSITIONS_FILE = "./positions.json";
+const RECIPES_FILE = "./data/scroll-recipes.json";
+const BLANK_SCROLL_NAME = "Blank Imbuement Scroll";
+const BLANK_NPC_PRICE = 25000;
+const POWERFUL_CRAFT_FEE = 250000;
 
 function loadPositions() {
   if (!fs.existsSync(POSITIONS_FILE)) return { positions: [] };
@@ -29,6 +33,77 @@ function savePositions(data) {
 
 function formatGp(value) {
   return Math.round(Number(value || 0)).toLocaleString();
+}
+
+function parseFlags(argv) {
+  const flags = {};
+  for (let index = 0; index < argv.length; index++) {
+    const token = argv[index];
+    if (!String(token).startsWith("--")) continue;
+    const key = String(token).slice(2);
+    const next = argv[index + 1];
+    if (!next || String(next).startsWith("--")) {
+      flags[key] = true;
+    } else {
+      flags[key] = next;
+      index++;
+    }
+  }
+  return flags;
+}
+
+function parseMoney(value, label) {
+  const number = Number(String(value ?? "").replace(/[,_ ]/g, ""));
+  if (!Number.isFinite(number) || number < 0) throw new Error(`${label} must be zero or a positive number.`);
+  return number;
+}
+
+function parseCostValue(value, quantity, label) {
+  const text = String(value ?? "").trim();
+  const unitMatch = text.match(/^(?:u|unit)\s*[:=]\s*(.+)$/i);
+  if (unitMatch) {
+    const unitPrice = parseMoney(unitMatch[1], label);
+    return { total: unitPrice * quantity, unitPrice, inputMode: "unit" };
+  }
+  const totalMatch = text.match(/^total\s*[:=]\s*(.+)$/i);
+  if (totalMatch) {
+    const total = parseMoney(totalMatch[1], label);
+    return { total, unitPrice: quantity > 0 ? total / quantity : 0, inputMode: "total" };
+  }
+  const unitPrice = parseMoney(text, label);
+  return { total: unitPrice * quantity, unitPrice, inputMode: "unit" };
+}
+
+async function askMoney(prompt, defaultValue = null) {
+  const suffix = defaultValue == null ? "" : ` [${Math.round(defaultValue)}]`;
+  const answer = await question(`${prompt}${suffix}: `);
+  if (!answer && defaultValue != null) return Number(defaultValue);
+  return parseMoney(answer, prompt);
+}
+
+async function askCost(name, quantity, defaultUnit = null) {
+  console.log(`${name} - required ${quantity}`);
+  const suffix = defaultUnit == null ? "" : ` [${Math.round(defaultUnit)}]`;
+  const answer = await question(`Unit price paid${suffix}, or total:VALUE: `);
+  const value = !answer && defaultUnit != null ? String(defaultUnit) : answer;
+  const parsed = parseCostValue(value, quantity, name);
+  console.log(`${name}: ${quantity} x ${formatGp(parsed.unitPrice)} = ${formatGp(parsed.total)} gp`);
+  return parsed;
+}
+
+function normalizeName(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function loadRecipes() {
+  if (!fs.existsSync(RECIPES_FILE)) throw new Error(`Missing ${RECIPES_FILE}`);
+  const data = JSON.parse(fs.readFileSync(RECIPES_FILE, "utf8"));
+  return Array.isArray(data) ? data : data.recipes || [];
+}
+
+function findRecipe(scrollName) {
+  const wanted = normalizeName(scrollName);
+  return loadRecipes().find((recipe) => normalizeName(recipe.outputName) === wanted) || null;
 }
 
 function formatAge(fromDate) {
@@ -216,7 +291,10 @@ async function runList() {
   const data = loadPositions();
   const rows = readyToList(data);
 
-  const position = await chooseFromList(rows, "LIST READY ITEMS", (row, index) => {
+  console.log("\nUse this after you own items or crafted scrolls and want to create a Tibia Market sell offer.");
+  console.log("Only owned items with unlisted quantity appear here.");
+
+  const position = await chooseFromList(rows, "LIST FOR SALE - CREATE SELL OFFER", (row, index) => {
     const available = Math.max(0, Number(row.quantity || 0) - Number(row.listedQuantity || 0));
     console.log(
       `${index + 1}) ${row.name} (${row.id}) | available ${available} | entry ${formatGp(row.entryPrice)} gp | flow ${row.flow || "UNKNOWN"}`,
@@ -299,7 +377,9 @@ async function runSold() {
   const data = loadPositions();
   const rows = activeListings(data);
 
-  const position = await chooseFromList(rows, "MARK SOLD LISTING", (row, index) => {
+  console.log("\nOnly items already listed in Tibia Market appear here.");
+
+  const position = await chooseFromList(rows, "SOLD / CANCEL - MARK LISTED ITEM SOLD", (row, index) => {
     console.log(
       `${index + 1}) ${row.name} (${row.id}) | listed ${row.listedQuantity} @ ${formatGp(row.lastListPrice)} gp | flow ${row.flow || "UNKNOWN"} | age ${formatAge(row.lastListedAt)}`,
     );
@@ -359,7 +439,9 @@ async function runCancelListing() {
   const data = loadPositions();
   const rows = activeListings(data);
 
-  const position = await chooseFromList(rows, "CANCEL / REMOVE LISTED SELL OFFER", (row, index) => {
+  console.log("\nOnly items already listed in Tibia Market appear here.");
+
+  const position = await chooseFromList(rows, "SOLD / CANCEL - REMOVE LISTED SELL OFFER", (row, index) => {
     console.log(
       `${index + 1}) ${row.name} (${row.id}) | listed ${row.listedQuantity} @ ${formatGp(row.lastListPrice)} gp | flow ${row.flow || "UNKNOWN"} | age ${formatAge(row.lastListedAt)}`,
     );
@@ -398,7 +480,240 @@ async function runCancelListing() {
   console.log(`${position.name}: removed ${cancelQty} from listed offers.`);
   console.log(`Still listed: ${position.listedQuantity}`);
   console.log(`Owned / ready to list: ${Math.max(0, Number(position.quantity || 0) - Number(position.listedQuantity || 0))}`);
-  console.log("\nUse List ready items for sale when you want to relist at a new price.");
+  console.log("\nUse LIST FOR SALE when you want to relist at a new price.");
+}
+
+function buildListedPosition({
+  item,
+  quantity,
+  entryPrice,
+  listPrice,
+  flow,
+  source,
+  desiredMargin = 0,
+  craft = null,
+  openingEventType = "SELL_OFFER_CREATED",
+}) {
+  const now = new Date().toISOString();
+  const fee = calculateSellOfferFee(listPrice, quantity);
+  const position = {
+    id: item.id,
+    name: item.name,
+    createdAt: now,
+    openedAt: now,
+    flow,
+    source,
+    entryPrice,
+    averageEntryPrice: entryPrice,
+    originalQuantity: quantity,
+    orderedQuantity: quantity,
+    receivedQuantity: quantity,
+    quantity,
+    listedQuantity: quantity,
+    soldQuantity: 0,
+    totalListedQuantity: quantity,
+    buyOfferFeePaid: 0,
+    sellOfferFeePaid: fee,
+    targetSell: listPrice,
+    desiredMargin,
+    entryBrainScore: null,
+    status: "LISTED_FOR_SALE",
+    lastListPrice: listPrice,
+    lastListedAt: now,
+    events: [
+      {
+        type: openingEventType,
+        at: now,
+        quantity,
+        entryPrice,
+        source,
+      },
+      {
+        type: "LISTED_FOR_SALE",
+        at: now,
+        quantity,
+        listPrice,
+        offerFeePaid: fee,
+      },
+    ],
+  };
+
+  if (craft) position.craft = craft;
+  return position;
+}
+
+function printSellOfferPreview(position) {
+  console.log("\nSELL OFFER PREVIEW");
+  console.log(`${position.quantity}x ${position.name}`);
+  console.log(`Entry cost each: ${formatGp(position.entryPrice)} gp`);
+  console.log(`List price each: ${formatGp(position.lastListPrice)} gp`);
+  console.log(`Sell offer fee: ${formatGp(position.sellOfferFeePaid)} gp`);
+  console.log(`Status: ${position.status}`);
+  console.log("Would appear in SOLD / CANCEL: yes");
+}
+
+async function saveOrDryRunListedPosition(position, flags) {
+  printSellOfferPreview(position);
+
+  if (flags["dry-run"]) {
+    console.log("\nDry run: sell offer position was not saved.");
+    return;
+  }
+
+  const confirmed = await yesNo("Did you actually create this sell offer in Tibia Market? Y/N:");
+  if (!confirmed) {
+    console.log("Cancelled. Nothing saved.");
+    return;
+  }
+
+  const data = loadPositions();
+  data.positions.push(position);
+  savePositions(data);
+  console.log(`\nSaved active sell offer. It will appear in SOLD / CANCEL.`);
+}
+
+async function runCreateManualSellOffer(flags) {
+  console.log("\nCREATE NEW SELL OFFER - LOOT / EXTERNAL / MANUAL ITEM\n");
+  const item = resolveItem(flags.item || await question("Item name or ID: "));
+  const quantity = Number(flags.qty || await question("Quantity: "));
+  if (!Number.isFinite(quantity) || quantity <= 0) throw new Error("Quantity must be greater than zero.");
+
+  const entryPrice = flags.cost == null
+    ? await askMoney("Entry cost per item, 0 for loot/drop", 0)
+    : parseMoney(flags.cost, "--cost");
+  const listPrice = flags["list-price"] == null
+    ? await askMoney("Listing price per item")
+    : parseMoney(flags["list-price"], "--list-price");
+  if (listPrice <= 0) throw new Error("Listing price must be greater than zero.");
+
+  const position = buildListedPosition({
+    item,
+    quantity,
+    entryPrice,
+    listPrice,
+    flow: entryPrice > 0 ? "MANUAL_EXTERNAL_SELL_OFFER" : "LOOT_OR_EXTERNAL_LISTING",
+    source: "SELL_OFFERS_MENU",
+    openingEventType: entryPrice > 0 ? "MANUAL_EXTERNAL_SELL_OFFER_CREATED" : "LOOT_OR_EXTERNAL_SELL_OFFER_CREATED",
+  });
+
+  await saveOrDryRunListedPosition(position, flags);
+}
+
+async function runCreateFlipSellOffer(flags) {
+  console.log("\nCREATE NEW SELL OFFER - FLIP ITEM\n");
+  const item = resolveItem(flags.item || await question("Item name or ID: "));
+  const quantity = Number(flags.qty || await question("Quantity: "));
+  if (!Number.isFinite(quantity) || quantity <= 0) throw new Error("Quantity must be greater than zero.");
+
+  const cost = flags.cost == null
+    ? await askCost("Actual item cost paid", quantity)
+    : parseCostValue(flags.cost, quantity, "--cost");
+  const listPrice = flags["list-price"] == null
+    ? await askMoney("Listing price per item")
+    : parseMoney(flags["list-price"], "--list-price");
+  if (listPrice <= 0) throw new Error("Listing price must be greater than zero.");
+
+  const position = buildListedPosition({
+    item,
+    quantity,
+    entryPrice: cost.total / quantity,
+    listPrice,
+    flow: "MANUAL_FLIP_SELL_OFFER",
+    source: "SELL_OFFERS_MENU",
+    desiredMargin: 0.06,
+    openingEventType: "MANUAL_FLIP_SELL_OFFER_CREATED",
+  });
+  position.actualCost = { quantity, actualTotalPaid: cost.total, inputMode: cost.inputMode };
+
+  await saveOrDryRunListedPosition(position, flags);
+}
+
+async function runCreateScrollSellOffer(flags) {
+  console.log("\nCREATE NEW SELL OFFER - CRAFTED SCROLL FLIP\n");
+  const scrollName = flags.scroll || await question("Scroll name: ");
+  const recipe = findRecipe(scrollName);
+  if (!recipe) throw new Error(`Scroll recipe not found: ${scrollName}`);
+
+  const resolvedScrollItem = resolveItem(recipe.outputName);
+  const item = { ...resolvedScrollItem, name: recipe.outputName };
+  const quantity = Number(flags.qty || await question("Quantity crafted: "));
+  if (!Number.isFinite(quantity) || quantity <= 0) throw new Error("Quantity must be greater than zero.");
+
+  console.log("\nRequired ingredients:");
+  const actualIngredients = [];
+  for (const ingredient of recipe.ingredients) {
+    const requiredQty = Number(ingredient.qty) * quantity;
+    console.log(`${requiredQty}x ${ingredient.name}`);
+  }
+  console.log(`${quantity}x ${BLANK_SCROLL_NAME}`);
+  console.log(`Craft fee: ${formatGp(POWERFUL_CRAFT_FEE * quantity)} gp`);
+
+  for (const ingredient of recipe.ingredients) {
+    const requiredQty = Number(ingredient.qty) * quantity;
+    const flagKey = "price-" + normalizeName(ingredient.name).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    const cost = flags[flagKey] == null
+      ? await askCost(ingredient.name, requiredQty)
+      : parseCostValue(flags[flagKey], requiredQty, `--${flagKey}`);
+    actualIngredients.push({
+      name: ingredient.name,
+      quantity: requiredQty,
+      actualTotalPaid: cost.total,
+      inputMode: cost.inputMode,
+    });
+  }
+
+  const blankCost = flags["blank-cost"] == null
+    ? await askCost(BLANK_SCROLL_NAME, quantity, BLANK_NPC_PRICE)
+    : parseCostValue(flags["blank-cost"], quantity, "--blank-cost");
+  const listPrice = flags["list-price"] == null
+    ? await askMoney("Listing price per scroll")
+    : parseMoney(flags["list-price"], "--list-price");
+  if (listPrice <= 0) throw new Error("Listing price must be greater than zero.");
+
+  const ingredientCostTotal = actualIngredients.reduce((sum, ingredient) => sum + ingredient.actualTotalPaid, 0);
+  const craftFeeTotal = POWERFUL_CRAFT_FEE * quantity;
+  const actualCraftCostTotal = ingredientCostTotal + blankCost.total + craftFeeTotal;
+  const actualCraftCostPerScroll = actualCraftCostTotal / quantity;
+  const craft = {
+    quantity,
+    multiScroll: quantity > 1,
+    craftFeeTotal,
+    blankScroll: {
+      name: BLANK_SCROLL_NAME,
+      quantity,
+      actualTotalPaid: blankCost.total,
+      inputMode: blankCost.inputMode,
+    },
+    ingredients: actualIngredients,
+    ingredientCostTotal,
+    actualCraftCostTotal,
+    actualCraftCostPerScroll,
+    intendedListingPricePerScroll: listPrice,
+  };
+
+  const position = buildListedPosition({
+    item,
+    quantity,
+    entryPrice: actualCraftCostPerScroll,
+    listPrice,
+    flow: "SCROLL_CRAFT_FLOW",
+    source: "SELL_OFFERS_MENU",
+    desiredMargin: 0.06,
+    craft,
+    openingEventType: "SCROLLS_CRAFTED",
+  });
+  position.events[0] = {
+    type: "SCROLLS_CRAFTED",
+    at: position.createdAt,
+    quantity,
+    entryPrice: actualCraftCostPerScroll,
+    totalCraftCost: actualCraftCostTotal,
+    multiScroll: quantity > 1,
+    actualCostDetails: craft,
+    source: "SELL_OFFERS_MENU",
+  };
+
+  await saveOrDryRunListedPosition(position, flags);
 }
 
 
@@ -470,7 +785,7 @@ async function runAddLoot() {
   });
 
   savePositions(data);
-  console.log(`\nAdded ${qty}x ${item.name}. Use List Ready Items when you place a sell offer.`);
+  console.log(`\nAdded ${qty}x ${item.name}. Use LIST FOR SALE when you place a sell offer.`);
 }
 
 async function runCancelOrExpire(kind) {
@@ -512,10 +827,14 @@ async function runCancelOrExpire(kind) {
 }
 
 const action = String(process.argv[2] || "").toLowerCase();
+const flags = parseFlags(process.argv.slice(3));
 
 try {
   if (action === "receive") await runReceive();
   else if (action === "list") await runList();
+  else if (action === "create-sell-manual") await runCreateManualSellOffer(flags);
+  else if (action === "create-sell-flip") await runCreateFlipSellOffer(flags);
+  else if (action === "create-sell-scroll") await runCreateScrollSellOffer(flags);
   else if (action === "sold") await runSold();
   else if (action === "cancel-listing") await runCancelListing();
   else if (action === "add-loot") await runAddLoot();
@@ -526,6 +845,9 @@ try {
 Usage:
   node trade-flow.mjs receive
   node trade-flow.mjs list
+  node trade-flow.mjs create-sell-manual [--dry-run]
+  node trade-flow.mjs create-sell-flip [--dry-run]
+  node trade-flow.mjs create-sell-scroll [--dry-run]
   node trade-flow.mjs sold
   node trade-flow.mjs cancel-listing
   node trade-flow.mjs add-loot

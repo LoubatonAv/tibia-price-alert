@@ -454,47 +454,42 @@ function printDashboard() {
   console.log(`Estimated listed value: ${formatGp(listedValue)} gp`);
 
   console.log("\nNEXT ACTIONS\n------------");
-  let actionIndex = 1;
+  console.log("1. BUY: review pending buy signals/orders with BAT option 2.");
+  console.log("2. RECEIVE: if a buy order filled, use BAT option 3.");
+  console.log("3. SELL OFFERS: create a sell offer for loot, flips, or crafted scrolls with BAT option 4.");
+  console.log("4. SELL OFFERS: mark active offers as SOLD or cancel them with BAT option 4.");
 
-  if ((pendingCounts.PENDING || 0) > 0) {
-    console.log(`${actionIndex++}) Review pending BUY signals: npm run pending-buy`);
-  }
-
-  if (openBuyOrders.length > 0) {
-    console.log(`${actionIndex++}) Check whether buy orders filled: use BAT option 2 when received.`);
-  }
-
-  if (needToList.length > 0) {
-    console.log(`${actionIndex++}) List received items for sale: use BAT option 4.`);
+  if ((pendingCounts.PENDING || 0) === 0 &&
+      openBuyOrders.length === 0 &&
+      needToList.length === 0 &&
+      staleListings.length === 0 &&
+      suspicious.length === 0) {
+    console.log("\nNo urgent actions right now.");
   }
 
   if (staleListings.length > 0) {
-    console.log(`${actionIndex++}) Check stale listings and consider relist/update.`);
+    console.log("\nNote: stale listings exist. Use SELL OFFERS option 4 if they sold or you cancelled them.");
   }
 
   if (suspicious.length > 0) {
-    console.log(`${actionIndex++}) Fix/check suspicious positions before trusting stats.`);
-  }
-
-  if (actionIndex === 1) {
-    console.log("No urgent actions right now.");
+    console.log("\nNote: suspicious positions exist. Check them before trusting stats.");
   }
 
   function printSection(title, rows, render) {
     console.log(`\n${title}\n${"-".repeat(title.length)}`);
     if (rows.length === 0) {
-      console.log(title === "NEED TO LIST" ? "No received unlisted items." : "None.");
+      console.log(title === "SELL OFFERS - READY TO LIST" ? "No owned unlisted items." : "None.");
       return;
     }
     rows.forEach(render);
   }
 
-  printSection("NEED TO LIST", needToList, (position, index) => {
+  printSection("SELL OFFERS - READY TO LIST", needToList, (position, index) => {
     console.log(`${index + 1}) ${position.name} (${position.id})`);
     console.log(`   Owned: ${position.quantity} | Listed: ${position.listedQuantity} | Entry: ${formatGp(position.entryPrice)} gp`);
   });
 
-  printSection("LISTED / WAITING TO SELL", listed, (position, index) => {
+  printSection("SELL OFFERS - ACTIVE LISTINGS", listed, (position, index) => {
     console.log(`${index + 1}) ${position.name} (${position.id})`);
     console.log(`   Listed: ${position.listedQuantity} | Price: ${formatGp(position.lastListPrice)} gp | age ${formatAge(position.lastListedAt)}`);
   });

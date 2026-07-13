@@ -12,6 +12,7 @@ const AUDIT_CSV_FILE = "./scroll-crafting-audit.csv";
 const MANUAL_TEMPLATE_FILE = "./scroll-sales-manual-template.csv";
 const POWERFUL_FIXED_COST = 250000;
 const BLANK_SCROLL_NPC_PRICE = 25000;
+const DEFAULT_LOCAL_TRADE_BAT = "C:\\Users\\Avner\\Desktop\\Projects\\tibia-price-alert\\trade-manager.bat";
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -175,6 +176,17 @@ function cleanScrollName(name) {
   return String(name)
     .replace(/^Powerful\s+/i, "")
     .replace(/\s+Scroll$/i, "");
+}
+
+function quoteCmdArg(value) {
+  return "\"" + String(value).replace(/"/g, "\"\"") + "\"";
+}
+
+function formatRecipeText(row) {
+  const ingredients = Array.isArray(row.ingredients) ? row.ingredients : [];
+  const parts = ingredients.map((ingredient) => ingredient.qty + "x " + ingredient.name);
+  parts.push("Blank x1");
+  return parts.join(" | ");
 }
 
 function normalizeName(value) {
@@ -795,12 +807,7 @@ function buildDiscordPayloadLegacy(rows) {
           const volumeDisplay = formatCompactGp(row.monthSold) + "/mo";
           const details = [];
           const riskIcon = riskIcons[row.risk] || riskIcons.UNKNOWN;
-          const recipe = Array.isArray(row.ingredients)
-            ? row.ingredients
-                .filter((ingredient) => !/^Blank(?: Imbuement)? Scroll$/i.test(String(ingredient.name || "")))
-                .map((ingredient) => ingredient.qty + "x " + ingredient.name)
-                .join(" · ")
-            : "";
+          const recipe = formatRecipeText(row);
 
           if (row.risk === "HIGH" || row.action !== "CRAFT" || row.profit < 100000) {
             details.push("⚖️ Break-even " + formatCompactGp(row.breakEvenSell, { round: true }));
@@ -815,10 +822,9 @@ function buildDiscordPayloadLegacy(rows) {
               "💰 " + profit + " | Safe EV " + score + " | ROI " + displayRoi.toFixed(1) + "% | " + sellDisplay + " | Cost " + formatCompactGp(row.totalCraftCost, { round: true }) + "\n" +
               "📊 " + volumeDisplay + " | ~" + Math.min(99, Math.floor(row.sellChance7d * 100)) + "%/7d | Support " + row.buySupport + " | Risk " + row.risk +
               (details.length > 0 ? "\n" + details.join(" | ") : "") +
-              (recipe ? "\n\nNeed: " + recipe : "") +
+              "\n\nRecipe: " + recipe +
               "\n\n```cmd\n" +
-              "cd /d C:\\Users\\Avner\\Desktop\\Projects\\tibia-price-alert\n" +
-              "npm run accept-scroll -- --scroll \"" + row.outputName + "\" --qty 1\n" +
+              buildDiscordAcceptCommand(row) + "\n" +
               "```" +
               "\n\u200B",
             inline: false,
@@ -876,14 +882,8 @@ function buildDiscordPayloadVerboseLegacy(rows) {
 }
 
 function buildDiscordAcceptCommand(row) {
-  const projectDirectory = process.env.TIBIA_LOCAL_PROJECT_DIR ||
-    (process.env.GITHUB_ACTIONS === "true" ? "<SET_TIBIA_LOCAL_PROJECT_DIR>" : process.cwd());
-  return "cd /d \"" + projectDirectory + "\" && npm run accept-scroll -- --scroll \"" +
-    row.outputName + "\" --qty 1";
-}
-
-function hasDiscordProjectDirPlaceholder() {
-  return process.env.GITHUB_ACTIONS === "true" && !process.env.TIBIA_LOCAL_PROJECT_DIR;
+  const tradeBat = process.env.TIBIA_LOCAL_TRADE_BAT || DEFAULT_LOCAL_TRADE_BAT;
+  return quoteCmdArg(tradeBat) + " accept-scroll " + quoteCmdArg(row.outputName) + " 1";
 }
 
 function buildDiscordPayload(rows, flags = {}) {
@@ -926,14 +926,17 @@ function buildDiscordPayload(rows, flags = {}) {
   const commandText = (row) => {
     if (row.action === "TEST 1x") {
       return "\nCMD:\n`" + buildDiscordAcceptCommand(row) + "`" +
+        "\nThis will ask actual ingredient unit prices." +
         "\nTip: change --qty 1 to --qty 2 if crafting two.";
     }
     if (row.action === "SPECULATIVE") {
-      return "\nCMD risky:\n`" + buildDiscordAcceptCommand(row) + "`" +
+      return "\nCMD:\n`" + buildDiscordAcceptCommand(row) + "`" +
+        "\nThis will ask actual ingredient unit prices." +
         "\nKeep speculative default qty at 1.";
     }
     if (row.action === "WATCH" && includeWatchCommands) {
-      return "\nCMD watch:\n`" + buildDiscordAcceptCommand(row) + "`" +
+      return "\nCMD:\n`" + buildDiscordAcceptCommand(row) + "`" +
+        "\nThis will ask actual ingredient unit prices." +
         "\nWatch command shown because --include-watch-commands was passed.";
     }
     return "";
@@ -944,7 +947,8 @@ function buildDiscordPayload(rows, flags = {}) {
       profitLine(row) + "\n" +
       formatCompactGp(row.monthSold) + "/mo | Queue " + queueText(row) +
       " | Realism " + (row.priceRealismFactor * 100).toFixed(0) + "% | Fill " + row.ingredientFillRisk +
-      "\nSpike " + row.priceSpikeRisk;
+      " | Spike " + row.priceSpikeRisk +
+      "\nRecipe: " + formatRecipeText(row);
 
     if (row.priceSpikeRisk === "HIGH") {
       value += "\nWarning: current sell far above average. Do not treat as normal craft.";
@@ -955,7 +959,8 @@ function buildDiscordPayload(rows, flags = {}) {
 
   const compactValue = (row) =>
     profitLine(row) + " | " + formatCompactGp(row.monthSold) + "/mo | Queue " + queueText(row) +
-    " | Realism " + (row.priceRealismFactor * 100).toFixed(0) + "%" + commandText(row);
+    " | Realism " + (row.priceRealismFactor * 100).toFixed(0) + "%" +
+    "\nRecipe: " + formatRecipeText(row) + commandText(row);
 
   const addSection = (fields, title, sectionRows, compact = false) => {
     if (sectionRows.length === 0) return;
@@ -1005,10 +1010,6 @@ function buildDiscordPayload(rows, flags = {}) {
   if (hiddenAvoidCount > 0) hiddenParts.push(hiddenAvoidCount + " AVOID");
   if (hiddenWeakSpeculativeCount > 0) hiddenParts.push(hiddenWeakSpeculativeCount + " weak speculative");
   if (hiddenLowPriorityWatchCount > 0) hiddenParts.push(hiddenLowPriorityWatchCount + " low-priority watch");
-  const commandPathWarning = hasDiscordProjectDirPlaceholder()
-    ? "\nCMD path warning: set GitHub variable TIBIA_LOCAL_PROJECT_DIR to your Windows project folder."
-    : "";
-
   return {
     embeds: [{
       title: "Powerful Scroll Crafting - " + SERVER,
@@ -1020,8 +1021,7 @@ function buildDiscordPayload(rows, flags = {}) {
           (includeAvoid
             ? "Showing AVOID rows (--include-avoid)."
             : "Hidden: " + (hiddenParts.length ? hiddenParts.join(" | ") : "none") + ". Use --include-avoid to show AVOID.") +
-          "\nProfit = current lowest sell | Avg = monthly average | Safe = adjusted risk score" +
-          commandPathWarning,
+          "\nProfit = current lowest sell | Avg = monthly average | Safe = adjusted risk score",
       },
     }],
   };

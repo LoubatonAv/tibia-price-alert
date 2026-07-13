@@ -1582,6 +1582,13 @@ async function runDiscoveryScanner() {
     includeTracked: includeTrackedDiscovery,
   });
 
+  state.discovery.lastSuggestedAdditions = {
+    at: new Date().toISOString(),
+    watch: report.additions.watch,
+    experimental: report.additions.experimental,
+    safe: report.additions.safe,
+  };
+
   console.log(`\n${report.text}\n`);
 
   if (
