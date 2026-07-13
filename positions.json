@@ -480,7 +480,7 @@
       "targetSell": 24700,
       "desiredMargin": 0.06,
       "entryBrainScore": null,
-      "status": "BUY_ORDER_PLACED",
+      "status": "BUY_ORDER_CANCELLED",
       "events": [
         {
           "type": "BUY_ORDER_PLACED",
@@ -491,8 +491,14 @@
           "offerFeePaid": 4478,
           "brainScore": null,
           "previousTargetSell": 9200
+        },
+        {
+          "type": "BUY_ORDER_CANCELLED",
+          "at": "2026-07-13T01:14:45.042Z",
+          "feeLost": 4478
         }
-      ]
+      ],
+      "closedAt": "2026-07-13T01:14:45.041Z"
     },
     {
       "id": 9633,
@@ -620,9 +626,9 @@
       "entryPrice": 40051,
       "averageEntryPrice": 40051,
       "originalQuantity": 2,
-      "quantity": 0,
+      "quantity": 2,
       "orderedQuantity": 2,
-      "receivedQuantity": 0,
+      "receivedQuantity": 2,
       "listedQuantity": 0,
       "soldQuantity": 0,
       "totalListedQuantity": 0,
@@ -635,7 +641,7 @@
       "signalQualityScore": "60",
       "signalConfidence": 67,
       "signalReason": null,
-      "status": "BUY_ORDER_PLACED",
+      "status": "ITEMS_RECEIVED",
       "events": [
         {
           "type": "BUY_ORDER_PLACED",
@@ -648,6 +654,13 @@
           "expectedProfitEach": 0,
           "expectedProfitTotal": 16096,
           "expectedRoiPercent": 19.7
+        },
+        {
+          "type": "ITEMS_RECEIVED",
+          "at": "2026-07-13T01:13:24.305Z",
+          "quantity": 2,
+          "entryPrice": 40051,
+          "averageEntryPrice": 40051
         }
       ]
     },
@@ -789,6 +802,416 @@
           "brainScore": null
         }
       ]
+    },
+    {
+      "id": 51451,
+      "name": "Powerful Epiphany Scroll",
+      "createdAt": "2026-07-08T00:17:07.115Z",
+      "openedAt": "2026-07-08T00:17:07.115Z",
+      "flow": "SCROLL_CRAFT_FLOW",
+      "source": "ACCEPTED_SCROLL_CRAFT",
+      "entryPrice": 593905,
+      "averageEntryPrice": 593905,
+      "originalQuantity": 2,
+      "quantity": 0,
+      "orderedQuantity": 2,
+      "receivedQuantity": 2,
+      "listedQuantity": 0,
+      "soldQuantity": 2,
+      "totalListedQuantity": 2,
+      "buyOfferFeePaid": 0,
+      "sellOfferFeePaid": 38000,
+      "targetSell": 950000,
+      "desiredMargin": 0.06,
+      "status": "CLOSED",
+      "craft": {
+        "quantity": 2,
+        "multiScroll": true,
+        "craftFeeTotal": 500000,
+        "blankScroll": {
+          "name": "Blank Imbuement Scroll",
+          "quantity": 2,
+          "actualTotalPaid": 50000,
+          "inputMode": "total"
+        },
+        "ingredients": [
+          {
+            "name": "Elvish Talisman",
+            "quantity": 50,
+            "actualTotalPaid": 344950,
+            "inputMode": "unit"
+          },
+          {
+            "name": "Broken Shamanic Staff",
+            "quantity": 30,
+            "actualTotalPaid": 255390,
+            "inputMode": "unit"
+          },
+          {
+            "name": "Strand of Medusa Hair",
+            "quantity": 30,
+            "actualTotalPaid": 37470,
+            "inputMode": "unit"
+          }
+        ],
+        "ingredientCostTotal": 637810,
+        "actualCraftCostTotal": 1187810,
+        "actualCraftCostPerScroll": 593905,
+        "intendedListingPricePerScroll": 950000,
+        "expectedNetPerScroll": 931000,
+        "expectedProfitTotal": 674190,
+        "scannerEstimatedCostTotal": 1351790
+      },
+      "events": [
+        {
+          "type": "SCROLLS_CRAFTED",
+          "at": "2026-07-08T00:17:07.115Z",
+          "quantity": 2,
+          "entryPrice": 593905,
+          "totalCraftCost": 1187810,
+          "multiScroll": true,
+          "actualCostDetails": {
+            "quantity": 2,
+            "multiScroll": true,
+            "craftFeeTotal": 500000,
+            "blankScroll": {
+              "name": "Blank Imbuement Scroll",
+              "quantity": 2,
+              "actualTotalPaid": 50000,
+              "inputMode": "total"
+            },
+            "ingredients": [
+              {
+                "name": "Elvish Talisman",
+                "quantity": 50,
+                "actualTotalPaid": 344950,
+                "inputMode": "unit"
+              },
+              {
+                "name": "Broken Shamanic Staff",
+                "quantity": 30,
+                "actualTotalPaid": 255390,
+                "inputMode": "unit"
+              },
+              {
+                "name": "Strand of Medusa Hair",
+                "quantity": 30,
+                "actualTotalPaid": 37470,
+                "inputMode": "unit"
+              }
+            ],
+            "ingredientCostTotal": 637810,
+            "actualCraftCostTotal": 1187810,
+            "actualCraftCostPerScroll": 593905,
+            "intendedListingPricePerScroll": 950000,
+            "expectedNetPerScroll": 931000,
+            "expectedProfitTotal": 674190,
+            "scannerEstimatedCostTotal": 1351790
+          },
+          "source": "ACCEPTED_SCROLL_CRAFT"
+        },
+        {
+          "type": "LISTED_FOR_SALE",
+          "at": "2026-07-08T14:24:28.319Z",
+          "quantity": 1,
+          "listPrice": 950000,
+          "offerFeePaid": 19000,
+          "source": "ACCEPTED_SCROLL_CRAFT"
+        },
+        {
+          "type": "LISTED_FOR_SALE",
+          "at": "2026-07-08T14:24:33.272Z",
+          "quantity": 1,
+          "listPrice": 950000,
+          "offerFeePaid": 19000,
+          "source": "ACCEPTED_SCROLL_CRAFT"
+        },
+        {
+          "type": "SOLD_ITEMS",
+          "at": "2026-07-08T14:25:37.512Z",
+          "quantity": 2,
+          "sellPrice": 950000,
+          "grossSell": 1900000,
+          "buyOfferFeePaid": 0,
+          "sellOfferFeePaid": 38000,
+          "totalFees": 38000,
+          "netProfit": 674190,
+          "roiPercent": 54.99955131708829,
+          "exitReason": "SOLD_FROM_LISTING_MENU"
+        }
+      ],
+      "lastListPrice": 950000,
+      "lastListedAt": "2026-07-08T14:24:33.272Z",
+      "lastSoldAt": "2026-07-08T14:25:37.512Z",
+      "lastSellPrice": 950000,
+      "closedAt": "2026-07-08T14:25:37.512Z",
+      "finalSellPrice": 950000
+    },
+    {
+      "id": 51451,
+      "name": "Powerful Epiphany Scroll",
+      "createdAt": "2026-07-09T00:37:01.964Z",
+      "openedAt": "2026-07-09T00:37:01.964Z",
+      "flow": "SCROLL_CRAFT_FLOW",
+      "source": "SELL_OFFERS_MENU",
+      "entryPrice": 618600,
+      "averageEntryPrice": 618600,
+      "originalQuantity": 2,
+      "orderedQuantity": 2,
+      "receivedQuantity": 2,
+      "quantity": 0,
+      "listedQuantity": 0,
+      "soldQuantity": 2,
+      "totalListedQuantity": 2,
+      "buyOfferFeePaid": 0,
+      "sellOfferFeePaid": 40000,
+      "targetSell": 1000000,
+      "desiredMargin": 0.06,
+      "entryBrainScore": null,
+      "status": "CLOSED",
+      "lastListPrice": 1000000,
+      "lastListedAt": "2026-07-09T00:37:01.964Z",
+      "events": [
+        {
+          "type": "SCROLLS_CRAFTED",
+          "at": "2026-07-09T00:37:01.964Z",
+          "quantity": 2,
+          "entryPrice": 618600,
+          "totalCraftCost": 1237200,
+          "multiScroll": true,
+          "actualCostDetails": {
+            "quantity": 2,
+            "multiScroll": true,
+            "craftFeeTotal": 500000,
+            "blankScroll": {
+              "name": "Blank Imbuement Scroll",
+              "quantity": 2,
+              "actualTotalPaid": 50000,
+              "inputMode": "total"
+            },
+            "ingredients": [
+              {
+                "name": "Elvish Talisman",
+                "quantity": 50,
+                "actualTotalPaid": 387500,
+                "inputMode": "unit"
+              },
+              {
+                "name": "Broken Shamanic Staff",
+                "quantity": 30,
+                "actualTotalPaid": 265200,
+                "inputMode": "unit"
+              },
+              {
+                "name": "Strand of Medusa Hair",
+                "quantity": 30,
+                "actualTotalPaid": 34500,
+                "inputMode": "unit"
+              }
+            ],
+            "ingredientCostTotal": 687200,
+            "actualCraftCostTotal": 1237200,
+            "actualCraftCostPerScroll": 618600,
+            "intendedListingPricePerScroll": 1000000
+          },
+          "source": "SELL_OFFERS_MENU"
+        },
+        {
+          "type": "LISTED_FOR_SALE",
+          "at": "2026-07-09T00:37:01.964Z",
+          "quantity": 2,
+          "listPrice": 1000000,
+          "offerFeePaid": 40000
+        },
+        {
+          "type": "SOLD_ITEMS",
+          "at": "2026-07-09T23:22:00.688Z",
+          "quantity": 2,
+          "sellPrice": 1000000,
+          "grossSell": 2000000,
+          "buyOfferFeePaid": 0,
+          "sellOfferFeePaid": 40000,
+          "totalFees": 40000,
+          "netProfit": 722800,
+          "roiPercent": 56.59254619480113,
+          "exitReason": "SOLD_FROM_LISTING_MENU"
+        }
+      ],
+      "craft": {
+        "quantity": 2,
+        "multiScroll": true,
+        "craftFeeTotal": 500000,
+        "blankScroll": {
+          "name": "Blank Imbuement Scroll",
+          "quantity": 2,
+          "actualTotalPaid": 50000,
+          "inputMode": "total"
+        },
+        "ingredients": [
+          {
+            "name": "Elvish Talisman",
+            "quantity": 50,
+            "actualTotalPaid": 387500,
+            "inputMode": "unit"
+          },
+          {
+            "name": "Broken Shamanic Staff",
+            "quantity": 30,
+            "actualTotalPaid": 265200,
+            "inputMode": "unit"
+          },
+          {
+            "name": "Strand of Medusa Hair",
+            "quantity": 30,
+            "actualTotalPaid": 34500,
+            "inputMode": "unit"
+          }
+        ],
+        "ingredientCostTotal": 687200,
+        "actualCraftCostTotal": 1237200,
+        "actualCraftCostPerScroll": 618600,
+        "intendedListingPricePerScroll": 1000000
+      },
+      "lastSoldAt": "2026-07-09T23:22:00.688Z",
+      "lastSellPrice": 1000000,
+      "closedAt": "2026-07-09T23:22:00.688Z",
+      "finalSellPrice": 1000000
+    },
+    {
+      "id": 51455,
+      "name": "Powerful Precision Scroll",
+      "createdAt": "2026-07-12T01:12:37.009Z",
+      "openedAt": "2026-07-12T01:12:37.009Z",
+      "flow": "SCROLL_CRAFT_FLOW",
+      "source": "ACCEPTED_SCROLL_CRAFT",
+      "entryPrice": 464330,
+      "averageEntryPrice": 464330,
+      "originalQuantity": 1,
+      "quantity": 0,
+      "orderedQuantity": 1,
+      "receivedQuantity": 1,
+      "listedQuantity": 0,
+      "soldQuantity": 1,
+      "totalListedQuantity": 1,
+      "buyOfferFeePaid": 0,
+      "sellOfferFeePaid": 17800,
+      "targetSell": 890000,
+      "desiredMargin": 0.06,
+      "status": "CLOSED",
+      "craft": {
+        "quantity": 1,
+        "multiScroll": false,
+        "craftFeeTotal": 250000,
+        "blankScroll": {
+          "name": "Blank Imbuement Scroll",
+          "quantity": 1,
+          "actualTotalPaid": 25000,
+          "inputMode": "unit"
+        },
+        "ingredients": [
+          {
+            "name": "Elven Scouting Glass",
+            "quantity": 25,
+            "actualTotalPaid": 24950,
+            "inputMode": "unit"
+          },
+          {
+            "name": "Elven Hoof",
+            "quantity": 20,
+            "actualTotalPaid": 155900,
+            "inputMode": "unit"
+          },
+          {
+            "name": "Metal Spike",
+            "quantity": 10,
+            "actualTotalPaid": 8480,
+            "inputMode": "unit"
+          }
+        ],
+        "ingredientCostTotal": 189330,
+        "actualCraftCostTotal": 464330,
+        "actualCraftCostPerScroll": 464330,
+        "intendedListingPricePerScroll": 890000,
+        "expectedNetPerScroll": 872200,
+        "expectedProfitTotal": 407870,
+        "scannerEstimatedCostTotal": 446530
+      },
+      "events": [
+        {
+          "type": "SCROLLS_CRAFTED",
+          "at": "2026-07-12T01:12:37.009Z",
+          "quantity": 1,
+          "entryPrice": 464330,
+          "totalCraftCost": 464330,
+          "multiScroll": false,
+          "actualCostDetails": {
+            "quantity": 1,
+            "multiScroll": false,
+            "craftFeeTotal": 250000,
+            "blankScroll": {
+              "name": "Blank Imbuement Scroll",
+              "quantity": 1,
+              "actualTotalPaid": 25000,
+              "inputMode": "unit"
+            },
+            "ingredients": [
+              {
+                "name": "Elven Scouting Glass",
+                "quantity": 25,
+                "actualTotalPaid": 24950,
+                "inputMode": "unit"
+              },
+              {
+                "name": "Elven Hoof",
+                "quantity": 20,
+                "actualTotalPaid": 155900,
+                "inputMode": "unit"
+              },
+              {
+                "name": "Metal Spike",
+                "quantity": 10,
+                "actualTotalPaid": 8480,
+                "inputMode": "unit"
+              }
+            ],
+            "ingredientCostTotal": 189330,
+            "actualCraftCostTotal": 464330,
+            "actualCraftCostPerScroll": 464330,
+            "intendedListingPricePerScroll": 890000,
+            "expectedNetPerScroll": 872200,
+            "expectedProfitTotal": 407870,
+            "scannerEstimatedCostTotal": 446530
+          },
+          "source": "ACCEPTED_SCROLL_CRAFT"
+        },
+        {
+          "type": "LISTED_FOR_SALE",
+          "at": "2026-07-12T01:12:37.009Z",
+          "quantity": 1,
+          "listPrice": 890000,
+          "offerFeePaid": 17800,
+          "source": "ACCEPTED_SCROLL_CRAFT"
+        },
+        {
+          "type": "SOLD_ITEMS",
+          "at": "2026-07-13T01:12:26.746Z",
+          "quantity": 1,
+          "sellPrice": 890000,
+          "grossSell": 890000,
+          "buyOfferFeePaid": 0,
+          "sellOfferFeePaid": 17800,
+          "totalFees": 17800,
+          "netProfit": 407870,
+          "roiPercent": 84.59751519299775,
+          "exitReason": "SOLD_FROM_LISTING_MENU"
+        }
+      ],
+      "lastListPrice": 890000,
+      "lastListedAt": "2026-07-12T01:12:37.009Z",
+      "lastSoldAt": "2026-07-13T01:12:26.746Z",
+      "lastSellPrice": 890000,
+      "closedAt": "2026-07-13T01:12:26.746Z",
+      "finalSellPrice": 890000
     }
   ]
 }

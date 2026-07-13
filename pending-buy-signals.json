@@ -47,6 +47,25 @@
       "brain": 97,
       "signalClass": "BUY_CANDIDATE",
       "acceptBuyCommand": "npm run accept-buy -- --item-id 9663 --name \"piece of dead brain\" --qty 3 --buy 19526 --target 21120 --profit-total 3621 --roi 6.00 --quality \"WATCH ONLY\" --quality-score 74 --confidence 74 --brain 97"
+    },
+    {
+      "signature": "23529:10:7027:8358",
+      "status": "PENDING",
+      "seenAt": "2026-07-09T00:37:35.906Z",
+      "lastSeenAt": "2026-07-09T00:37:35.906Z",
+      "itemId": 23529,
+      "name": "ring of blue plasma",
+      "qty": 10,
+      "buyPrice": 7027,
+      "targetSell": 8358,
+      "profitTotal": 4220,
+      "roi": 6.01,
+      "quality": "STRONG BUY",
+      "qualityScore": 100,
+      "confidence": 100,
+      "brain": 100,
+      "signalClass": "CLEAN_BUY",
+      "acceptBuyCommand": "npm run accept-buy -- --item-id 23529 --name \"ring of blue plasma\" --qty 10 --buy 7027 --target 8358 --profit-total 4220 --roi 6.01 --quality \"STRONG BUY\" --quality-score 100 --confidence 100 --brain 100"
     }
   ]
 }

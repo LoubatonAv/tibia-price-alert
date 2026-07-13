@@ -45,7 +45,9 @@
       "marketPressure": 0,
       "marketPressureLevel": "LOW",
       "warnings": [],
-      "notes": []
+      "notes": [],
+      "status": "ALREADY_TRACKED",
+      "lastPromotionAttemptAt": "2026-07-09T00:47:07.601Z"
     },
     {
       "id": 23544,
@@ -83,7 +85,9 @@
       "marketPressure": 7,
       "marketPressureLevel": "LOW",
       "warnings": [],
-      "notes": []
+      "notes": [],
+      "status": "ALREADY_TRACKED",
+      "lastPromotionAttemptAt": "2026-07-09T00:47:07.602Z"
     },
     {
       "id": 9633,
@@ -121,7 +125,9 @@
       "marketPressure": 0,
       "marketPressureLevel": "LOW",
       "warnings": [],
-      "notes": []
+      "notes": [],
+      "status": "ALREADY_TRACKED",
+      "lastPromotionAttemptAt": "2026-07-09T00:47:07.602Z"
     },
     {
       "id": 22721,
@@ -162,7 +168,9 @@
         "Price is above normal. Do not overpay.",
         "Percent margin is thin after tax."
       ],
-      "notes": []
+      "notes": [],
+      "status": "ALREADY_TRACKED",
+      "lastPromotionAttemptAt": "2026-07-09T00:47:07.602Z"
     },
     {
       "id": 11444,
@@ -200,7 +208,9 @@
       "marketPressure": 7,
       "marketPressureLevel": "LOW",
       "warnings": [],
-      "notes": []
+      "notes": [],
+      "status": "ALREADY_TRACKED",
+      "lastPromotionAttemptAt": "2026-07-09T00:47:07.603Z"
     },
     {
       "id": 9663,
@@ -240,7 +250,9 @@
       "warnings": [
         "Price is above normal. Do not overpay."
       ],
-      "notes": []
+      "notes": [],
+      "status": "ALREADY_TRACKED",
+      "lastPromotionAttemptAt": "2026-07-09T00:47:07.603Z"
     },
     {
       "id": 3048,
@@ -280,7 +292,9 @@
       "warnings": [
         "Brain Score is not strong enough for a top-tier conviction label."
       ],
-      "notes": []
+      "notes": [],
+      "status": "ALREADY_TRACKED",
+      "lastPromotionAttemptAt": "2026-07-09T00:47:07.603Z"
     },
     {
       "id": 23543,
@@ -320,7 +334,9 @@
       "warnings": [
         "Brain Score is not strong enough for a top-tier conviction label."
       ],
-      "notes": []
+      "notes": [],
+      "status": "ALREADY_TRACKED",
+      "lastPromotionAttemptAt": "2026-07-09T00:47:07.604Z"
     },
     {
       "id": 813,
@@ -360,7 +376,9 @@
       "warnings": [
         "Raw profit is small, so the trade may not justify attention."
       ],
-      "notes": []
+      "notes": [],
+      "status": "ALREADY_TRACKED",
+      "lastPromotionAttemptAt": "2026-07-09T00:47:07.604Z"
     },
     {
       "id": 11492,
@@ -401,7 +419,9 @@
         "Price is above normal. Do not overpay.",
         "Raw profit is small, so the trade may not justify attention."
       ],
-      "notes": []
+      "notes": [],
+      "status": "ALREADY_TRACKED",
+      "lastPromotionAttemptAt": "2026-07-09T00:47:07.604Z"
     }
   ]
 }
