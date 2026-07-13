@@ -567,6 +567,10 @@ function decide(row) {
 
   if (rawProfit <= 0) return "AVOID";
   if (row.priceSpikeRisk === "HIGH") return "SPECULATIVE";
+  if (priceRealismFactor < 0.7) {
+    if (rawProfit >= 100000 && craftEV >= 50000) return "SPECULATIVE";
+    return "WATCH";
+  }
 
   if (
     rawProfit >= 100000 &&
@@ -883,7 +887,7 @@ function buildDiscordPayloadVerboseLegacy(rows) {
 
 function buildDiscordAcceptCommand(row) {
   const tradeBat = process.env.TIBIA_LOCAL_TRADE_BAT || DEFAULT_LOCAL_TRADE_BAT;
-  return quoteCmdArg(tradeBat) + " accept-scroll " + quoteCmdArg(row.outputName) + " 1";
+  return quoteCmdArg(tradeBat) + " sell-scroll " + quoteCmdArg(row.outputName) + " 1";
 }
 
 function buildDiscordPayload(rows, flags = {}) {
@@ -892,6 +896,7 @@ function buildDiscordPayload(rows, flags = {}) {
   const maxRows = includeAvoid ? 999 : 6;
 
   const bySafeScore = (a, b) => Number(b.safeScore || 0) - Number(a.safeScore || 0);
+  const displayAction = (row) => row.action === "TEST 1x" ? "TRY 1x" : row.action;
   const isStrongSpeculative = (row) =>
     row.action === "SPECULATIVE" &&
     (Number(row.profitNow || 0) >= 100000 || Number(row.safeScore || 0) >= 50000);
@@ -910,57 +915,46 @@ function buildDiscordPayload(rows, flags = {}) {
   const hiddenWeakSpeculativeCount = rows.filter((row) => row.action === "SPECULATIVE" && !isStrongSpeculative(row)).length;
   const hiddenLowPriorityWatchCount = includeAvoid ? 0 : watchRows.filter((row) => !visibleSet.has(row)).length;
 
-  const queueText = (row) =>
-    Number.isFinite(row.estimatedQueueDays) ? row.estimatedQueueDays.toFixed(1) + "d" : "Inf";
-
   const rowTitle = (row, index) =>
-    "#" + (index + 1) + " " + cleanScrollName(row.outputName) + " - " + row.action;
+    "#" + (index + 1) + " " + cleanScrollName(row.outputName) + " - " + displayAction(row);
 
   const profitLine = (row) => {
     const profit = (row.profitNow >= 0 ? "+" : "") + formatCompactGp(row.profitNow);
     const avgProfit = (row.avgProfit >= 0 ? "+" : "") + formatCompactGp(row.avgProfit);
     const safe = (row.safeScore >= 0 ? "+" : "") + formatCompactGp(row.safeScore);
-    return "Profit " + profit + " | Avg " + avgProfit + " | Safe " + safe;
+    return "Profit " + profit + " | Avg " + avgProfit + " | Safe " + safe +
+      " | Sold " + formatCompactGp(row.monthSold) + "/mo | Realism " +
+      (row.priceRealismFactor * 100).toFixed(0) + "%";
+  };
+
+  const riskLines = (row) => {
+    const risks = [];
+    const realism = Number(row.priceRealismFactor || 0);
+    const queueDays = Number(row.estimatedQueueDays);
+
+    if (realism < 0.7) risks.push("low realism, current price may be inflated");
+    if (row.priceSpikeRisk === "HIGH") risks.push("price spike HIGH, current sell is far above average");
+    if (row.ingredientFillRisk === "HIGH") risks.push("Fill HIGH, ingredients may be hard or expensive to buy");
+    if (!Number.isFinite(queueDays) || queueDays > 14) risks.push("Queue unusually bad");
+    if (row.avgProfit < 0) risks.push("Avg profit negative at monthly average price");
+
+    return risks.map((risk) => "Risk: " + risk).join("\n");
   };
 
   const commandText = (row) => {
-    if (row.action === "TEST 1x") {
-      return "\nCMD:\n`" + buildDiscordAcceptCommand(row) + "`" +
-        "\nThis will ask actual ingredient unit prices." +
-        "\nTip: change --qty 1 to --qty 2 if crafting two.";
-    }
-    if (row.action === "SPECULATIVE") {
-      return "\nCMD:\n`" + buildDiscordAcceptCommand(row) + "`" +
-        "\nThis will ask actual ingredient unit prices." +
-        "\nKeep speculative default qty at 1.";
-    }
-    if (row.action === "WATCH" && includeWatchCommands) {
-      return "\nCMD:\n`" + buildDiscordAcceptCommand(row) + "`" +
-        "\nThis will ask actual ingredient unit prices." +
-        "\nWatch command shown because --include-watch-commands was passed.";
-    }
-    return "";
+    return "\nCMD:\n" + buildDiscordAcceptCommand(row);
   };
 
   const fullValue = (row) => {
-    let value =
-      profitLine(row) + "\n" +
-      formatCompactGp(row.monthSold) + "/mo | Queue " + queueText(row) +
-      " | Realism " + (row.priceRealismFactor * 100).toFixed(0) + "% | Fill " + row.ingredientFillRisk +
-      " | Spike " + row.priceSpikeRisk +
-      "\nRecipe: " + formatRecipeText(row);
-
-    if (row.priceSpikeRisk === "HIGH") {
-      value += "\nWarning: current sell far above average. Do not treat as normal craft.";
-    }
-    if (row.avgProfit < 0) value += "\nAvg profit negative at monthly average price.";
-    return value + commandText(row);
+    const riskText = riskLines(row);
+    return profitLine(row) + "\n" +
+      (riskText ? riskText + "\n" : "") +
+      "Recipe: " + formatRecipeText(row) +
+      commandText(row);
   };
 
   const compactValue = (row) =>
-    profitLine(row) + " | " + formatCompactGp(row.monthSold) + "/mo | Queue " + queueText(row) +
-    " | Realism " + (row.priceRealismFactor * 100).toFixed(0) + "%" +
-    "\nRecipe: " + formatRecipeText(row) + commandText(row);
+    fullValue(row);
 
   const addSection = (fields, title, sectionRows, compact = false) => {
     if (sectionRows.length === 0) return;
@@ -973,7 +967,7 @@ function buildDiscordPayload(rows, flags = {}) {
     const pushChunk = () => {
       if (!chunk) return;
       fields.push({
-        name: chunkIndex === 1 ? title : title + " " + chunkIndex,
+        name: title,
         value: chunk,
         inline: false,
       });
@@ -993,35 +987,29 @@ function buildDiscordPayload(rows, flags = {}) {
   };
 
   const fields = [];
-  addSection(fields, "Test 1x candidates", visibleRows.filter((row) => row.action === "TEST 1x"));
-  addSection(fields, "Speculative, not normal craft", visibleRows.filter((row) => row.action === "SPECULATIVE"));
-  addSection(fields, "Watch", visibleRows.filter((row) => row.action === "WATCH"), true);
-  if (includeAvoid) addSection(fields, "Avoid", visibleRows.filter((row) => row.action === "AVOID"), true);
+  addSection(fields, "TRY 1x", visibleRows.filter((row) => row.action === "TEST 1x"));
+  addSection(fields, "SPECULATIVE", visibleRows.filter((row) => row.action === "SPECULATIVE"));
+  addSection(fields, "WATCH", visibleRows.filter((row) => row.action === "WATCH"), true);
+  if (includeAvoid) addSection(fields, "AVOID", visibleRows.filter((row) => row.action === "AVOID"), true);
 
   if (fields.length === 0) {
     fields.push({
       name: "No actionable scrolls",
-      value: "No TEST 1x, strong SPECULATIVE, or WATCH rows passed the default Discord filter.",
+      value: "No TRY 1x, SPECULATIVE, or WATCH rows passed the default Discord filter.",
       inline: false,
     });
   }
 
-  const hiddenParts = [];
-  if (hiddenAvoidCount > 0) hiddenParts.push(hiddenAvoidCount + " AVOID");
-  if (hiddenWeakSpeculativeCount > 0) hiddenParts.push(hiddenWeakSpeculativeCount + " weak speculative");
-  if (hiddenLowPriorityWatchCount > 0) hiddenParts.push(hiddenLowPriorityWatchCount + " low-priority watch");
+  void hiddenAvoidCount;
+  void hiddenWeakSpeculativeCount;
+  void hiddenLowPriorityWatchCount;
   return {
     embeds: [{
       title: "Powerful Scroll Crafting - " + SERVER,
-      description: "Tax included | Blank capped at NPC 25k",
       color: 0x9966ff,
       fields,
       footer: {
-        text:
-          (includeAvoid
-            ? "Showing AVOID rows (--include-avoid)."
-            : "Hidden: " + (hiddenParts.length ? hiddenParts.join(" | ") : "none") + ". Use --include-avoid to show AVOID.") +
-          "\nProfit = current lowest sell | Avg = monthly average | Safe = adjusted risk score",
+        text: "Profit = current sell | Avg = monthly avg | Safe = risk-adjusted",
       },
     }],
   };

@@ -1212,6 +1212,117 @@
       "lastSellPrice": 890000,
       "closedAt": "2026-07-13T01:12:26.746Z",
       "finalSellPrice": 890000
+    },
+    {
+      "id": 51455,
+      "name": "Powerful Precision Scroll",
+      "createdAt": "2026-07-13T01:32:36.210Z",
+      "openedAt": "2026-07-13T01:32:36.210Z",
+      "flow": "SCROLL_CRAFT_FLOW",
+      "source": "ACCEPTED_SCROLL_CRAFT",
+      "entryPrice": 458750,
+      "averageEntryPrice": 458750,
+      "originalQuantity": 2,
+      "quantity": 2,
+      "orderedQuantity": 2,
+      "receivedQuantity": 2,
+      "listedQuantity": 0,
+      "soldQuantity": 0,
+      "totalListedQuantity": 0,
+      "buyOfferFeePaid": 0,
+      "sellOfferFeePaid": 0,
+      "targetSell": null,
+      "desiredMargin": 0.06,
+      "status": "ITEMS_RECEIVED",
+      "craft": {
+        "quantity": 2,
+        "multiScroll": true,
+        "craftFeeTotal": 500000,
+        "blankScroll": {
+          "name": "Blank Imbuement Scroll",
+          "quantity": 2,
+          "actualTotalPaid": 50000,
+          "unitPricePaid": 25000,
+          "inputMode": "unit"
+        },
+        "ingredients": [
+          {
+            "name": "Elven Scouting Glass",
+            "quantity": 50,
+            "actualTotalPaid": 48500,
+            "unitPricePaid": 970,
+            "inputMode": "unit"
+          },
+          {
+            "name": "Elven Hoof",
+            "quantity": 40,
+            "actualTotalPaid": 308000,
+            "unitPricePaid": 7700,
+            "inputMode": "unit"
+          },
+          {
+            "name": "Metal Spike",
+            "quantity": 20,
+            "actualTotalPaid": 11000,
+            "unitPricePaid": 550,
+            "inputMode": "unit"
+          }
+        ],
+        "ingredientCostTotal": 367500,
+        "actualCraftCostTotal": 917500,
+        "actualCraftCostPerScroll": 458750,
+        "scannerEstimatedCostTotal": 893060
+      },
+      "events": [
+        {
+          "type": "SCROLLS_CRAFTED",
+          "at": "2026-07-13T01:32:36.210Z",
+          "quantity": 2,
+          "entryPrice": 458750,
+          "totalCraftCost": 917500,
+          "multiScroll": true,
+          "actualCostDetails": {
+            "quantity": 2,
+            "multiScroll": true,
+            "craftFeeTotal": 500000,
+            "blankScroll": {
+              "name": "Blank Imbuement Scroll",
+              "quantity": 2,
+              "actualTotalPaid": 50000,
+              "unitPricePaid": 25000,
+              "inputMode": "unit"
+            },
+            "ingredients": [
+              {
+                "name": "Elven Scouting Glass",
+                "quantity": 50,
+                "actualTotalPaid": 48500,
+                "unitPricePaid": 970,
+                "inputMode": "unit"
+              },
+              {
+                "name": "Elven Hoof",
+                "quantity": 40,
+                "actualTotalPaid": 308000,
+                "unitPricePaid": 7700,
+                "inputMode": "unit"
+              },
+              {
+                "name": "Metal Spike",
+                "quantity": 20,
+                "actualTotalPaid": 11000,
+                "unitPricePaid": 550,
+                "inputMode": "unit"
+              }
+            ],
+            "ingredientCostTotal": 367500,
+            "actualCraftCostTotal": 917500,
+            "actualCraftCostPerScroll": 458750,
+            "scannerEstimatedCostTotal": 893060
+          },
+          "source": "ACCEPTED_SCROLL_CRAFT"
+        }
+      ]
     }
   ]
 }

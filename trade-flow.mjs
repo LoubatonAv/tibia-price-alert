@@ -1,5 +1,5 @@
 ﻿import fs from "fs";
-import readline from "node:readline/promises";
+import readline from "node:readline";
 import { stdin as input, stdout as output } from "node:process";
 import { spawnSync } from "node:child_process";
 import { getItemMap } from "./lib/market.js";
@@ -16,6 +16,9 @@ const RECIPES_FILE = "./data/scroll-recipes.json";
 const BLANK_SCROLL_NAME = "Blank Imbuement Scroll";
 const BLANK_NPC_PRICE = 25000;
 const POWERFUL_CRAFT_FEE = 250000;
+let questionInterface = null;
+const queuedAnswers = [];
+const pendingAnswerResolvers = [];
 
 function loadPositions() {
   if (!fs.existsSync(POSITIONS_FILE)) return { positions: [] };
@@ -81,10 +84,14 @@ async function askMoney(prompt, defaultValue = null) {
   return parseMoney(answer, prompt);
 }
 
-async function askCost(name, quantity, defaultUnit = null) {
-  console.log(`${name} - required ${quantity}`);
+async function askCost(name, quantity, defaultUnit = null, details = null) {
+  if (details?.perScroll && details?.scrollQuantity) {
+    console.log(`${name} - required ${quantity} total (${details.perScroll} per scroll x ${details.scrollQuantity})`);
+  } else {
+    console.log(`${name} - required ${quantity}`);
+  }
   const suffix = defaultUnit == null ? "" : ` [${Math.round(defaultUnit)}]`;
-  const answer = await question(`Unit price paid${suffix}, or total:VALUE: `);
+  const answer = await question(`Unit price paid${suffix}: `);
   const value = !answer && defaultUnit != null ? String(defaultUnit) : answer;
   const parsed = parseCostValue(value, quantity, name);
   console.log(`${name}: ${quantity} x ${formatGp(parsed.unitPrice)} = ${formatGp(parsed.total)} gp`);
@@ -185,10 +192,29 @@ function activeListings(data) {
 }
 
 async function question(text) {
-  const rl = readline.createInterface({ input, output });
-  const answer = await rl.question(text);
-  rl.close();
-  return answer.trim();
+  if (!questionInterface) {
+    questionInterface = readline.createInterface({ input, output, terminal: Boolean(input.isTTY) });
+    questionInterface.on("line", (line) => {
+      const resolve = pendingAnswerResolvers.shift();
+      if (resolve) resolve(line);
+      else queuedAnswers.push(line);
+    });
+    questionInterface.on("close", () => {
+      while (pendingAnswerResolvers.length > 0) pendingAnswerResolvers.shift()("");
+    });
+  }
+
+  output.write(text);
+  if (queuedAnswers.length > 0) return String(queuedAnswers.shift()).trim();
+
+  const answer = await new Promise((resolve) => pendingAnswerResolvers.push(resolve));
+  return String(answer).trim();
+}
+
+function closeQuestionInterface() {
+  if (!questionInterface) return;
+  questionInterface.close();
+  questionInterface = null;
 }
 
 async function yesNo(text) {
@@ -489,6 +515,7 @@ function buildListedPosition({
   entryPrice,
   listPrice,
   flow,
+  type = null,
   source,
   desiredMargin = 0,
   craft = null,
@@ -499,9 +526,11 @@ function buildListedPosition({
   const position = {
     id: item.id,
     name: item.name,
+    itemName: item.name,
     createdAt: now,
     openedAt: now,
     flow,
+    type: type || flow,
     source,
     entryPrice,
     averageEntryPrice: entryPrice,
@@ -548,6 +577,15 @@ function printSellOfferPreview(position) {
   console.log(`Entry cost each: ${formatGp(position.entryPrice)} gp`);
   console.log(`List price each: ${formatGp(position.lastListPrice)} gp`);
   console.log(`Sell offer fee: ${formatGp(position.sellOfferFeePaid)} gp`);
+  if (position.craft) {
+    console.log("\nCraft cost breakdown:");
+    for (const ingredient of position.craft.ingredients || []) {
+      console.log(`- ${ingredient.name}: ${ingredient.quantity} x ${formatGp(ingredient.unitPricePaid)} = ${formatGp(ingredient.actualTotalPaid)} gp`);
+    }
+    console.log(`- ${position.craft.blankScroll.name}: ${position.craft.blankScroll.quantity} x ${formatGp(position.craft.blankScroll.unitPricePaid)} = ${formatGp(position.craft.blankScroll.actualTotalPaid)} gp`);
+    console.log(`- Craft fee: ${position.craft.quantity} x ${formatGp(position.craft.craftFeePerScroll)} = ${formatGp(position.craft.craftFeeTotal)} gp`);
+    console.log(`Total cost basis: ${formatGp(position.craft.actualCraftCostTotal)} gp`);
+  }
   console.log(`Status: ${position.status}`);
   console.log("Would appear in SOLD / CANCEL: yes");
 }
@@ -629,7 +667,7 @@ async function runCreateFlipSellOffer(flags) {
 }
 
 async function runCreateScrollSellOffer(flags) {
-  console.log("\nCREATE NEW SELL OFFER - CRAFTED SCROLL FLIP\n");
+  console.log("\nCREATE NEW SELL OFFER - CRAFTED SCROLL\n");
   const scrollName = flags.scroll || await question("Scroll name: ");
   const recipe = findRecipe(scrollName);
   if (!recipe) throw new Error(`Scroll recipe not found: ${scrollName}`);
@@ -639,56 +677,59 @@ async function runCreateScrollSellOffer(flags) {
   const quantity = Number(flags.qty || await question("Quantity crafted: "));
   if (!Number.isFinite(quantity) || quantity <= 0) throw new Error("Quantity must be greater than zero.");
 
+  const listPrice = flags["list-price"] == null
+    ? await askMoney(`Listing unit price for ${recipe.outputName}`)
+    : parseMoney(flags["list-price"], "--list-price");
+  if (listPrice <= 0) throw new Error("Listing price must be greater than zero.");
+
   console.log("\nRequired ingredients:");
   const actualIngredients = [];
   for (const ingredient of recipe.ingredients) {
     const requiredQty = Number(ingredient.qty) * quantity;
-    console.log(`${requiredQty}x ${ingredient.name}`);
+    console.log(`${requiredQty}x ${ingredient.name} (${ingredient.qty} per scroll x ${quantity})`);
   }
-  console.log(`${quantity}x ${BLANK_SCROLL_NAME}`);
-  console.log(`Craft fee: ${formatGp(POWERFUL_CRAFT_FEE * quantity)} gp`);
+  console.log(`${quantity}x ${BLANK_SCROLL_NAME} @ ${formatGp(BLANK_NPC_PRICE)} gp each`);
+  console.log(`Craft fee: ${quantity} x ${formatGp(POWERFUL_CRAFT_FEE)} gp`);
 
   for (const ingredient of recipe.ingredients) {
     const requiredQty = Number(ingredient.qty) * quantity;
     const flagKey = "price-" + normalizeName(ingredient.name).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
     const cost = flags[flagKey] == null
-      ? await askCost(ingredient.name, requiredQty)
+      ? await askCost(ingredient.name, requiredQty, null, { perScroll: Number(ingredient.qty), scrollQuantity: quantity })
       : parseCostValue(flags[flagKey], requiredQty, `--${flagKey}`);
     actualIngredients.push({
       name: ingredient.name,
       quantity: requiredQty,
+      perScroll: Number(ingredient.qty),
+      unitPricePaid: cost.unitPrice,
       actualTotalPaid: cost.total,
       inputMode: cost.inputMode,
     });
   }
 
-  const blankCost = flags["blank-cost"] == null
-    ? await askCost(BLANK_SCROLL_NAME, quantity, BLANK_NPC_PRICE)
-    : parseCostValue(flags["blank-cost"], quantity, "--blank-cost");
-  const listPrice = flags["list-price"] == null
-    ? await askMoney("Listing price per scroll")
-    : parseMoney(flags["list-price"], "--list-price");
-  if (listPrice <= 0) throw new Error("Listing price must be greater than zero.");
-
   const ingredientCostTotal = actualIngredients.reduce((sum, ingredient) => sum + ingredient.actualTotalPaid, 0);
+  const blankCostTotal = BLANK_NPC_PRICE * quantity;
   const craftFeeTotal = POWERFUL_CRAFT_FEE * quantity;
-  const actualCraftCostTotal = ingredientCostTotal + blankCost.total + craftFeeTotal;
+  const actualCraftCostTotal = ingredientCostTotal + blankCostTotal + craftFeeTotal;
   const actualCraftCostPerScroll = actualCraftCostTotal / quantity;
   const craft = {
     quantity,
     multiScroll: quantity > 1,
+    craftFeePerScroll: POWERFUL_CRAFT_FEE,
     craftFeeTotal,
     blankScroll: {
       name: BLANK_SCROLL_NAME,
       quantity,
-      actualTotalPaid: blankCost.total,
-      inputMode: blankCost.inputMode,
+      unitPricePaid: BLANK_NPC_PRICE,
+      actualTotalPaid: blankCostTotal,
+      inputMode: "fixed_npc_price",
     },
     ingredients: actualIngredients,
     ingredientCostTotal,
+    blankScrollCostTotal: blankCostTotal,
     actualCraftCostTotal,
     actualCraftCostPerScroll,
-    intendedListingPricePerScroll: listPrice,
+    listingUnitPrice: listPrice,
   };
 
   const position = buildListedPosition({
@@ -696,17 +737,20 @@ async function runCreateScrollSellOffer(flags) {
     quantity,
     entryPrice: actualCraftCostPerScroll,
     listPrice,
-    flow: "SCROLL_CRAFT_FLOW",
+    flow: "CRAFTED_SCROLL_SELL_OFFER",
+    type: "SCROLL_CRAFT_SELL_OFFER",
     source: "SELL_OFFERS_MENU",
     desiredMargin: 0.06,
     craft,
-    openingEventType: "SCROLLS_CRAFTED",
+    openingEventType: "SCROLL_CRAFT_SELL_OFFER_CREATED",
   });
+  position.notes = `Crafted scroll listed directly for sale. Cost basis includes ingredients, ${formatGp(BLANK_NPC_PRICE)} gp blank scroll, and ${formatGp(POWERFUL_CRAFT_FEE)} gp craft fee per scroll.`;
   position.events[0] = {
-    type: "SCROLLS_CRAFTED",
+    type: "SCROLL_CRAFT_SELL_OFFER_CREATED",
     at: position.createdAt,
     quantity,
     entryPrice: actualCraftCostPerScroll,
+    listPrice,
     totalCraftCost: actualCraftCostTotal,
     multiScroll: quantity > 1,
     actualCostDetails: craft,
@@ -834,7 +878,7 @@ try {
   else if (action === "list") await runList();
   else if (action === "create-sell-manual") await runCreateManualSellOffer(flags);
   else if (action === "create-sell-flip") await runCreateFlipSellOffer(flags);
-  else if (action === "create-sell-scroll") await runCreateScrollSellOffer(flags);
+  else if (action === "create-sell-scroll" || action === "sell-scroll") await runCreateScrollSellOffer(flags);
   else if (action === "sold") await runSold();
   else if (action === "cancel-listing") await runCancelListing();
   else if (action === "add-loot") await runAddLoot();
@@ -848,6 +892,7 @@ Usage:
   node trade-flow.mjs create-sell-manual [--dry-run]
   node trade-flow.mjs create-sell-flip [--dry-run]
   node trade-flow.mjs create-sell-scroll [--dry-run]
+  node trade-flow.mjs sell-scroll --scroll "Powerful Precision Scroll" --qty 2 [--list-price 1500000] [--dry-run]
   node trade-flow.mjs sold
   node trade-flow.mjs cancel-listing
   node trade-flow.mjs add-loot
@@ -857,6 +902,8 @@ Usage:
   }
 } catch (error) {
   console.log(`\nError: ${error.message}`);
-  process.exit(1);
+  process.exitCode = 1;
+} finally {
+  closeQuestionInterface();
 }
 

@@ -5,6 +5,7 @@ cd /d "%~dp0"
 
 if /i "%~1"=="accept-scroll" goto arg_accept_scroll
 if /i "%~1"=="mark-scroll-listed" goto arg_mark_scroll_listed
+if /i "%~1"=="sell-scroll" goto arg_sell_scroll
 if not "%~1"=="" goto arg_unknown
 
 :menu
@@ -64,7 +65,7 @@ echo 3. Create new flip sell offer
 echo    - Use when you bought an item and want to list it immediately.
 echo.
 echo 4. Create crafted scroll sell offer
-echo    - Requires ingredient costs, blank scroll cost, craft fee, and list price.
+echo    - Saves crafted scrolls directly as active listed sell offers.
 echo.
 echo 5. Mark active sell offer as SOLD
 echo.
@@ -394,6 +395,26 @@ if defined LIST_PRICE (
 )
 exit /b %ERRORLEVEL%
 
+:arg_sell_scroll
+if "%~2"=="" goto arg_usage
+set "SCROLL_NAME=%~2"
+set "SCROLL_QTY=%~3"
+if not defined SCROLL_QTY set "SCROLL_QTY=1"
+echo(%SCROLL_QTY%| findstr /r "^[1-9][0-9]*$" >nul
+if errorlevel 1 goto arg_usage
+shift
+shift
+shift
+set "EXTRA_ARGS="
+:arg_sell_scroll_extra
+if "%~1"=="" goto arg_sell_scroll_run
+set EXTRA_ARGS=%EXTRA_ARGS% "%~1"
+shift
+goto arg_sell_scroll_extra
+:arg_sell_scroll_run
+call npm run flow-sell-scroll -- --scroll "%SCROLL_NAME%" --qty %SCROLL_QTY% %EXTRA_ARGS%
+exit /b %ERRORLEVEL%
+
 :arg_unknown
 echo Unknown command: %~1
 echo.
@@ -401,10 +422,13 @@ goto arg_usage
 
 :arg_usage
 echo Usage:
+echo   "%~f0" sell-scroll "Powerful Epiphany Scroll" [qty] [extra args]
 echo   "%~f0" accept-scroll "Powerful Epiphany Scroll" [qty] [extra args]
 echo   "%~f0" mark-scroll-listed "Powerful Epiphany Scroll" [qty] [list price] [extra args]
 echo.
 echo Examples:
+echo   "%~f0" sell-scroll "Powerful Epiphany Scroll" 1
+echo   "%~f0" sell-scroll "Powerful Epiphany Scroll" 2 --list-price 1500000 --dry-run
 echo   "%~f0" accept-scroll "Powerful Epiphany Scroll" 1
 echo   "%~f0" accept-scroll "Powerful Epiphany Scroll" 2 --dry-run
 echo   "%~f0" mark-scroll-listed "Powerful Epiphany Scroll" 1 950000 --dry-run
